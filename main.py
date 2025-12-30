@@ -31,9 +31,8 @@ def cli(ctx, config):
 @click.option('--all-pages', is_flag=True, help='Fetch all pages until no more results')
 @click.option('--rate-limit', type=int, default=200, help='Rate limit in requests per minute (default: 200)')
 @click.option('--api-key', help='Limitless API key (overrides config)')
-@click.option('--force', is_flag=True, help='Re-scrape existing tournaments')
 @click.pass_context
-def limitless(ctx, format_filter, limit, since, page, all_pages, rate_limit, api_key, force):
+def limitless(ctx, format_filter, limit, since, page, all_pages, rate_limit, api_key):
     config = ctx.obj['config']
     api_key = api_key or config.limitless_api_key
 
@@ -44,7 +43,7 @@ def limitless(ctx, format_filter, limit, since, page, all_pages, rate_limit, api
     db = Database(config.db_path)
     scraper = LimitlessScraper(db, api_key, rate_limit)
 
-    logger.info("Starting Limitless scraper", format=format_filter, limit=limit, since=since, page=page, all_pages=all_pages, rate_limit=rate_limit, force=force)
+    logger.info("Starting Limitless scraper", format=format_filter, limit=limit, since=since, page=page, all_pages=all_pages, rate_limit=rate_limit)
 
     kwargs = {}
     if format_filter:
@@ -57,8 +56,6 @@ def limitless(ctx, format_filter, limit, since, page, all_pages, rate_limit, api
         kwargs['page'] = page
     if all_pages:
         kwargs['all_pages'] = all_pages
-    if force:
-        kwargs['force'] = force
 
     results = scraper.scrape(**kwargs)
 

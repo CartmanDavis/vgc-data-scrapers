@@ -3,6 +3,7 @@ from utils.api import APIClient
 from typing import Dict, Any, List, Optional
 from utils.logging import setup_logging
 from datetime import datetime
+import json
 
 logger = setup_logging()
 
@@ -20,7 +21,6 @@ class LimitlessScraper(BaseScraper):
         since_date = kwargs.get('since')
         page = kwargs.get('page', 1)
         all_pages = kwargs.get('all_pages', False)
-        force = kwargs.get('force', False)
 
         if not self.api_key:
             logger.error("Limitless API key not provided")
@@ -41,17 +41,22 @@ class LimitlessScraper(BaseScraper):
                 params["format"] = format_filter
             params["page"] = current_page
             
+            logger.info("Fetching tournaments", page=current_page, format=format_filter, params=params)
+            
             # Map format filter values to API format strings
             if format_filter and format_filter.lower() in ['svf', 'reg f']:
                 params["format"] = format_filter.upper()
             elif format_filter:
                 # Keep original format if not one of our mapped values
                 params["format"] = format_filter
-
+            
             tournaments_data = client.get("/tournaments", params=params)
-            if not tournaments_data:
-                logger.error("Failed to fetch tournaments")
-                return {"success": False, "error": "Failed to fetch tournaments"}
+            if isinstance(tournaments_data, dict) and "error" in tournaments_data:
+                logger.error("Failed to fetch tournaments", error=str(tournaments_data.get("error")))
+                break
+            elif not tournaments_data or (isinstance(tournaments_data, list) and len(tournaments_data) == 0):
+                logger.info("No tournaments on this page, stopping pagination", page=current_page)
+                break
 
             tournaments = tournaments_data if isinstance(tournaments_data, list) else tournaments_data.get("data", [])
 
@@ -82,18 +87,11 @@ class LimitlessScraper(BaseScraper):
         results = {
             "success": True,
             "tournaments_scraped": 0,
-            "players_scraped": 0,
-            "teams_scraped": 0,
-            "matches_scraped": 0
+            "raw_responses_stored": 0
         }
 
         for tournament_data in all_tournaments:
-            if self.tournament_exists(tournament_data["id"]) and not force:
-                logger.info("Tournament already exists, skipping", id=tournament_data["id"])
-                continue
-
-            self._scrape_tournament(client, tournament_data, results, force=force)
-            results["tournaments_scraped"] += 1
+            self._scrape_tournament(client, tournament_data, results)
 
         return results
 
@@ -118,182 +116,48 @@ class LimitlessScraper(BaseScraper):
             logger.error("Invalid since date format. Use YYYY-MM-DD", since=since_date)
             return tournaments
 
-    def _scrape_tournament(self, client: APIClient, tournament_data: Dict[str, Any], results: Dict[str, Any], force: bool = False):
+    def _raw_data_exists(self, tournament_id: str) -> bool:
+        cursor = self.db.conn.cursor()
+        cursor.execute("""
+            SELECT COUNT(*) FROM limitless_api_raw_data 
+            WHERE id = ?
+        """, (tournament_id,))
+        count = cursor.fetchone()[0]
+        return count > 0
+
+    def _store_raw_response(self, tournament_id: str, details: dict, standings: dict, pairings: dict) -> None:
+        cursor = self.db.conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO limitless_api_raw_data (id, details, standings, pairings)
+            VALUES (?, ?, ?, ?)
+        """, (tournament_id, 
+              json.dumps(details),
+              json.dumps(standings),
+              json.dumps(pairings)))
+        self.db.conn.commit()
+
+    def _scrape_tournament(self, client: APIClient, tournament_data: Dict[str, Any], results: Dict[str, Any]) -> None:
         tournament_id = tournament_data["id"]
 
         logger.info("Scraping tournament", id=tournament_id, name=tournament_data.get("name"))
 
-        generation, format_name = self.parse_format(tournament_data.get("format", ""))
+        # Skip if raw data already exists
+        if self._raw_data_exists(tournament_id):
+            logger.info("Raw data already exists, skipping", id=tournament_id)
+            return
 
-        cursor = self.db.conn.cursor()
-        
-        if self.tournament_exists(tournament_id):
-            if force:
-                cursor.execute("DELETE FROM match_participants WHERE match_id IN (SELECT id FROM matches WHERE tournament_id = ?)", (tournament_id,))
-                cursor.execute("DELETE FROM matches WHERE tournament_id = ?", (tournament_id,))
-                cursor.execute("DELETE FROM moves WHERE pokemon_set_id IN (SELECT id FROM pokemon_sets WHERE team_id IN (SELECT id FROM teams WHERE tournament_id = ?))", (tournament_id,))
-                cursor.execute("DELETE FROM pokemon_sets WHERE team_id IN (SELECT id FROM teams WHERE tournament_id = ?)", (tournament_id,))
-                cursor.execute("DELETE FROM teams WHERE tournament_id = ?", (tournament_id,))
-                cursor.execute("DELETE FROM tournaments WHERE id = ?", (tournament_id,))
-                logger.info("Deleted existing tournament data for re-scraping", id=tournament_id)
-            else:
-                return
+        # Fetch and store raw responses for all 3 endpoints
+        details_response = client.get(f"/tournaments/{tournament_id}/details")
+        standings_response = client.get(f"/tournaments/{tournament_id}/standings")
+        pairings_response = client.get(f"/tournaments/{tournament_id}/pairings")
 
-        cursor.execute("""
-            INSERT INTO tournaments (id, name, date, location, generation, format, official)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            tournament_id,
-            tournament_data.get("name"),
-            tournament_data.get("date"),
-            tournament_data.get("location"),
-            generation,
-            format_name,
-            False
-        ))
-        self.db.conn.commit()
-
-        standings_data = client.get(f"/tournaments/{tournament_id}/standings")
-        if standings_data:
-            standings_list = standings_data if isinstance(standings_data, list) else standings_data.get("data", [])
-            logger.info("Processing standings", count=len(standings_list))
-            self._process_standings(standings_list, tournament_id)
-
-        pairings_data = client.get(f"/tournaments/{tournament_id}/pairings")
-        logger.info("Pairings API response", data_type=type(pairings_data), has_data=bool(pairings_data))
-        
-        if pairings_data:
-            pairings_list = pairings_data if isinstance(pairings_data, list) else pairings_data.get("data", [])
-            players_in_matches, teams_in_matches, matches_in_tournament = self._process_pairings(pairings_list, tournament_id)
-
-            results["players_scraped"] = len(players_in_matches)
-            results["teams_scraped"] = len(teams_in_matches)
-            results["matches_scraped"] = len(matches_in_tournament)
-
-            results["players_scraped"] = len(players_in_matches)
-            results["teams_scraped"] = len(teams_in_matches)
-            results["matches_scraped"] = len(matches_in_tournament)
-
-    def _process_standings(self, standings: List[Dict[str, Any]], tournament_id: str):
-        cursor = self.db.conn.cursor()
-
-        players_in_this_tournament = set()
-
-        for entry in standings:
-            player_id = self.get_or_create_player(
-                entry.get("name"),
-                entry.get("country")
+        if details_response or standings_response or pairings_response:
+            self._store_raw_response(
+                tournament_id,
+                details_response or {},
+                standings_response or {},
+                pairings_response or {}
             )
+            results["raw_responses_stored"] = results.get("raw_responses_stored", 0) + 1
 
-            team_id = self.get_or_create_team(player_id, tournament_id)
-
-            if player_id not in players_in_this_tournament:
-                players_in_this_tournament.add(player_id)
-
-                decklist = entry.get("decklist", [])
-                for pokemon in decklist:
-                    pokemon_set_id = self._create_pokemon_set(
-                        team_id,
-                        pokemon.get("name"),
-                        pokemon.get("item"),
-                        pokemon.get("ability"),
-                        pokemon.get("tera")
-                    )
-
-                    attacks = pokemon.get("attacks", [])
-                    for attack in attacks:
-                        self._create_move(pokemon_set_id, attack)
-
-            logger.debug("Processed player", player_id=player_id, team_id=team_id, pokemon_count=len(decklist))
-
-    def _process_pairings(self, pairings: List[Dict[str, Any]], tournament_id: str) -> set:
-        cursor = self.db.conn.cursor()
-
-        players_in_matches = set()
-        teams_in_matches = set()
-        matches_in_tournament = set()
-
-        for pairing in pairings:
-            round_num = pairing.get("round")
-            table_num = pairing.get("table")
-
-            cursor.execute("""
-                INSERT INTO matches (tournament_id, round_number, table_number)
-                VALUES (?, ?, ?)
-            """, (tournament_id, round_num, table_num))
-            match_id = cursor.lastrowid
-            matches_in_tournament.add(match_id)
-
-            player1_name = pairing.get("player1")
-            player2_name = pairing.get("player2")
-
-            winner_name = pairing.get("winner")
-            player1_score, player2_score = self._parse_winner(winner_name, player1_name, player2_name)
-
-            if player1_name:
-                player1_id = self.get_or_create_player(player1_name)
-                if player1_id not in players_in_matches:
-                    players_in_matches.add(player1_id)
-
-                team1_id = self.get_or_create_team(player1_id, tournament_id)
-                if team1_id not in teams_in_matches:
-                    teams_in_matches.add(team1_id)
-
-                cursor.execute("""
-                    INSERT INTO match_participants (match_id, player_id, team_id, score)
-                    VALUES (?, ?, ?, ?)
-                """, (match_id, player1_id, team1_id, player1_score))
-
-            if player2_name:
-                player2_id = self.get_or_create_player(player2_name)
-                if player2_id not in players_in_matches:
-                    players_in_matches.add(player2_id)
-
-                team2_id = self.get_or_create_team(player2_id, tournament_id)
-                if team2_id not in teams_in_matches:
-                    teams_in_matches.add(team2_id)
-
-                cursor.execute("""
-                    INSERT INTO match_participants (match_id, player_id, team_id, score)
-                    VALUES (?, ?, ?, ?)
-                """, (match_id, player2_id, team2_id, player2_score))
-
-        self.db.conn.commit()
-
-        return players_in_matches, teams_in_matches, matches_in_tournament
-
-    def _get_player_name(self, player_id: Optional[str]) -> Optional[str]:
-        if not player_id:
-            return None
-
-        cursor = self.db.conn.cursor()
-        cursor.execute("SELECT name FROM players WHERE id = ?", (int(player_id[1:]),))
-        row = cursor.fetchone()
-        return row[0] if row else None
-
-    def _create_pokemon_set(self, team_id: int, name: str, item: str, ability: str, tera_type: str) -> int:
-        cursor = self.db.conn.cursor()
-        cursor.execute("""
-            INSERT INTO pokemon_sets (team_id, species, item, ability, tera_type)
-            VALUES (?, ?, ?, ?, ?)
-        """, (team_id, name, item, ability, tera_type))
-        self.db.conn.commit()
-        return cursor.lastrowid
-
-    def _create_move(self, pokemon_set_id: int, move_name: str):
-        cursor = self.db.conn.cursor()
-        cursor.execute("""
-            INSERT INTO moves (pokemon_set_id, move_name)
-            VALUES (?, ?)
-        """, (pokemon_set_id, move_name))
-        self.db.conn.commit()
-
-    def _parse_winner(self, winner_name: Optional[str], player1_name: Optional[str], player2_name: Optional[str]) -> tuple[int, int]:
-        if not winner_name:
-            return 0, 0
-        if winner_name == player1_name:
-            return 1, 0
-        elif winner_name == player2_name:
-            return 0, 1
-        else:
-            return 0, 0
+        logger.info("Raw data stored", tournament_id=tournament_id)

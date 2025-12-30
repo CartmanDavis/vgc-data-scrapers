@@ -73,6 +73,7 @@ class Database:
                 tournament_id TEXT NOT NULL,
                 round_number INTEGER NOT NULL,
                 table_number INTEGER,
+                phase INTEGER,
                 FOREIGN KEY (tournament_id) REFERENCES tournaments(id)
             )
         """)
@@ -88,6 +89,17 @@ class Database:
                 FOREIGN KEY (player_id) REFERENCES players(id),
                 FOREIGN KEY (team_id) REFERENCES teams(id),
                 UNIQUE(match_id, player_id)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS limitless_api_raw_data (
+                id TEXT PRIMARY KEY,
+                details TEXT,
+                standings TEXT,
+                pairings TEXT,
+                UNIQUE(id),
+                FOREIGN KEY (id) REFERENCES tournaments(id) ON DELETE CASCADE
             )
         """)
 
