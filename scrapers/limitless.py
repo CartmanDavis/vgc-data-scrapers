@@ -20,6 +20,7 @@ class LimitlessScraper(BaseScraper):
         since_date = kwargs.get('since')
         page = kwargs.get('page', 1)
         all_pages = kwargs.get('all_pages', False)
+        force = kwargs.get('force', False)
 
         if not self.api_key:
             logger.error("Limitless API key not provided")
@@ -39,6 +40,13 @@ class LimitlessScraper(BaseScraper):
             if format_filter:
                 params["format"] = format_filter
             params["page"] = current_page
+            
+            # Map format filter values to API format strings
+            if format_filter and format_filter.lower() in ['svf', 'reg f']:
+                params["format"] = format_filter.upper()
+            elif format_filter:
+                # Keep original format if not one of our mapped values
+                params["format"] = format_filter
 
             tournaments_data = client.get("/tournaments", params=params)
             if not tournaments_data:
@@ -80,11 +88,11 @@ class LimitlessScraper(BaseScraper):
         }
 
         for tournament_data in all_tournaments:
-            if self.tournament_exists(tournament_data["id"]):
+            if self.tournament_exists(tournament_data["id"]) and not force:
                 logger.info("Tournament already exists, skipping", id=tournament_data["id"])
                 continue
 
-            self._scrape_tournament(client, tournament_data, results)
+            self._scrape_tournament(client, tournament_data, results, force=force)
             results["tournaments_scraped"] += 1
 
         return results
@@ -110,7 +118,7 @@ class LimitlessScraper(BaseScraper):
             logger.error("Invalid since date format. Use YYYY-MM-DD", since=since_date)
             return tournaments
 
-    def _scrape_tournament(self, client: APIClient, tournament_data: Dict[str, Any], results: Dict[str, Any]):
+    def _scrape_tournament(self, client: APIClient, tournament_data: Dict[str, Any], results: Dict[str, Any], force: bool = False):
         tournament_id = tournament_data["id"]
 
         logger.info("Scraping tournament", id=tournament_id, name=tournament_data.get("name"))
@@ -118,6 +126,19 @@ class LimitlessScraper(BaseScraper):
         generation, format_name = self.parse_format(tournament_data.get("format", ""))
 
         cursor = self.db.conn.cursor()
+        
+        if self.tournament_exists(tournament_id):
+            if force:
+                cursor.execute("DELETE FROM match_participants WHERE match_id IN (SELECT id FROM matches WHERE tournament_id = ?)", (tournament_id,))
+                cursor.execute("DELETE FROM matches WHERE tournament_id = ?", (tournament_id,))
+                cursor.execute("DELETE FROM moves WHERE pokemon_set_id IN (SELECT id FROM pokemon_sets WHERE team_id IN (SELECT id FROM teams WHERE tournament_id = ?))", (tournament_id,))
+                cursor.execute("DELETE FROM pokemon_sets WHERE team_id IN (SELECT id FROM teams WHERE tournament_id = ?)", (tournament_id,))
+                cursor.execute("DELETE FROM teams WHERE tournament_id = ?", (tournament_id,))
+                cursor.execute("DELETE FROM tournaments WHERE id = ?", (tournament_id,))
+                logger.info("Deleted existing tournament data for re-scraping", id=tournament_id)
+            else:
+                return
+
         cursor.execute("""
             INSERT INTO tournaments (id, name, date, location, generation, format, official)
             VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -203,12 +224,11 @@ class LimitlessScraper(BaseScraper):
             match_id = cursor.lastrowid
             matches_in_tournament.add(match_id)
 
-            player1_name = self._get_player_name(pairing.get("player1Id"))
-            player2_name = self._get_player_name(pairing.get("player2Id"))
+            player1_name = pairing.get("player1")
+            player2_name = pairing.get("player2")
 
-            result = pairing.get("result", "")
-
-            player1_score, player2_score = self._parse_result(result)
+            winner_name = pairing.get("winner")
+            player1_score, player2_score = self._parse_winner(winner_name, player1_name, player2_name)
 
             if player1_name:
                 player1_id = self.get_or_create_player(player1_name)
@@ -238,9 +258,9 @@ class LimitlessScraper(BaseScraper):
                     VALUES (?, ?, ?, ?)
                 """, (match_id, player2_id, team2_id, player2_score))
 
-        return players_in_matches, teams_in_matches, matches_in_tournament
-
         self.db.conn.commit()
+
+        return players_in_matches, teams_in_matches, matches_in_tournament
 
     def _get_player_name(self, player_id: Optional[str]) -> Optional[str]:
         if not player_id:
@@ -268,15 +288,12 @@ class LimitlessScraper(BaseScraper):
         """, (pokemon_set_id, move_name))
         self.db.conn.commit()
 
-    def _parse_result(self, result: str) -> tuple[int, int]:
-        if not result:
+    def _parse_winner(self, winner_name: Optional[str], player1_name: Optional[str], player2_name: Optional[str]) -> tuple[int, int]:
+        if not winner_name:
             return 0, 0
-
-        parts = result.split("-")
-        if len(parts) == 2:
-            try:
-                return int(parts[0]), int(parts[1])
-            except ValueError:
-                pass
-
-        return 0, 0
+        if winner_name == player1_name:
+            return 1, 0
+        elif winner_name == player2_name:
+            return 0, 1
+        else:
+            return 0, 0
