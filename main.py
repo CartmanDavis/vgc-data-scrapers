@@ -18,7 +18,9 @@ logger = setup_logging()
 @click.pass_context
 def cli(ctx, config):
     ctx.ensure_object(dict)
-    ctx.obj['config'] = Config(config_path=config)
+    # Convert Path object to string if needed
+    config_path_str = str(config) if config else None
+    ctx.obj['config'] = Config(config_path=config_path_str)
 
 
 @cli.command()

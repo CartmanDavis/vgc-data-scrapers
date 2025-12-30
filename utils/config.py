@@ -6,6 +6,8 @@ from typing import Optional, Any
 
 class Config:
     def __init__(self, config_path: Optional[str] = None):
+        if config_path is None:
+            config_path = 'config.json'
         self.config_path = config_path
         self._config = {}
         self._load_config()
