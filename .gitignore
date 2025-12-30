@@ -1,0 +1,13 @@
+*.db
+*.log
+logs/
+db/
+__pycache__/
+*.pyc
+.env
+
+.DS_STORE
+config.json
+
+visualizations/
+

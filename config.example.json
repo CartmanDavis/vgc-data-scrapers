@@ -1,0 +1,17 @@
+{
+  "limitless": {
+    "apiKey": "YOUR API KEY HERE",
+    "baseUrl": "https://play.limitlesstcg.com/api",
+    "rateLimit": 200
+  },
+  "rk9": {
+    "baseUrl": "https://rk9.gg",
+    "requestDelay": 1.0
+  },
+  "database": {
+    "path": "./db/vgc.db"
+  },
+  "log": {
+    "dir": "./logs"
+  }
+}
