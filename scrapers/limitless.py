@@ -1,7 +1,7 @@
-from scrapers.base import BaseScraper
-from utils.api import APIClient
+from .base import BaseScraper
+from common.api import APIClient
 from typing import Dict, Any, List, Optional
-from utils.logging import setup_logging
+from common.logging import setup_logging
 from datetime import datetime
 import json
 
@@ -43,11 +43,9 @@ class LimitlessScraper(BaseScraper):
             
             logger.info("Fetching tournaments", page=current_page, format=format_filter, params=params)
             
-            # Map format filter values to API format strings
             if format_filter and format_filter.lower() in ['svf', 'reg f']:
                 params["format"] = format_filter.upper()
             elif format_filter:
-                # Keep original format if not one of our mapped values
                 params["format"] = format_filter
             
             tournaments_data = client.get("/tournaments", params=params)
@@ -141,12 +139,10 @@ class LimitlessScraper(BaseScraper):
 
         logger.info("Scraping tournament", id=tournament_id, name=tournament_data.get("name"))
 
-        # Skip if raw data already exists
         if self._raw_data_exists(tournament_id):
             logger.info("Raw data already exists, skipping", id=tournament_id)
             return
 
-        # Fetch and store raw responses for all 3 endpoints
         details_response = client.get(f"/tournaments/{tournament_id}/details")
         standings_response = client.get(f"/tournaments/{tournament_id}/standings")
         pairings_response = client.get(f"/tournaments/{tournament_id}/pairings")

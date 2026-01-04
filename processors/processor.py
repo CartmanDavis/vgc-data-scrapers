@@ -1,6 +1,6 @@
 import json
 from typing import Dict, Any, List, Optional, Set
-from utils.logging import setup_logging
+from common.logging import setup_logging
 import sqlite3
 
 logger = setup_logging()

@@ -63,7 +63,7 @@ def plot_top_players_2025():
     ax.invert_yaxis()
     
     plt.tight_layout()
-    plt.savefig('visualizations/top_players_2025.png', dpi=300, bbox_inches='tight', facecolor='white')
+    plt.savefig('../visualizations/top_players_2025.png', dpi=300, bbox_inches='tight', facecolor='white')
     print("✅ Saved: visualizations/top_players_2025.png")
     plt.close()
 

@@ -141,7 +141,7 @@ def plot_trending_pokemon():
     axes[1].tick_params(axis='x', rotation=45)
     
     plt.tight_layout()
-    plt.savefig('visualizations/trending_pokemon.png', dpi=300, bbox_inches='tight')
+    plt.savefig('../visualizations/trending_pokemon.png', dpi=300, bbox_inches='tight')
     print("✅ Saved: visualizations/trending_pokemon.png")
     plt.close()
 
@@ -174,7 +174,7 @@ def plot_top_pokemon_over_time():
     
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig('visualizations/top_pokemon_timeline.png', dpi=300, bbox_inches='tight')
+    plt.savefig('../visualizations/top_pokemon_timeline.png', dpi=300, bbox_inches='tight')
     print("✅ Saved: visualizations/top_pokemon_timeline.png")
     plt.close()
 
@@ -223,7 +223,7 @@ def plot_item_trends():
     
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig('visualizations/item_trends.png', dpi=300, bbox_inches='tight')
+    plt.savefig('../visualizations/item_trends.png', dpi=300, bbox_inches='tight')
     print("✅ Saved: visualizations/item_trends.png")
     plt.close()
 
@@ -273,7 +273,7 @@ def plot_ability_trends():
     
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig('visualizations/ability_trends.png', dpi=300, bbox_inches='tight')
+    plt.savefig('../visualizations/ability_trends.png', dpi=300, bbox_inches='tight')
     print("✅ Saved: visualizations/ability_trends.png")
     plt.close()
 
@@ -330,7 +330,7 @@ def plot_tera_type_trends():
     
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig('visualizations/tera_type_trends.png', dpi=300, bbox_inches='tight')
+    plt.savefig('../visualizations/tera_type_trends.png', dpi=300, bbox_inches='tight')
     print("✅ Saved: visualizations/tera_type_trends.png")
     plt.close()
 
@@ -385,7 +385,7 @@ def plot_top_players_2025():
     ax.invert_yaxis()
     
     plt.tight_layout()
-    plt.savefig('visualizations/top_players_2025.png', dpi=300, bbox_inches='tight')
+    plt.savefig('../visualizations/top_players_2025.png', dpi=300, bbox_inches='tight')
     print("✅ Saved: visualizations/top_players_2025.png")
     plt.close()
 
@@ -442,7 +442,7 @@ def plot_signature_move_usage():
     
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig('visualizations/signature_move_trends.png', dpi=300, bbox_inches='tight')
+    plt.savefig('../visualizations/signature_move_trends.png', dpi=300, bbox_inches='tight')
     print("✅ Saved: visualizations/signature_move_trends.png")
     plt.close()
 
@@ -499,7 +499,7 @@ def plot_top_players_2025():
     ax.invert_yaxis()
     
     plt.tight_layout()
-    plt.savefig('visualizations/top_players_2025.png', dpi=300, bbox_inches='tight')
+    plt.savefig('../visualizations/top_players_2025.png', dpi=300, bbox_inches='tight')
     print("✅ Saved: visualizations/top_players_2025.png")
     plt.close()
  

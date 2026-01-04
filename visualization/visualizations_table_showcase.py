@@ -169,7 +169,7 @@ def create_tournament_wins_table():
     ax.add_patch(rect)
     
     plt.tight_layout()
-    plt.savefig('visualizations/top_players_tournament_wins_all_formats.png', 
+    plt.savefig('../visualizations/top_players_tournament_wins_all_formats.png', 
                 dpi=300, bbox_inches='tight', 
                 facecolor='white',
                 edgecolor='none')

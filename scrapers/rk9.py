@@ -1,9 +1,9 @@
-from scrapers.base import BaseScraper
+from .base import BaseScraper
 from bs4 import BeautifulSoup
 import time
 import requests
 from typing import Dict, Any, List, Optional
-from utils.logging import setup_logging
+from common.logging import setup_logging
 
 logger = setup_logging()
 
