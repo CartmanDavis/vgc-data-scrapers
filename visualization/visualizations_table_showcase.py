@@ -29,7 +29,7 @@ def create_tournament_wins_table():
     GROUP BY p.id
     HAVING tournaments_won >= 1
     ORDER BY tournaments_won DESC, win_rate DESC
-    LIMIT 10
+    LIMIT 13
     """
     df = pd.read_sql_query(query, conn)
     conn.close()
@@ -44,15 +44,15 @@ def create_tournament_wins_table():
     plt.subplots_adjust(left=0.04, right=0.96, top=0.88, bottom=0.1)
     
     # Title
-    title_text = ax.text(0.5, 0.98, 
+    title_text = ax.text(0.5, 0.95, 
                          'Top Players by Limitless Tournament Wins - 2025 Season',
                          ha='center', va='top', 
                          fontsize=18, fontweight='bold',
                          color='#1a1a2a',
                          transform=ax.transAxes)
     
-    subtitle_text = ax.text(0.5, 0.94, 
-                            'All formats included',
+    subtitle_text = ax.text(0.5, 0.89, 
+                            'Data retrieved from Limitless API',
                             ha='center', va='top', 
                             fontsize=11,
                             color='#666666',
@@ -61,11 +61,11 @@ def create_tournament_wins_table():
     
     # Column headers
     headers = ['Player', 'Tournaments Won', 'Tournaments Played', 'Match Record', 'Match Win Rate']
-    header_y = 0.86
+    header_y = 0.80
     
     col_width = [0.26, 0.17, 0.18, 0.16, 0.14]
     col_x = [0.06, 0.29, 0.48, 0.67, 0.83]
-    col_colors = ['#e74c3c', '#e74c3c', '#e74c3c', '#34495e', '#27ae60', '#3498db']
+    col_colors = ['#34495e', '#34495e', '#34495e', '#34495e', '#34495e']
     
     for i, (header, color, width, x) in enumerate(zip(headers, col_colors, col_width, col_x)):
         # Shift player heading slightly to the right
@@ -85,24 +85,14 @@ def create_tournament_wins_table():
                 transform=ax.transAxes)
     
     # Data rows
-    row_y = header_y - 0.065
+    row_y = header_y - 0.025
     row_count = 0
     
     for idx, row in df.iterrows():
         tourn_wins = int(row.tournaments_won)
         match_rate = float(row.win_rate)
         
-        # Color gradient for tournament wins
-        if tourn_wins >= 8:
-            win_color = '#27ae60'
-        elif tourn_wins >= 6:
-            win_color = '#2ecc71'
-        elif tourn_wins >= 4:
-            win_color = '#3498db'
-        elif tourn_wins >= 2:
-            win_color = '#f39c12'
-        else:
-            win_color = '#f1c40f'
+        win_color = '#1a1a2a'
         
         # Data values
         player_display = str(row['name'])
@@ -153,8 +143,8 @@ def create_tournament_wins_table():
         row_count += 1
     
     # Footer
-    footer = ax.text(0.5, 0.08,
-                     f'Based on 2025 tournament data from {len(df)} top players',
+    footer = ax.text(0.5, 0.03,
+                     f'Graphic by @CartmanCodes',
                      ha='center', va='bottom',
                      fontsize=9,
                      color='#888888',
@@ -169,7 +159,7 @@ def create_tournament_wins_table():
     ax.add_patch(rect)
     
     plt.tight_layout()
-    plt.savefig('../visualizations/top_players_tournament_wins_all_formats.png', 
+    plt.savefig('visualizations/top_players_tournament_wins_all_formats.png', 
                 dpi=300, bbox_inches='tight', 
                 facecolor='white',
                 edgecolor='none')
