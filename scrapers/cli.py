@@ -22,7 +22,7 @@ def cli(ctx, config):
 
 
 @cli.command()
-@click.option('--format', 'format_filter', help='Format filter (e.g., gen9vgc2026regf)')
+@click.option('--format', 'format_filter', help='Format filter (e.g., SVH, SVG, SVF, SVE, 23S3)')
 @click.option('--limit', type=int, help='Maximum number of tournaments to scrape')
 @click.option('--since', type=str, help='Only scrape tournaments after this date (YYYY-MM-DD)')
 @click.option('--page', type=int, help='Page number for pagination (default: 1)')
