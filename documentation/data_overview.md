@@ -11,7 +11,7 @@ All data is stored in SQLite (`db/vgc.db`).
 
 ## Data Pipeline
 
-```
+```text
 ┌─────────────┐     ┌─────────────┐
 │  Limitless  │     │    RK9.gg   │
 │     API     │     │   Scraper   │
@@ -37,22 +37,25 @@ All data is stored in SQLite (`db/vgc.db`).
 ### Stage 1: Scrape Raw Data
 
 CLI scripts fetch data and store raw JSON in SQL tables:
+
 - `limitless_api_raw_data` - Raw Limitless API responses
 
 ### Stage 2: Process Raw Data
 
 CLI script parses JSON and populates normalized tables:
-- `tournaments`, `players`, `teams`, `pokemon_sets`, `moves`, `matches`, `match_participants`
+
+- `tournaments`, `players`, `teams`, `pokemon_sets`, `moves`, `matches`,
+  `match_participants`
 
 ## Data Sources
 
 ### Limitless API (Unofficial)
 
-**Base URL**: `https://api.limitlesstcg.com`
-**Authentication**: Header `X-Access-Key`
-**Rate Limit**: 200 requests/minute
+**Base URL**: `https://api.limitlesstcg.com` **Authentication**: Header
+`X-Access-Key` **Rate Limit**: 200 requests/minute
 
 **Endpoints Used**:
+
 - `GET /tournaments?format={format}&page={page}` - List tournaments
 - `GET /tournaments/{id}/details` - Tournament metadata
 - `GET /tournaments/{id}/standings` - Player placements, records, decklists
@@ -63,6 +66,7 @@ CLI script parses JSON and populates normalized tables:
 **Base URL**: `https://rk9.gg`
 
 Pages scraped:
+
 1. Tournament page - Basic info (name, date)
 2. Roster page - Player names, countries, team lists
 3. Pairings page - Round matchups and results
@@ -73,12 +77,12 @@ Pages scraped:
 
 #### `limitless_api_raw_data`
 
-| Column    | Type      | Description                        |
-| --------- | --------- | ---------------------------------- |
-| id        | TEXT (PK) | Tournament ID                      |
-| details   | TEXT      | Raw JSON from `/details` endpoint  |
-| standings | TEXT      | Raw JSON from `/standings` endpoint|
-| pairings  | TEXT      | Raw JSON from `/pairings` endpoint |
+| Column    | Type      | Description                         |
+| --------- | --------- | ----------------------------------- |
+| id        | TEXT (PK) | Tournament ID                       |
+| details   | TEXT      | Raw JSON from `/details` endpoint   |
+| standings | TEXT      | Raw JSON from `/standings` endpoint |
+| pairings  | TEXT      | Raw JSON from `/pairings` endpoint  |
 
 ### Normalized Tables
 

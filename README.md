@@ -89,7 +89,7 @@ Options:
 
 ## Repo Organization
 
-```
+```text
 usage-stats/
 ├── db/                                          # SQLite database
 ├── logs/                                        # Application logs
