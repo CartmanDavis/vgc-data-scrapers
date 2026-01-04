@@ -1,7 +1,7 @@
 import time
 import requests
 from typing import Optional, Dict, Any
-from utils.logging import setup_logging
+from .logging import setup_logging
 
 logger = setup_logging()
 

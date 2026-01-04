@@ -2,13 +2,11 @@ import click
 import sys
 import os
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-from utils.db import Database
-from utils.config import Config
-from utils.logging import setup_logging
-from scrapers.limitless import LimitlessScraper
-from scrapers.rk9 import RK9Scraper
+from database.db import Database
+from common.config import Config
+from common.logging import setup_logging
 
 logger = setup_logging()
 
@@ -18,91 +16,8 @@ logger = setup_logging()
 @click.pass_context
 def cli(ctx, config):
     ctx.ensure_object(dict)
-    # Convert Path object to string if needed
     config_path_str = str(config) if config else None
     ctx.obj['config'] = Config(config_path=config_path_str)
-
-
-@cli.command()
-@click.option('--format', 'format_filter', help='Format filter (e.g., gen9vgc2026regf)')
-@click.option('--limit', type=int, help='Maximum number of tournaments to scrape')
-@click.option('--since', type=str, help='Only scrape tournaments after this date (YYYY-MM-DD)')
-@click.option('--page', type=int, help='Page number for pagination (default: 1)')
-@click.option('--all-pages', is_flag=True, help='Fetch all pages until no more results')
-@click.option('--rate-limit', type=int, default=200, help='Rate limit in requests per minute (default: 200)')
-@click.option('--api-key', help='Limitless API key (overrides config)')
-@click.option('--force', is_flag=True, help='Re-scrape existing tournaments')
-@click.pass_context
-def limitless(ctx, format_filter, limit, since, page, all_pages, rate_limit, api_key, force):
-    config = ctx.obj['config']
-    api_key = api_key or config.limitless_api_key
-
-    if not api_key:
-        logger.error("Limitless API key required. Set via --api-key, config file, or LIMITLESS_API_KEY env var")
-        sys.exit(1)
-
-    db = Database(config.db_path)
-    scraper = LimitlessScraper(db, api_key, rate_limit)
-
-    logger.info("Starting Limitless scraper", format=format_filter, limit=limit, since=since, page=page, all_pages=all_pages, rate_limit=rate_limit, force=force)
-
-    kwargs = {}
-    if format_filter:
-        kwargs['format_filter'] = format_filter
-    if limit:
-        kwargs['limit'] = limit
-    if since:
-        kwargs['since'] = since
-    if page:
-        kwargs['page'] = page
-    if all_pages:
-        kwargs['all_pages'] = all_pages
-    if force:
-        kwargs['force'] = force
-
-    results = scraper.scrape(**kwargs)
-
-    if results.get("success"):
-        logger.info(
-            "Scraping complete",
-            tournaments=results.get("tournaments_scraped"),
-            players=results.get("players_scraped"),
-            teams=results.get("teams_scraped"),
-            matches=results.get("matches_scraped")
-        )
-    else:
-        logger.error("Scraping failed", error=results.get("error"))
-        sys.exit(1)
-
-    db.close()
-
-
-@cli.command()
-@click.option('--url', required=True, help='RK9 tournament URL')
-@click.option('--delay', type=float, help='Request delay in seconds')
-@click.option('--since', type=str, help='Only scrape tournaments after this date (YYYY-MM-DD)')
-@click.pass_context
-def rk9(ctx, url, delay, since):
-    config = ctx.obj['config']
-    delay = delay or config.rk9_request_delay
-
-    db = Database(config.db_path)
-    scraper = RK9Scraper(db, request_delay=delay)
-
-    logger.info("Starting RK9 scraper", url=url, since=since)
-
-    results = scraper.scrape(url=url, since=since)
-
-    if results.get("success"):
-        if results.get("skipped"):
-            logger.info("Tournament already exists", tournament_id=results.get("tournament_id"))
-        else:
-            logger.info("Scraping complete", tournament_id=results.get("tournament_id"))
-    else:
-        logger.error("Scraping failed", error=results.get("error"))
-        sys.exit(1)
-
-    db.close()
 
 
 @cli.command()

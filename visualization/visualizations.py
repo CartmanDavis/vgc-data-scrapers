@@ -7,6 +7,7 @@ import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.cm import get_cmap
 from datetime import datetime, timedelta
 import numpy as np
 
@@ -88,32 +89,33 @@ def plot_trending_pokemon():
         print("Not enough months for trend analysis")
         return
     
-    first_month = monthly_usage.iloc[0]
-    last_month = monthly_usage.iloc[-1]
+    first_month = monthly_usage.iloc[0]  # type: ignore
+    last_month = monthly_usage.iloc[-1]  # type: ignore
     
     changes = pd.DataFrame({
-        'first_month': first_month,
-        'last_month': last_month,
-        'change': last_month - first_month,
-        'percent_change': ((last_month - first_month) / (first_month + 1)) * 100
-    })
+        'first_month': first_month.values,
+        'last_month': last_month.values,
+        'change': last_month.values - first_month.values,
+        'percent_change': ((last_month.values - first_month.values) / (first_month.values + 1)) * 100
+    }, index=first_month.index)
     
     # Filter for pokemon with minimum usage
     total_avg = monthly_usage.mean(axis=0)
     changes = changes[total_avg >= 10]
     
     # Top rising and falling
-    rising = changes.sort_values('percent_change', ascending=False).head(6)
-    falling = changes.sort_values('percent_change', ascending=True).head(6)
+    rising = changes.sort_values('percent_change', ascending=False).head(6)  # type: ignore
+    falling = changes.sort_values('percent_change', ascending=True).head(6)  # type: ignore
     
     fig, axes = plt.subplots(2, 1, figsize=(16, 12))
     
     # Rising Pokemon
-    for i, pokemon in enumerate(rising.index):
-        if pokemon in monthly_usage.columns:
+    for pokemon in rising.index:  # type: ignore
+        if pokemon in monthly_usage.columns:  # type: ignore
             data = monthly_usage[pokemon]
             # Only plot points where data exists (>0)
-            axes[0].plot(data[data > 0].index, data[data > 0], 
+            valid_data = data[data > 0]
+            axes[0].plot(valid_data.index, valid_data.values,  # type: ignore
                           marker='o', linewidth=2.5, markersize=6, 
                           label=pokemon)
     
@@ -125,11 +127,12 @@ def plot_trending_pokemon():
     axes[0].tick_params(axis='x', rotation=45)
     
     # Falling Pokemon
-    for i, pokemon in enumerate(falling.index):
-        if pokemon in monthly_usage.columns:
+    for pokemon in falling.index:  # type: ignore
+        if pokemon in monthly_usage.columns:  # type: ignore
             data = monthly_usage[pokemon]
             # Only plot points where data exists (>0)
-            axes[1].plot(data[data > 0].index, data[data > 0], 
+            valid_data = data[data > 0]
+            axes[1].plot(valid_data.index, valid_data.values,  # type: ignore
                           marker='o', linewidth=2.5, markersize=6, 
                           label=pokemon)
     
@@ -141,7 +144,7 @@ def plot_trending_pokemon():
     axes[1].tick_params(axis='x', rotation=45)
     
     plt.tight_layout()
-    plt.savefig('visualizations/trending_pokemon.png', dpi=300, bbox_inches='tight')
+    plt.savefig('../visualizations/trending_pokemon.png', dpi=300, bbox_inches='tight')
     print("✅ Saved: visualizations/trending_pokemon.png")
     plt.close()
 
@@ -159,7 +162,7 @@ def plot_top_pokemon_over_time():
     
     fig, ax = plt.subplots(figsize=(16, 10))
     
-    colors = plt.cm.Set3(np.linspace(0, 1, len(top_10)))
+    colors = plt.cm.Set3(np.linspace(0, 1, len(top_10)))  # type: ignore
     
     for i, pokemon in enumerate(top_10):
         if pokemon in df_top.columns:
@@ -174,7 +177,7 @@ def plot_top_pokemon_over_time():
     
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig('visualizations/top_pokemon_timeline.png', dpi=300, bbox_inches='tight')
+    plt.savefig('../visualizations/top_pokemon_timeline.png', dpi=300, bbox_inches='tight')
     print("✅ Saved: visualizations/top_pokemon_timeline.png")
     plt.close()
 
@@ -223,7 +226,7 @@ def plot_item_trends():
     
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig('visualizations/item_trends.png', dpi=300, bbox_inches='tight')
+    plt.savefig('../visualizations/item_trends.png', dpi=300, bbox_inches='tight')
     print("✅ Saved: visualizations/item_trends.png")
     plt.close()
 
@@ -273,7 +276,7 @@ def plot_ability_trends():
     
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig('visualizations/ability_trends.png', dpi=300, bbox_inches='tight')
+    plt.savefig('../visualizations/ability_trends.png', dpi=300, bbox_inches='tight')
     print("✅ Saved: visualizations/ability_trends.png")
     plt.close()
 
@@ -330,8 +333,63 @@ def plot_tera_type_trends():
     
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig('visualizations/tera_type_trends.png', dpi=300, bbox_inches='tight')
+    plt.savefig('../visualizations/tera_type_trends.png', dpi=300, bbox_inches='tight')
     print("✅ Saved: visualizations/tera_type_trends.png")
+    plt.close()
+
+def plot_top_players_2025():
+    """Plot top players by win percentage in 2025"""
+    conn = sqlite3.connect(DB_PATH)
+    query = """
+    SELECT 
+        p.name, 
+        COUNT(ts.id) as tournaments_played,
+        SUM(ts.wins) as total_wins,
+        SUM(ts.losses) as total_losses,
+        SUM(ts.ties) as total_ties,
+        ROUND(100.0 * SUM(ts.wins) / NULLIF(SUM(ts.wins) + SUM(ts.losses), 0), 2) as win_percentage
+    FROM tournament_standings ts 
+    JOIN players p ON ts.player_id = p.id 
+    JOIN tournaments t ON ts.tournament_id = t.id
+    WHERE t.date LIKE '2025-%'
+    GROUP BY p.id 
+    HAVING COUNT(ts.id) >= 5
+    ORDER BY win_percentage DESC
+    LIMIT 10
+    """
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    
+    if len(df) < 2:
+        print("Not enough data for visualization")
+        return
+    
+    fig, ax = plt.subplots(figsize=(14, 8))
+    
+    colors = plt.cm.RdYlGn_r(np.linspace(0, 1, len(df)))
+    
+    bars = ax.barh(df['name'], df['win_percentage'], color=colors, edgecolor='black', linewidth=0.5)
+    
+    ax.set_xlabel('Win Percentage (%)', fontsize=12, fontweight='bold')
+    ax.set_title('Top 10 Players by Win Percentage in 2025\n(Min 5 Tournaments Played)', 
+                fontsize=16, fontweight='bold', pad=15)
+    ax.set_xlim(70, 85)
+    
+    for i, (idx, row) in enumerate(df.iterrows()):
+        width = bars[i].get_width()
+        ax.text(width + 0.2, bars[i].get_y() + bars[i].get_height()/2,
+                f'{row["win_percentage"]:.1f}%',
+                ha='left', va='center', fontsize=10, fontweight='bold')
+        ax.text(width + 0.2, bars[i].get_y() + bars[i].get_height()/2 + 0.35,
+                f'{row["total_wins"]}W-{row["total_losses"]}L',
+                ha='left', va='center', fontsize=8, color='#555555')
+    
+    ax.grid(axis='x', alpha=0.3)
+    ax.invert_yaxis()
+    
+    plt.tight_layout()
+    plt.savefig('../visualizations/top_players_2025.png', dpi=300, bbox_inches='tight')
+    print("✅ Saved: visualizations/top_players_2025.png")
     plt.close()
 
 def plot_signature_move_usage():
@@ -387,7 +445,7 @@ def plot_signature_move_usage():
     
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig('visualizations/signature_move_trends.png', dpi=300, bbox_inches='tight')
+    plt.savefig('../visualizations/signature_move_trends.png', dpi=300, bbox_inches='tight')
     print("✅ Saved: visualizations/signature_move_trends.png")
     plt.close()
 
