@@ -106,3 +106,12 @@ Combined movesets stored as single strings, case issues
   - "U-Turn" → "U-turn"
   - "Will-o-wisp" → "Will-O-Wisp"
 - Removed leading/trailing spaces from move names
+
+## Format Validation Issues
+
+Some teams contain Pokemon that are illegal for the tournament's format. For
+example, in tournaments labeled as "SVF" (Regulation F, Scarlet/Violet), illegal
+Pokemon such as Zarude were found in team compositions.
+
+Automated format validation should be integrated into the processor pipeline to
+prevent invalid data from being saved to the database.
