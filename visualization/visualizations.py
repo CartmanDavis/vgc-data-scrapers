@@ -7,6 +7,7 @@ import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.cm import get_cmap
 from datetime import datetime, timedelta
 import numpy as np
 
@@ -88,32 +89,33 @@ def plot_trending_pokemon():
         print("Not enough months for trend analysis")
         return
     
-    first_month = monthly_usage.iloc[0]
-    last_month = monthly_usage.iloc[-1]
+    first_month = monthly_usage.iloc[0]  # type: ignore
+    last_month = monthly_usage.iloc[-1]  # type: ignore
     
     changes = pd.DataFrame({
-        'first_month': first_month,
-        'last_month': last_month,
-        'change': last_month - first_month,
-        'percent_change': ((last_month - first_month) / (first_month + 1)) * 100
-    })
+        'first_month': first_month.values,
+        'last_month': last_month.values,
+        'change': last_month.values - first_month.values,
+        'percent_change': ((last_month.values - first_month.values) / (first_month.values + 1)) * 100
+    }, index=first_month.index)
     
     # Filter for pokemon with minimum usage
     total_avg = monthly_usage.mean(axis=0)
     changes = changes[total_avg >= 10]
     
     # Top rising and falling
-    rising = changes.sort_values('percent_change', ascending=False).head(6)
-    falling = changes.sort_values('percent_change', ascending=True).head(6)
+    rising = changes.sort_values('percent_change', ascending=False).head(6)  # type: ignore
+    falling = changes.sort_values('percent_change', ascending=True).head(6)  # type: ignore
     
     fig, axes = plt.subplots(2, 1, figsize=(16, 12))
     
     # Rising Pokemon
-    for i, pokemon in enumerate(rising.index):
-        if pokemon in monthly_usage.columns:
+    for pokemon in rising.index:  # type: ignore
+        if pokemon in monthly_usage.columns:  # type: ignore
             data = monthly_usage[pokemon]
             # Only plot points where data exists (>0)
-            axes[0].plot(data[data > 0].index, data[data > 0], 
+            valid_data = data[data > 0]
+            axes[0].plot(valid_data.index, valid_data.values,  # type: ignore
                           marker='o', linewidth=2.5, markersize=6, 
                           label=pokemon)
     
@@ -125,11 +127,12 @@ def plot_trending_pokemon():
     axes[0].tick_params(axis='x', rotation=45)
     
     # Falling Pokemon
-    for i, pokemon in enumerate(falling.index):
-        if pokemon in monthly_usage.columns:
+    for pokemon in falling.index:  # type: ignore
+        if pokemon in monthly_usage.columns:  # type: ignore
             data = monthly_usage[pokemon]
             # Only plot points where data exists (>0)
-            axes[1].plot(data[data > 0].index, data[data > 0], 
+            valid_data = data[data > 0]
+            axes[1].plot(valid_data.index, valid_data.values,  # type: ignore
                           marker='o', linewidth=2.5, markersize=6, 
                           label=pokemon)
     
@@ -159,7 +162,7 @@ def plot_top_pokemon_over_time():
     
     fig, ax = plt.subplots(figsize=(16, 10))
     
-    colors = plt.cm.Set3(np.linspace(0, 1, len(top_10)))
+    colors = plt.cm.Set3(np.linspace(0, 1, len(top_10)))  # type: ignore
     
     for i, pokemon in enumerate(top_10):
         if pokemon in df_top.columns:
@@ -363,7 +366,7 @@ def plot_top_players_2025():
     
     fig, ax = plt.subplots(figsize=(14, 8))
     
-    colors = plt.cm.RdYlGn_r(df['win_percentage'] / 100)
+    colors = plt.cm.RdYlGn_r(np.linspace(0, 1, len(df)))
     
     bars = ax.barh(df['name'], df['win_percentage'], color=colors, edgecolor='black', linewidth=0.5)
     
