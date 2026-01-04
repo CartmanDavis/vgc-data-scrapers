@@ -78,14 +78,18 @@ class RK9Scraper(BaseScraper):
             if name_elem:
                 name = name_elem.get_text(strip=True)
 
-            date_elem = soup.find(string=lambda text: 'Date:' in text)
+            date_elem = soup.find(string=lambda text: text is not None and 'Date:' in text)
             if date_elem:
-                date_text = date_elem.parent.get_text(strip=True).replace('Date:', '').strip()
-                date = self._parse_date(date_text)
+                parent = date_elem.parent
+                if parent:
+                    date_text = parent.get_text(strip=True).replace('Date:', '').strip()
+                    date = self._parse_date(date_text)
 
-            location_elem = soup.find(string=lambda text: 'Location:' in text)
+            location_elem = soup.find(string=lambda text: text is not None and 'Location:' in text)
             if location_elem:
-                location = location_elem.parent.get_text(strip=True).replace('Location:', '').strip()
+                parent = location_elem.parent
+                if parent:
+                    location = parent.get_text(strip=True).replace('Location:', '').strip()
 
             if not name:
                 return None
@@ -110,14 +114,14 @@ class RK9Scraper(BaseScraper):
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
 
-            player_entries = soup.find_all('div', class_=lambda x: x and 'player' in x.lower())
+            player_entries = soup.select('div[class*="player"]')
 
             for entry in player_entries:
                 player_name = None
                 country = None
                 pokemon_list = []
 
-                name_elem = entry.find(class_=lambda x: x and 'name' in x.lower())
+                name_elem = entry.select_one('[class*="name"]')
                 if name_elem:
                     name_text = name_elem.get_text(strip=True)
                     if '(' in name_text and ')' in name_text:
@@ -127,7 +131,7 @@ class RK9Scraper(BaseScraper):
                     else:
                         player_name = name_text
 
-                pokemon_elems = entry.find_all(class_=lambda x: x and 'pokemon' in x.lower() or 'poke' in x.lower())
+                pokemon_elems = entry.select('[class*="pokemon"], [class*="poke"]')
                 for poke_elem in pokemon_elems:
                     pokemon_name = poke_elem.get_text(strip=True)
                     if pokemon_name:
@@ -151,7 +155,7 @@ class RK9Scraper(BaseScraper):
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
 
-            round_elems = soup.find_all('div', class_=lambda x: x and 'round' in x.lower())
+            round_elems = soup.select('div[class*="round"]')
 
             cursor = self.db.conn.cursor()
 
@@ -159,10 +163,10 @@ class RK9Scraper(BaseScraper):
                 round_text = round_elem.get_text(strip=True)
                 round_num = self._extract_round_number(round_text)
 
-                matchups = round_elem.find_all('div', class_=lambda x: x and 'match' in x.lower() or 'pair' in x.lower())
+                matchups = round_elem.select('div[class*="match"], div[class*="pair"]')
 
                 for matchup in matchups:
-                    players = matchup.find_all(class_=lambda x: x and 'player' in x.lower() or 'name' in x.lower())
+                    players = matchup.select('[class*="player"], [class*="name"]')
 
                     if len(players) >= 2:
                         player1_name = players[0].get_text(strip=True)
