@@ -8,7 +8,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-DB_PATH = 'db/vgc.db'
+DB_PATH = "db/vgc.db"
+
 
 def create_tournament_wins_table():
     """Create a beautiful table image for top players by tournament wins in 2025"""
@@ -33,151 +34,211 @@ def create_tournament_wins_table():
     """
     df = pd.read_sql_query(query, conn)
     conn.close()
-    
+
     if len(df) < 2:
         print("Not enough data for visualization")
         return
-    
+
     # Create figure with white background
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.set_axis_off()
     plt.subplots_adjust(left=0.04, right=0.96, top=0.88, bottom=0.1)
-    
+
     # Title
-    title_text = ax.text(0.5, 0.95, 
-                         'Top Players by Limitless Tournament Wins - 2025 Season',
-                         ha='center', va='top', 
-                         fontsize=18, fontweight='bold',
-                         color='#1a1a2a',
-                         transform=ax.transAxes)
-    
-    subtitle_text = ax.text(0.5, 0.89, 
-                            'Data retrieved from Limitless API',
-                            ha='center', va='top', 
-                            fontsize=11,
-                            color='#666666',
-                            style='italic',
-                            transform=ax.transAxes)
-    
+    title_text = ax.text(
+        0.5,
+        0.95,
+        "Most VGC Limitless Tournament Wins in 2025",
+        ha="center",
+        va="top",
+        fontsize=18,
+        fontweight="bold",
+        color="#1a1a2a",
+        transform=ax.transAxes,
+    )
+
+    subtitle_text = ax.text(
+        0.5,
+        0.89,
+        "Data retrieved from Limitless API",
+        ha="center",
+        va="top",
+        fontsize=11,
+        color="#666666",
+        style="italic",
+        transform=ax.transAxes,
+    )
+
     # Column headers
-    headers = ['Player', 'Tournaments Won', 'Tournaments Played', 'Match Record', 'Match Win Rate']
+    headers = [
+        "Player",
+        "Tournaments Won",
+        "Tournaments Played",
+        "Match Record",
+        "Match Win Rate",
+    ]
     header_y = 0.80
-    
+
     col_width = [0.26, 0.17, 0.18, 0.16, 0.14]
     col_x = [0.06, 0.29, 0.48, 0.67, 0.83]
-    col_colors = ['#34495e', '#34495e', '#34495e', '#34495e', '#34495e']
-    
-    for i, (header, color, width, x) in enumerate(zip(headers, col_colors, col_width, col_x)):
+    col_colors = ["#34495e", "#34495e", "#34495e", "#34495e", "#34495e"]
+
+    for i, (header, color, width, x) in enumerate(
+        zip(headers, col_colors, col_width, col_x)
+    ):
         # Shift player heading slightly to the right
         if i == 0:
             header_x = x + 0.01
         else:
             header_x = x
-        
-        ax.text(header_x, header_y, header, 
-                ha='center', va='center',
-                fontsize=11, fontweight='bold',
-                color='white',
-                bbox=dict(boxstyle='round,pad=0.3', 
-                         facecolor=color, 
-                         edgecolor='none',
-                         alpha=1.0),
-                transform=ax.transAxes)
-    
+
+        ax.text(
+            header_x,
+            header_y,
+            header,
+            ha="center",
+            va="center",
+            fontsize=11,
+            fontweight="bold",
+            color="white",
+            bbox=dict(
+                boxstyle="round,pad=0.3", facecolor=color, edgecolor="none", alpha=1.0
+            ),
+            transform=ax.transAxes,
+        )
+
     # Data rows
     row_y = header_y - 0.025
     row_count = 0
-    
+
     for idx, row in df.iterrows():
         tourn_wins = int(row.tournaments_won)
         match_rate = float(row.win_rate)
-        
-        win_color = '#1a1a2a'
-        
+
+        win_color = "#1a1a2a"
+
         # Data values
-        player_display = str(row['name'])
-        
+        player_display = str(row["name"])
+
         data_values = [
             player_display,
             f"{tourn_wins}",
             f"{int(row.tournaments_played)}",
             f"{int(row.total_match_wins)}W - {int(row.total_match_losses)}L",
-            f"{match_rate:.1f}%"
+            f"{match_rate:.1f}%",
         ]
-        
+
         # Calculate text vertical position (centered between header and separator)
         text_y = row_y - 0.035
-        
+
         # Make first place winner's row bold
-        weight = 'bold' if idx == 0 else 'normal'
-        
+        weight = "bold" if idx == 0 else "normal"
+
         for i, (val, width, x) in enumerate(zip(data_values, col_width, col_x)):
             if i == 0:  # Player name
-                ax.text(x - 0.015, text_y, val,
-                        ha='left', va='center',
-                        fontsize=10.5,
-                        color='#1a1a2a',
-                        fontweight=weight,
-                        transform=ax.transAxes)
+                ax.text(
+                    x - 0.015,
+                    text_y,
+                    val,
+                    ha="left",
+                    va="center",
+                    fontsize=10.5,
+                    color="#1a1a2a",
+                    fontweight=weight,
+                    transform=ax.transAxes,
+                )
             elif (i == 1) or (i == 4):  # Tournaments won or win rate
-                ax.text(x, text_y, val,
-                        ha='center', va='center',
-                        fontsize=10.5, fontweight=weight,
-                        color=win_color,
-                        transform=ax.transAxes)
+                ax.text(
+                    x,
+                    text_y,
+                    val,
+                    ha="center",
+                    va="center",
+                    fontsize=10.5,
+                    fontweight=weight,
+                    color=win_color,
+                    transform=ax.transAxes,
+                )
             else:  # Other columns
-                ax.text(x, text_y, val,
-                        ha='center', va='center',
-                        fontsize=10,
-                        color='#333333',
-                        fontweight=weight,
-                        transform=ax.transAxes)
-        
+                ax.text(
+                    x,
+                    text_y,
+                    val,
+                    ha="center",
+                    va="center",
+                    fontsize=10,
+                    color="#333333",
+                    fontweight=weight,
+                    transform=ax.transAxes,
+                )
+
         # Row separator line
         if row_count < (len(df) - 1):
-            ax.plot([0.03, 0.97], [row_y - 0.052, row_y - 0.052],
-                   color='#e0e0e0', linewidth=0.5, linestyle='-',
-                   transform=ax.transAxes)
-        
+            ax.plot(
+                [0.03, 0.97],
+                [row_y - 0.052, row_y - 0.052],
+                color="#e0e0e0",
+                linewidth=0.5,
+                linestyle="-",
+                transform=ax.transAxes,
+            )
+
         row_y -= 0.053
         row_count += 1
-    
+
     # Footer
-    footer = ax.text(0.5, 0.03,
-                     f'Graphic by @CartmanCodes',
-                     ha='center', va='bottom',
-                     fontsize=9,
-                     color='#888888',
-                     style='italic',
-                     transform=ax.transAxes)
-    
+    footer = ax.text(
+        0.5,
+        0.03,
+        f"Graphic by @CartmanCodes",
+        ha="center",
+        va="bottom",
+        fontsize=9,
+        color="#888888",
+        style="italic",
+        transform=ax.transAxes,
+    )
+
     # Decorative border
-    rect = mpatches.Rectangle((0, 0), 1, 1, 
-                           linewidth=3, edgecolor='#3498db',
-                           facecolor='none',
-                           transform=ax.transAxes)
+    rect = mpatches.Rectangle(
+        (0, 0),
+        1,
+        1,
+        linewidth=3,
+        edgecolor="#3498db",
+        facecolor="none",
+        transform=ax.transAxes,
+    )
     ax.add_patch(rect)
-    
+
     plt.tight_layout()
-    plt.savefig('visualizations/top_players_tournament_wins_all_formats.png', 
-                dpi=300, bbox_inches='tight', 
-                facecolor='white',
-                edgecolor='none')
+    plt.savefig(
+        "visualizations/top_players_tournament_wins_all_formats.png",
+        dpi=300,
+        bbox_inches="tight",
+        facecolor="white",
+        edgecolor="none",
+    )
     print("✅ Saved: visualizations/top_players_tournament_wins_all_formats.png")
     plt.close()
 
+
 def main():
     print("Generating Tournament Wins Table...\n")
-    
+
     try:
         create_tournament_wins_table()
         print("\n✨ Table image complete!")
-        print("Check 'visualizations/top_players_tournament_wins_all_formats.png' for result.")
-        
+        print(
+            "Check 'visualizations/top_players_tournament_wins_all_formats.png' for result."
+        )
+
     except Exception as e:
         print(f"Error: {e}")
         import traceback
+
         traceback.print_exc()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
