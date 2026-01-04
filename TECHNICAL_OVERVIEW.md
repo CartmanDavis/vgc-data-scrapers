@@ -2,11 +2,14 @@
 
 ## Architecture Overview
 
-This project scrapes competitive Pokemon VGC (Video Game Championships) analytics data from two sources:
+This project scrapes competitive Pokemon VGC (Video Game Championships)
+analytics data from two sources:
+
 1. **Limitless API** (limitlesstcg.com) - Grassroots tournaments (unofficial)
 2. **RK9.gg** - Official tournament results via HTML scraping (manual URL input)
 
-All data is stored in a SQLite database (`db/vgc.db`) and can be queried, exported, or displayed via a simple HTTP API.
+All data is stored in a SQLite database (`db/vgc.db`) and can be queried,
+exported, or displayed via a simple HTTP API.
 
 ```
 ┌─────────────┐     ┌─────────────┐
@@ -57,99 +60,106 @@ vgc-scraper/
 ### Tables
 
 #### `tournaments`
+
 Stores tournament information from all sources.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | TEXT (PK) | Unique identifier |
-| name | TEXT | Tournament name |
-| date | DATETIME | Tournament date |
-| location | TEXT | Tournament location |
-| generation | INTEGER | Generation number (e.g., 9) |
-| format | TEXT | Format name (e.g., "reg f") |
-| official | BOOLEAN | True = RK9, False = Limitless |
+| Column     | Type      | Description                   |
+| ---------- | --------- | ----------------------------- |
+| id         | TEXT (PK) | Unique identifier             |
+| name       | TEXT      | Tournament name               |
+| date       | DATETIME  | Tournament date               |
+| location   | TEXT      | Tournament location           |
+| generation | INTEGER   | Generation number (e.g., 9)   |
+| format     | TEXT      | Format name (e.g., "reg f")   |
+| official   | BOOLEAN   | True = RK9, False = Limitless |
 
 #### `players`
+
 Stores player information, deduplicated across sources.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INTEGER (PK) | Auto-generated ID |
-| name | TEXT | Player name |
-| country | TEXT | Player country code |
+| Column  | Type         | Description         |
+| ------- | ------------ | ------------------- |
+| id      | INTEGER (PK) | Auto-generated ID   |
+| name    | TEXT         | Player name         |
+| country | TEXT         | Player country code |
 
 #### `teams`
+
 Stores team lists used in tournaments.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INTEGER (PK) | Auto-generated ID |
-| player_id | INTEGER (FK) | FK to players.id |
-| tournament_id | TEXT (FK) | FK to tournaments.id |
+| Column        | Type         | Description          |
+| ------------- | ------------ | -------------------- |
+| id            | INTEGER (PK) | Auto-generated ID    |
+| player_id     | INTEGER (FK) | FK to players.id     |
+| tournament_id | TEXT (FK)    | FK to tournaments.id |
 
 #### `pokemon_sets`
+
 Stores individual Pokemon sets with OTS (Open Team Sheet) data.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INTEGER (PK) | Auto-generated |
-| team_id | INTEGER (FK) | FK to teams.id |
-| species | TEXT | Pokemon species name |
-| form | TEXT | Form variant (optional) |
-| item | TEXT | Held item |
-| ability | TEXT | Pokemon ability |
-| tera_type | TEXT | Tera type |
+| Column    | Type         | Description             |
+| --------- | ------------ | ----------------------- |
+| id        | INTEGER (PK) | Auto-generated          |
+| team_id   | INTEGER (FK) | FK to teams.id          |
+| species   | TEXT         | Pokemon species name    |
+| form      | TEXT         | Form variant (optional) |
+| item      | TEXT         | Held item               |
+| ability   | TEXT         | Pokemon ability         |
+| tera_type | TEXT         | Tera type               |
 
 #### `moves`
+
 Stores moves for each Pokemon set.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INTEGER (PK) | Auto-generated |
+| Column         | Type         | Description           |
+| -------------- | ------------ | --------------------- |
+| id             | INTEGER (PK) | Auto-generated        |
 | pokemon_set_id | INTEGER (FK) | FK to pokemon_sets.id |
-| move_name | TEXT | Move name |
+| move_name      | TEXT         | Move name             |
 
 #### `matches`
+
 Stores match information (round, table).
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INTEGER (PK) | Auto-generated |
-| tournament_id | TEXT (FK) | FK to tournaments.id |
-| round_number | INTEGER | Round number |
-| table_number | INTEGER | Table number |
+| Column        | Type         | Description          |
+| ------------- | ------------ | -------------------- |
+| id            | INTEGER (PK) | Auto-generated       |
+| tournament_id | TEXT (FK)    | FK to tournaments.id |
+| round_number  | INTEGER      | Round number         |
+| table_number  | INTEGER      | Table number         |
 
 #### `match_participants`
+
 Stores players/teams participating in matches and their scores.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INTEGER (PK) | Auto-generated |
-| match_id | INTEGER (FK) | FK to matches.id |
-| player_id | INTEGER (FK) | FK to players.id |
-| team_id | INTEGER (FK) | FK to teams.id |
-| score | INTEGER | Games won (0, 1, 2, etc.) |
+| Column    | Type         | Description               |
+| --------- | ------------ | ------------------------- |
+| id        | INTEGER (PK) | Auto-generated            |
+| match_id  | INTEGER (FK) | FK to matches.id          |
+| player_id | INTEGER (FK) | FK to players.id          |
+| team_id   | INTEGER (FK) | FK to teams.id            |
+| score     | INTEGER      | Games won (0, 1, 2, etc.) |
 
 ### Future Enhancement: `pokemon_set_details` (CTS Data)
 
 This table will be added in the future for Closed Team Sheet data from Showdown.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| pokemon_set_id | INTEGER (PK, FK) | FK to pokemon_sets.id |
-| nature | TEXT | Nature (e.g., "Timid", "Bold") |
-| ev_hp | INTEGER | HP EVs (0-252) |
-| ev_atk | INTEGER | Attack EVs (0-252) |
-| ev_def | INTEGER | Defense EVs (0-252) |
-| ev_spa | INTEGER | Sp. Attack EVs (0-252) |
-| ev_spd | INTEGER | Sp. Defense EVs (0-252) |
-| ev_spe | INTEGER | Speed EVs (0-252) |
-| iv_hp | INTEGER | HP IVs (0-31) |
-| iv_atk | INTEGER | Attack IVs (0-31) |
-| iv_def | INTEGER | Defense IVs (0-31) |
-| iv_spa | INTEGER | Sp. Attack IVs (0-31) |
-| iv_spd | INTEGER | Sp. Defense IVs (0-31) |
-| iv_spe | INTEGER | Speed IVs (0-31) |
+| Column         | Type             | Description                    |
+| -------------- | ---------------- | ------------------------------ |
+| pokemon_set_id | INTEGER (PK, FK) | FK to pokemon_sets.id          |
+| nature         | TEXT             | Nature (e.g., "Timid", "Bold") |
+| ev_hp          | INTEGER          | HP EVs (0-252)                 |
+| ev_atk         | INTEGER          | Attack EVs (0-252)             |
+| ev_def         | INTEGER          | Defense EVs (0-252)            |
+| ev_spa         | INTEGER          | Sp. Attack EVs (0-252)         |
+| ev_spd         | INTEGER          | Sp. Defense EVs (0-252)        |
+| ev_spe         | INTEGER          | Speed EVs (0-252)              |
+| iv_hp          | INTEGER          | HP IVs (0-31)                  |
+| iv_atk         | INTEGER          | Attack IVs (0-31)              |
+| iv_def         | INTEGER          | Defense IVs (0-31)             |
+| iv_spa         | INTEGER          | Sp. Attack IVs (0-31)          |
+| iv_spd         | INTEGER          | Sp. Defense IVs (0-31)         |
+| iv_spe         | INTEGER          | Speed IVs (0-31)               |
 
 ### Relationships
 
@@ -168,17 +178,18 @@ tournaments → matches → match_participants → players
 **Base URL**: `https://api.limitlesstcg.com`
 
 **Authentication**:
+
 - Header: `X-Access-Key: <your_api_key>`
 - Rate limit: 200 requests/minute
 
 **Endpoints**:
 
 #### Get Tournaments
-```
-GET /tournaments?playerId={playerId}&format={format}
-```
+
+`GET /tournaments?playerId={playerId}&format={format}`
 
 **Response Shape**:
+
 ```json
 {
   "data": [
@@ -195,11 +206,11 @@ GET /tournaments?playerId={playerId}&format={format}
 ```
 
 #### Get Tournament Details
-```
-GET /tournaments/{id}/details
-```
+
+`GET /tournaments/{id}/details`
 
 **Response Shape**:
+
 ```json
 {
   "data": {
@@ -214,11 +225,13 @@ GET /tournaments/{id}/details
 ```
 
 #### Get Tournament Standings
+
 ```
 GET /tournaments/{id}/standings
 ```
 
 **Response Shape**:
+
 ```json
 {
   "data": [
@@ -234,11 +247,13 @@ GET /tournaments/{id}/standings
 ```
 
 #### Get Tournament Pairings
+
 ```
 GET /tournaments/{id}/pairings
 ```
 
 **Response Shape**:
+
 ```json
 {
   "data": [
@@ -254,6 +269,7 @@ GET /tournaments/{id}/pairings
 ```
 
 **Scraping Strategy**:
+
 1. Fetch tournaments with format filter: `gen9vgc2026regf*`
 2. Parse format strings to extract generation and format name:
    - Example: `gen9vgc2026regf` -> generation: 9, format: "reg f"
@@ -264,6 +280,7 @@ GET /tournaments/{id}/pairings
 6. Store tournament, players, teams, matches, and participants in database
 
 **Limitations**:
+
 - Team lists (actual Pokemon) may not be available via API
 - May need to scrape web pages for full team data
 
@@ -274,11 +291,13 @@ GET /tournaments/{id}/pairings
 **Base URL**: `https://rk9.gg`
 
 **Pages to Scrape**:
+
 1. **Tournament Page**: General tournament info
 2. **Roster Page**: Player list with team lists
 3. **Pairings Page**: Round-by-round matchups
 
 **Example URLs**:
+
 ```
 Tournament: https://rk9.gg/tournament/xyz/
 Roster: https://rk9.gg/tournament/xyz/roster/
@@ -286,6 +305,7 @@ Pairings: https://rk9.gg/tournament/xyz/pairings/
 ```
 
 **Roster Page Structure** (example):
+
 ```html
 <div class="player-entry">
   <div class="player-name">John Doe (USA)</div>
@@ -298,6 +318,7 @@ Pairings: https://rk9.gg/tournament/xyz/pairings/
 ```
 
 **Pairings Page Structure** (example):
+
 ```html
 <div class="round" id="round-1">
   <div class="matchup">
@@ -309,6 +330,7 @@ Pairings: https://rk9.gg/tournament/xyz/pairings/
 ```
 
 **Scraping Strategy**:
+
 1. User provides tournament URL manually via CLI
 2. Parse tournament page for basic info (name, date, location)
 3. Parse roster page for:
@@ -317,9 +339,11 @@ Pairings: https://rk9.gg/tournament/xyz/pairings/
 4. Parse pairings page for:
    - Round-by-round matchups
    - Match results (scores for each player)
-5. Store tournament, players, teams, pokemon_sets, moves, matches, and participants in database
+5. Store tournament, players, teams, pokemon_sets, moves, matches, and
+   participants in database
 
 **Data Points**:
+
 - Tournament name, date, location
 - Player names, countries
 - Team lists: species, form, item, ability, tera_type
@@ -327,6 +351,7 @@ Pairings: https://rk9.gg/tournament/xyz/pairings/
 - Match results (player scores)
 
 **Limitations**:
+
 - No official API
 - Requires manual URL input
 - HTML structure may change
@@ -410,6 +435,7 @@ POST /api/export?format=csv
 ## Configuration
 
 ### Environment Variables
+
 ```
 LIMITLESS_API_KEY=your_api_key_here
 DB_PATH=./db/vgc.db
@@ -417,6 +443,7 @@ LOG_DIR=./logs
 ```
 
 ### Config File (optional)
+
 ```json
 {
   "limitless": {
@@ -492,6 +519,7 @@ LOG_DIR=./logs
 - Server: `fastapi` or `flask` (if implementing HTTP API)
 
 Install with:
+
 ```bash
 pip install requests beautifulsoup4 click structlog
 ```
@@ -503,4 +531,5 @@ pip install requests beautifulsoup4 click structlog
 - Rate limits should be respected to avoid being blocked
 - RK9.gg may block aggressive scraping - use reasonable delays
 - Limitless data is available back to ~2019
-- Player count can be queried from the teams table: `SELECT COUNT(DISTINCT player_id) FROM teams WHERE tournament_id = ?`
+- Player count can be queried from the teams table:
+  `SELECT COUNT(DISTINCT player_id) FROM teams WHERE tournament_id = ?`

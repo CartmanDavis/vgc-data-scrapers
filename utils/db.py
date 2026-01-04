@@ -93,6 +93,24 @@ class Database:
         """)
 
         cursor.execute("""
+            CREATE TABLE IF NOT EXISTS tournament_standings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tournament_id TEXT NOT NULL,
+                player_id INTEGER NOT NULL,
+                team_id INTEGER NOT NULL,
+                placing INTEGER,
+                wins INTEGER NOT NULL DEFAULT 0,
+                losses INTEGER NOT NULL DEFAULT 0,
+                ties INTEGER NOT NULL DEFAULT 0,
+                dropped BOOLEAN DEFAULT 0,
+                FOREIGN KEY (tournament_id) REFERENCES tournaments(id),
+                FOREIGN KEY (player_id) REFERENCES players(id),
+                FOREIGN KEY (team_id) REFERENCES teams(id),
+                UNIQUE(tournament_id, player_id)
+            )
+        """)
+
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS limitless_api_raw_data (
                 id TEXT PRIMARY KEY,
                 details TEXT,
@@ -121,6 +139,14 @@ class Database:
 
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_matches_tournament ON matches(tournament_id)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_tournament_standings_tournament ON tournament_standings(tournament_id)
+        """)
+
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_tournament_standings_player ON tournament_standings(player_id)
         """)
 
         self.conn.commit()

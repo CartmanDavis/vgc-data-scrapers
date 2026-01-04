@@ -2,6 +2,11 @@
 
 Scrapes competitive Pokemon VGC (Video Game Championships) analytics data from Limitless (unofficial) and RK9.gg (official) tournaments.
 
+**Data Pipeline:**
+
+1. **Stage 1 - Scrape**: CLI scripts hit APIs and pull raw data into SQL
+2. **Stage 2 - Process**: CLI script transforms raw SQL data into queryable tables
+
 ## Installation
 
 ```bash
@@ -38,9 +43,31 @@ Or use environment variables:
 export LIMITLESS_API_KEY=your_api_key_here
 ```
 
+## Data Pipeline
+
+This project uses a **two-stage data pipeline**:
+
+### Stage 1: Scrape Raw Data
+
+CLI scripts hit external APIs and pull raw data into SQL tables. The raw data is stored exactly as received from the API, preserving all information for flexible processing.
+
+**Example:** Query Limitless API for all tournaments matching a format, store raw API responses (details, standings, pairings) for each tournament in the `limitless_api_raw_data` table.
+
+### Stage 2: Process Raw Data
+
+A CLI script transforms raw SQL data into more useful, queryable tables. This stage parses JSON responses and populates normalized tables for analysis.
+
+**Example:** Transform raw tournament data from `limitless_api_raw_data` into structured tables:
+
+- `tournaments` - tournament metadata
+- `players` - player information
+- `teams` - team compositions
+- `pokemon_sets` - individual Pokemon builds
+- `matches` - match results
+
 ## Usage
 
-### Scrape Limitless Tournaments
+### Scrape Limitless Tournaments (Stage 1)
 
 **Important**: The Limitless scraper now operates in **raw-data-only mode**. It fetches and stores raw API responses without parsing them into other tables.
 
@@ -49,12 +76,14 @@ python main.py limitless --format gen9vgc2026regf --limit 50
 ```
 
 Options:
+
 - `--format`: Format filter (e.g., gen9vgc2026regf)
 - `--limit`: Maximum number of tournaments to scrape
 - `--since`: Only scrape tournaments after this date (YYYY-MM-DD format)
 - `--api-key`: Override API key
 
 **What happens:**
+
 1. Scraper fetches tournaments from `/tournaments` endpoint
 2. For each tournament, it checks if raw data already exists
 3. If not exists, it fetches 3 endpoints: `/details`, `/standings`, `/pairings`
@@ -74,6 +103,7 @@ python main.py rk9 --url "https://rk9.gg/tournament/example/"
 ```
 
 Options:
+
 - `--url`: RK9 tournament URL (required)
 - `--delay`: Request delay in seconds
 
@@ -100,21 +130,57 @@ python main.py export tournaments --format csv --output tournaments.csv
 python main.py export players --format json --output players.json
 ```
 
+### Process Raw Data into Structured Tables (Stage 2)
+
+```bash
+python main.py process --source limitless
+```
+
+This command reads raw data from `limitless_api_raw_data` and populates:
+
+- `tournaments` table
+- `players` table
+- `teams` table
+- `pokemon_sets` table
+- `moves` table
+- `matches` table
+- `match_participants` table
+
+Options:
+
+- `--source`: Data source to process (limitless, rk9)
+- `--tournaments`: Process only specific tournament IDs (comma-separated)
+- `--force`: Re-process tournaments even if already processed
+
+**What happens:**
+1. Reads raw JSON from `limitless_api_raw_data` table
+2. Parses `details` endpoint into `tournaments` table
+3. Parses `standings` endpoint into `players`, `teams`, `pokemon_sets`, `moves` tables
+4. Parses `pairings` endpoint into `matches`, `match_participants` tables
+5. Handles duplicates and updates existing records
+
+**Example:** Process a specific tournament
+```bash
+python main.py process --source limitless --tournaments 69466de1ba66621ba08a47b7
+```
+
 ## Database Schema
 
 ### Raw Data Table (New)
 
 #### `limitless_api_raw_data`
+
 Stores raw JSON responses from Limitless API for all tournaments.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | TEXT (PK) | Tournament ID (matches tournaments.id) |
-| details | TEXT | Raw JSON from `/details` endpoint |
-| standings | TEXT | Raw JSON from `/standings` endpoint |
-| pairings | TEXT | Raw JSON from `/pairings` endpoint |
+| Column    | Type      | Description                            |
+| --------- | --------- | -------------------------------------- |
+| id        | TEXT (PK) | Tournament ID (matches tournaments.id) |
+| details   | TEXT      | Raw JSON from `/details` endpoint      |
+| standings | TEXT      | Raw JSON from `/standings` endpoint    |
+| pairings  | TEXT      | Raw JSON from `/pairings` endpoint     |
 
 **Requirements:**
+
 - All 3 columns (`details`, `standings`, `pairings`) are required for a complete tournament record
 - UNIQUE(id) constraint ensures one row per tournament
 - FK relationship to tournaments table for referential integrity
@@ -127,40 +193,28 @@ This table is the **sole source of truth** for Limitless tournament data. All pa
 The following tables exist for backward compatibility and will be populated by a separate CLI tool:
 
 #### `tournaments`
+
 Tournament information (will be populated by separate parser from raw data)
 
 #### `players`
+
 Player information (will be populated by separate parser from raw data)
 
 #### `teams`
+
 Team lists used in tournaments (will be populated by separate parser from raw data)
 
 #### `pokemon_sets`
+
 Individual Pokemon sets (will be populated by separate parser from raw data)
 
 #### `matches`
+
 Match information (will be populated by separate parser from raw data)
 
 #### `match_participants`
+
 Players/teams participating in matches and their scores (will be populated by separate parser from raw data)
-
-### Relationships
-
-```
-limitless_api_raw_data ───────┬───────┬───────┬───────┬───┬───────┬───────┬───────┬───────┬───────┬───────┐
-                               │       │        │        │       │       │       │       │       │       │       │
-                               │       │        │        │       │       │       │       │       │       │
-                              ▼       ▼        ▼       ▼       ▼       ▼       ▼       ▼       ▼       ▼       │
-                    (Parser)──►┴──────────────────────────────────────────────────────────────────────────────────────────────────────►
-                               │
-                               │
-                              ▼       ▼        ▼       ▼       ▼       ▼       ▼       ▼       ▼       ▼       ▼       ▼
-                               │
-                  ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-                  │ Parser CLI Tool (Future)
-                  │
-                  └─────────────────────────────────────────────────────────────────────────────────────────────┘
-```
 
 ## Data Source Details
 
@@ -173,11 +227,13 @@ limitless_api_raw_data ───────┬───────┬───
 **Endpoints Used:**
 
 #### Get Tournaments
+
 ```
 GET /tournaments?format={format}&page={page}
 ```
 
 **Response Shape:**
+
 ```json
 {
   "data": [
@@ -194,11 +250,13 @@ GET /tournaments?format={format}&page={page}
 ```
 
 #### Get Tournament Details
+
 ```
 GET /tournaments/{id}/details
 ```
 
 **Response Shape:**
+
 ```json
 {
   "data": {
@@ -227,11 +285,13 @@ GET /tournaments/{id}/details
 ```
 
 #### Get Tournament Standings
+
 ```
 GET /tournaments/{id}/standings
 ```
 
 **Response Shape:**
+
 ```json
 {
   "data": [
@@ -240,7 +300,7 @@ GET /tournaments/{id}/standings
       "name": "John Doe",
       "country": "USA",
       "placing": 1,
-      "record": {"wins": 7, "losses": 0, "ties": 0},
+      "record": { "wins": 7, "losses": 0, "ties": 0 },
       "decklist": [
         {
           "id": "raging-bolt",
@@ -257,11 +317,13 @@ GET /tournaments/{id}/standings
 ```
 
 #### Get Tournament Pairings
+
 ```
 GET /tournaments/{id}/pairings
 ```
 
 **Response Shape:**
+
 ```json
 {
   "data": [
@@ -282,11 +344,13 @@ GET /tournaments/{id}/pairings
 
 **Base URL**: `https://rk9.gg`
 **Pages to Scrape:**
+
 1. **Tournament Page**: General tournament info (name, date)
 2. **Roster Page**: Player list with team lists
 3. **Pairings Page**: Round-by-round matchups
 
 **Example URLs:**
+
 ```
 Tournament: https://rk9.gg/tournament/xyz/
 Roster: https://rk9.gg/tournament/xyz/roster/
@@ -300,11 +364,16 @@ Pairings: https://rk9.gg/tournament/xyz/pairings/
 - Team lists: species, form, item, ability, tera_type
 - Match results: round, table, player IDs, scores
 
-## Scraper Behavior
+## Pipeline Details
 
-### Limitless Scraper
+### Stage 1: Scraper (Fetch Raw Data)
+
+The scrapers are responsible ONLY for fetching data from external APIs and storing it in raw form.
+
+**Limitless Scraper:**
 
 **Data Flow:**
+
 1. Fetches tournament list with pagination
 2. For each tournament:
    - Checks if raw data exists (to avoid re-fetching)
@@ -313,6 +382,7 @@ Pairings: https://rk9.gg/tournament/xyz/pairings/
 3. **No parsing** - All processing will be done by separate tool
 
 **What the Scraper Does:**
+
 - ✅ Fetches raw API data
 - ✅ Stores complete JSON responses
 - ❌ Does NOT populate tournaments, players, teams, matches, pokemon_sets, moves, match_participants
@@ -321,59 +391,60 @@ Pairings: https://rk9.gg/tournament/xyz/pairings/
 - ✅ Logs progress and errors
 
 **What the Scraper Does NOT Do:**
-- ❌ Parse API responses into structured tables
-- ❌ Extract player information
-- ❌ Extract team lists
-- ❌ Extract match data
-- ❌ Create tournament entries
+
+- ❌ Parse API responses into structured tables (handled by Stage 2)
+- ❌ Extract player information (handled by Stage 2)
+- ❌ Extract team lists (handled by Stage 2)
+- ❌ Extract match data (handled by Stage 2)
+- ❌ Create tournament entries (handled by Stage 2)
 - ❌ Apply format filtering logic (only simple string matching)
 
-### Raw Data Storage
+### Stage 2: Processor (Transform Raw Data)
+
+The processor reads raw JSON from SQL tables and transforms it into structured tables.
+
+**What the Processor Does:**
+
+- ✅ Parses JSON from `limitless_api_raw_data` table
+- ✅ Populates `tournaments`, `players`, `teams`, `pokemon_sets`, `matches` tables
+- ✅ Handles data relationships and foreign keys
+- ✅ Supports incremental updates and re-processing
+- ✅ Validates data integrity before insertion
+
+**Benefits:**
+
+- **Decouples fetching from processing**: Separate concerns make each stage simpler
+- **Idempotent processing**: Can re-run to apply schema changes or fix bugs
+- **No API dependency for analysis**: Work offline with cached raw data
+- **Data quality checks**: Validate raw data before parsing
+- **Incremental updates**: Process only new or changed tournaments
+
+### Raw Data Storage (Stage 1 Output)
 
 The `limitless_api_raw_data` table contains:
+
 - **id**: Tournament ID (same as tournaments.id)
 - **details**: Complete JSON from `/details` endpoint (includes phases structure)
 - **standings**: Complete JSON from `/standings` endpoint (includes player placements, records, decklists)
 - **pairings**: Complete JSON from `/pairings` endpoint (includes all match data)
 
 **Validation:**
+
 ```sql
 -- Check all 3 columns are populated
-SELECT 
+SELECT
     id,
     CASE WHEN details IS NOT NULL THEN 1 ELSE 0 END as has_details,
     CASE WHEN standings IS NOT NULL THEN 1 ELSE 0 END as has_standings,
     CASE WHEN pairings IS NOT NULL THEN 1 ELSE 0 END as has_pairings,
-    CASE 
-        WHEN details IS NOT NULL 
-            AND standings IS NOT NULL 
-            AND pairings IS NOT NULL 
-        THEN 1 ELSE 0 
+    CASE
+        WHEN details IS NOT NULL
+            AND standings IS NOT NULL
+            AND pairings IS NOT NULL
+        THEN 1 ELSE 0
     END as all_complete
 FROM limitless_api_raw_data;
 ```
-
-### Parser CLI Tool (Future)
-
-A separate CLI command will:
-1. Read raw data from `limitless_api_raw_data` table
-2. Parse JSON responses
-3. Populate traditional tables:
-   - `tournaments`: Parse from details endpoint
-   - `players`: Parse from standings endpoint
-   - `teams`: Parse from decklists in standings
-   - `pokemon_sets`: Parse from decklists in standings
-   - `moves`: Parse from attacks in decklists
-   - `matches`: Parse from pairings endpoint
-   - `match_participants`: Parse from pairings endpoint
-4. Handle duplicates, updates, and data relationships
-
-**Benefits:**
-- Decouples data fetching from data processing
-- Allows re-processing without re-fetching from API
-- Enables data quality checks on raw data before parsing
-- Simplifies error handling (fetch vs parse errors)
-- Makes the scraper faster and more reliable
 
 ## Project Structure
 
@@ -429,12 +500,14 @@ $ python main.py limitless --format gen9vgc2026regf --limit 5
 ## Dependencies
 
 ### Python
+
 - Database: `sqlite3` (built-in)
 - HTTP Client: `requests` or `httpx`
 - CLI: `click`
 - Logging: `structlog` or `logging` (built-in)
 
-### Install with:
+### Install with
+
 ```bash
 pip install requests click structlog
 ```
