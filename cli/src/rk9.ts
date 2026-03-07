@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { RK9Scraper } from '../scrapers/rk9.js';
-import { DB } from '../database/db.js';
+import { RK9Scraper } from '@vgc/common/scrapers/rk9';
+import { DB } from '@vgc/common/database/db';
 import { config } from '@vgc/common/config';
 
 const program = new Command();

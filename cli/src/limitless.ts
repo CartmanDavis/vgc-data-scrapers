@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { LimitlessScraper } from '../scrapers/limitless.js';
-import { DB } from '../database/db.js';
+import { LimitlessScraper } from '@vgc/common/scrapers/limitless';
+import { DB } from '@vgc/common/database/db';
 import { config } from '@vgc/common/config';
 
 const program = new Command();

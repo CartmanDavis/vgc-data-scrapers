@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { DB } from '../database/db.js';
+import { DB } from '@vgc/common/database/db';
 
 const db = new DB();
 await db.init();

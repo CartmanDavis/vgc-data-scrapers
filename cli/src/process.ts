@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { DataProcessor } from '../processors/processor.js';
-import { DB } from '../database/db.js';
+import { DataProcessor } from '@vgc/common/processors/processor';
+import { DB } from '@vgc/common/database/db';
 
 const program = new Command();
 
