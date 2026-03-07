@@ -5,11 +5,12 @@ Limitless (unofficial) and RK9.gg (official) tournaments.
 
 ## Tech Stack
 
-- **Language**: Python 3.9+
+- **Language**: TypeScript 5.3+
 - **Database**: SQLite (`db/vgc.db`)
-- **HTTP Client**: `requests`
-- **CLI**: `click`
-- **Logging**: `structlog`
+- **HTTP Client**: `axios`
+- **CLI**: `commander`
+- **Logging**: `pino`
+- **HTML Parsing**: `cheerio`
 
 ## General Approach
 
@@ -31,7 +32,7 @@ This separation allows:
 ### Scrape Limitless Tournaments (Stage 1)
 
 ```bash
-python -m scrapers.cli limitless --format gen9vgc2026regf --limit 50
+npm run limitless -- --format gen9vgc2026regf --limit 50
 ```
 
 Options:
@@ -44,7 +45,7 @@ Options:
 ### Scrape RK9 Tournament
 
 ```bash
-python -m scrapers.rk9_cli rk9 --url "https://rk9.gg/tournament/example/"
+npm run rk9 -- --url "https://rk9.gg/tournament/example/"
 ```
 
 Options:
@@ -56,29 +57,19 @@ Options:
 
 ```bash
 # List tournaments
-python -m database.cli query --tournaments --limit 10
+npm run query -- --tournaments --limit 10
 
 # List players
-python -m database.cli query --players --limit 10
+npm run query -- --players --limit 10
 
 # Custom SQL
-python -m database.cli query --sql "SELECT * FROM tournaments WHERE official = 1"
-```
-
-### Export Data
-
-```bash
-# Export to CSV
-python -m database.cli export tournaments --format csv --output tournaments.csv
-
-# Export to JSON
-python -m database.cli export players --format json --output players.json
+npm run query -- --sql "SELECT * FROM tournaments WHERE official = 1"
 ```
 
 ### Process Raw Data (Stage 2)
 
 ```bash
-python -m processors.cli process --source limitless
+npm run process -- --source limitless
 ```
 
 Options:
@@ -107,7 +98,7 @@ usage-stats/
 1. **Install dependencies**:
 
    ```bash
-   pip install -r requirements.txt
+   npm install
    ```
 
 2. **Configure**: Copy `config.example.json` to `config.json` and add your
@@ -125,7 +116,28 @@ usage-stats/
 
 3. **Run commands**: See [Commands Available](#commands-available) above.
 
+4. **Build**:
+
+   ```bash
+   npm run build
+   ```
+
 ## More Info
 
-- **API Details**: See `documentation/TECHNICAL_OVERVIEW.md`
+- **API Details**: See `documentation/limitless.md`
 - **Data Cleaning**: See `documentation/data-cleaning.md`
+- **Data Overview**: See `documentation/data_overview.md`
+
+## Migration from Python
+
+This repository was originally written in Python and has been migrated to TypeScript. The migration maintains the same functionality while leveraging TypeScript's type safety and the rich ecosystem of Pokemon-related TypeScript libraries.
+
+### Key Differences
+
+- Python `requests` → TypeScript `axios`
+- Python `click` → TypeScript `commander`
+- Python `structlog` → TypeScript `pino`
+- Python `beautifulsoup4` → TypeScript `cheerio`
+- Python `sqlite3` → TypeScript `better-sqlite3`
+
+The API and CLI commands remain the same, just using different command runners.
