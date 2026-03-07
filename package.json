@@ -6,8 +6,8 @@
     "cli"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
-    "clean": "npm run clean --workspaces"
+    "build": "npm run build -w @vgc/common && npm run build -w @vgc/cli",
+    "clean": "npm run clean -w @vgc/common && npm run clean -w @vgc/cli"
   },
   "devDependencies": {
     "typescript": "^5.3.0"

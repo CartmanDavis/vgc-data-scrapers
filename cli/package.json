@@ -13,16 +13,16 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "limitless": "node dist/cli/limitless.js",
-    "rk9": "node dist/cli/rk9.js",
-    "process": "node dist/cli/process.js",
-    "query": "node dist/cli/query.js",
-    "analyze-teams": "node dist/cli/analyze-teams.js",
-    "find-best-duo": "node dist/cli/find-best-duo.js",
-    "combined-paste": "node dist/cli/combined-paste.js",
-    "upload": "node dist/cli/upload.js",
-    "player-tournament-report": "node dist/cli/player-tournament-report.js",
-    "create-upload": "node dist/cli/create-upload.js"
+    "limitless": "node dist/limitless.js",
+    "rk9": "node dist/rk9.js",
+    "process": "node dist/process.js",
+    "query": "node dist/query.js",
+    "analyze-teams": "node dist/analyze-teams.js",
+    "find-best-duo": "node dist/find-best-duo.js",
+    "combined-paste": "node dist/combined-paste.js",
+    "upload": "node dist/upload.js",
+    "player-tournament-report": "node dist/player-tournament-report.js",
+    "create-upload": "node dist/create-upload.js"
   },
   "dependencies": {
     "@vgc/common": "file:../common",
