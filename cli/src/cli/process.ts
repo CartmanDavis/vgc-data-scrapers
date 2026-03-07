@@ -1,0 +1,38 @@
+#!/usr/bin/env node
+
+import { Command } from 'commander';
+import { DataProcessor } from '../processors/processor.js';
+import { DB } from '../database/db.js';
+import { config } from '@vgc/common/config.js';
+
+const program = new Command();
+
+program
+  .name('process')
+  .description('Process raw tournament data into structured tables')
+  .option('--source <source>', 'Data source (limitless, rk9)', 'limitless')
+  .option('--tournaments <ids>', 'Comma-separated tournament IDs')
+  .option('--force', 'Re-process even if already processed', false)
+  .option('--db-path <path>', 'Database path', './db/vgc.db')
+  .action(async (options) => {
+    const dbPath = options.dbPath || config.dbPath;
+    const db = new DB(dbPath);
+
+    const processor = new DataProcessor(db);
+
+    let tournamentIds: string[] | undefined;
+    if (options.tournaments) {
+      tournamentIds = options.tournaments.split(',').map((t: string) => t.trim());
+    }
+
+    const result = await processor.processTournaments({
+      source: options.source,
+      tournamentIds,
+      force: options.force,
+    });
+
+    console.log(JSON.stringify(result, null, 2));
+    db.close();
+  });
+
+program.parse();
