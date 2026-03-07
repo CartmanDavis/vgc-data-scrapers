@@ -1,6 +1,6 @@
 import { BaseScraper } from './base.js';
-import { APIClient } from '@vgc/common/api.js';
-import { logger } from '@vgc/common/logging.js';
+import { APIClient } from '@vgc/common/api';
+import { logger } from '@vgc/common/logging';
 import { DB } from '../database/db.js';
 
 export interface LimitlessTournament {

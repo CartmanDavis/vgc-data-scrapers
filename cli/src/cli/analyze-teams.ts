@@ -1,11 +1,8 @@
 #!/usr/bin/env node
 
 import { DB } from '../database/db.js';
-import { config } from '@vgc/common/config.js';
 
-const dbPath = config.dbPath;
-const db = new DB(dbPath);
-
+const db = new DB();
 await db.init();
 
 const query = `

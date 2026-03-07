@@ -3,7 +3,7 @@
 import { Command } from 'commander';
 import { RK9Scraper } from '../scrapers/rk9.js';
 import { DB } from '../database/db.js';
-import { config } from '@vgc/common/config.js';
+import { config } from '@vgc/common/config';
 
 const program = new Command();
 
@@ -12,10 +12,9 @@ program
   .description('Scrape tournament from RK9.gg')
   .option('--url <url>', 'Tournament URL (required)')
   .option('--delay <seconds>', 'Request delay in seconds', '1.0')
-  .option('--db-path <path>', 'Database path', './db/vgc.db')
   .action(async (options) => {
-    const dbPath = options.dbPath || config.dbPath;
-    const db = new DB(dbPath);
+    const db = new DB();
+    await db.init();
 
     if (!options.url) {
       console.error('Error: --url is required');

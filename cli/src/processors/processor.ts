@@ -1,4 +1,4 @@
-import { logger } from '@vgc/common/logging.js';
+import { logger } from '@vgc/common/logging';
 import { DB } from '../database/db.js';
 
 export interface ProcessorOptions {

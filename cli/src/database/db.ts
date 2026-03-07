@@ -1,15 +1,20 @@
 import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
-import { mkdirSync, existsSync } from 'fs';
-import { dirname } from 'path';
+import { mkdirSync, existsSync, writeFileSync } from 'fs';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const PROJECT_ROOT = resolve(__dirname, '../../..');
 
 export class DB {
-  private db!: SqlJsDatabase;
+  public db!: SqlJsDatabase;
   private dbPath: string;
   private SQL: Awaited<ReturnType<typeof initSqlJs>> | null = null;
 
-  constructor(dbPath: string = './db/vgc.db') {
-    this.dbPath = dbPath;
-    const dir = dirname(dbPath);
+  constructor() {
+    this.dbPath = resolve(PROJECT_ROOT, 'db/vgc.db');
+    const dir = dirname(this.dbPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
@@ -140,7 +145,6 @@ export class DB {
   save(): void {
     const data = this.db.export();
     const buffer = Buffer.from(data);
-    const { writeFileSync } = require('fs');
     writeFileSync(this.dbPath, buffer);
   }
 

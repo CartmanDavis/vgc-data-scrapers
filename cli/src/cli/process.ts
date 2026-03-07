@@ -3,7 +3,6 @@
 import { Command } from 'commander';
 import { DataProcessor } from '../processors/processor.js';
 import { DB } from '../database/db.js';
-import { config } from '@vgc/common/config.js';
 
 const program = new Command();
 
@@ -13,10 +12,9 @@ program
   .option('--source <source>', 'Data source (limitless, rk9)', 'limitless')
   .option('--tournaments <ids>', 'Comma-separated tournament IDs')
   .option('--force', 'Re-process even if already processed', false)
-  .option('--db-path <path>', 'Database path', './db/vgc.db')
   .action(async (options) => {
-    const dbPath = options.dbPath || config.dbPath;
-    const db = new DB(dbPath);
+    const db = new DB();
+    await db.init();
 
     const processor = new DataProcessor(db);
 

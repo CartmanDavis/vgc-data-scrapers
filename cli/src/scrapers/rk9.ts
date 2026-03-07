@@ -1,5 +1,5 @@
 import { BaseScraper } from './base.js';
-import { logger } from '@vgc/common/logging.js';
+import { logger } from '@vgc/common/logging';
 import { DB } from '../database/db.js';
 import axios from 'axios';
 import * as cheerio from 'cheerio';

@@ -2,7 +2,6 @@
 
 import { Command } from 'commander';
 import { DB } from '../database/db.js';
-import { config } from '@vgc/common/config.js';
 import axios from 'axios';
 
 interface PokemonData {
@@ -91,9 +90,8 @@ program
   .description('Generate a tournament report for a player including pastes')
   .argument('<playerName>', 'Player name to look up')
   .option('--days <number>', 'Number of days to look back', '90')
-  .option('--db-path <path>', 'Path to database', config.dbPath)
   .action(async (playerName: string, options) => {
-    const db = new DB(options.dbPath);
+    const db = new DB();
     await db.init();
 
     const players = db.prepare('SELECT id, name FROM players WHERE name LIKE ?').all(`%${playerName}%`) as Array<{ id: number; name: string }>;

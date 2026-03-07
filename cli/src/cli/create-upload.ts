@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { DB } from '../database/db.js';
-import { config } from '@vgc/common/config.js';
 import axios from 'axios';
 
 interface PokemonData {
@@ -61,8 +60,7 @@ if (args.length < 1) {
 const playerId = parseInt(args[0], 10);
 const formatFilter = args[1] || undefined;
 
-const dbPath = config.dbPath;
-const db = new DB(dbPath);
+const db = new DB();
 await db.init();
 
 const player = db.prepare('SELECT name FROM players WHERE id = ?').get(playerId) as { name: string } | undefined;

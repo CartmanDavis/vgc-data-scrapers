@@ -1,5 +1,10 @@
 import { readFileSync, existsSync } from 'fs';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const PROJECT_ROOT = resolve(__dirname, '../..');
 
 export interface ConfigOptions {
   configPath?: string;
@@ -16,10 +21,6 @@ export interface Rk9Config {
   requestDelay?: number;
 }
 
-export interface DatabaseConfig {
-  path?: string;
-}
-
 export interface LogConfig {
   dir?: string;
 }
@@ -27,7 +28,6 @@ export interface LogConfig {
 export interface AppConfig {
   limitless?: LimitlessConfig;
   rk9?: Rk9Config;
-  database?: DatabaseConfig;
   log?: LogConfig;
 }
 
@@ -36,15 +36,14 @@ export class Config {
   private configPath: string;
 
   constructor(options: ConfigOptions = {}) {
-    this.configPath = options.configPath || 'config.json';
+    this.configPath = options.configPath || resolve(PROJECT_ROOT, 'config.json');
     this.config = {};
     this.loadConfig();
   }
 
   private loadConfig(): void {
-    const resolvedPath = resolve(this.configPath);
-    if (resolvedPath && existsSync(resolvedPath)) {
-      const content = readFileSync(resolvedPath, 'utf-8');
+    if (this.configPath && existsSync(this.configPath)) {
+      const content = readFileSync(this.configPath, 'utf-8');
       this.config = JSON.parse(content);
     }
   }
@@ -89,12 +88,10 @@ export class Config {
     return Number(this.get('rk9.requestDelay', 1.0)) || 1.0;
   }
 
-  get dbPath(): string {
-    return (this.get('database.path', './db/vgc.db') as string) || './db/vgc.db';
-  }
-
   get logDir(): string {
-    return (this.get('log.dir', './logs') as string) || './logs';
+    const path = (this.get('log.dir', './logs') as string) || './logs';
+    if (path.startsWith('/')) return path;
+    return resolve(PROJECT_ROOT, path);
   }
 }
 

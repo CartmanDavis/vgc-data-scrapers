@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { DB } from '../database/db.js';
-import { config } from '@vgc/common/config.js';
 import axios from 'axios';
 
 interface PokemonData {
@@ -54,8 +53,7 @@ function createPaste(pokemonData: PokemonData[], tournamentName: string, dateStr
   return paste.trim() + '\n\n';
 }
 
-const dbPath = config.dbPath;
-const db = new DB(dbPath);
+const db = new DB();
 await db.init();
 
 const playerId = process.argv[2] || '3315';

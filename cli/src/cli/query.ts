@@ -2,7 +2,6 @@
 
 import { Command } from 'commander';
 import { DB } from '../database/db.js';
-import { config } from '@vgc/common/config.js';
 
 const program = new Command();
 
@@ -14,10 +13,9 @@ program
   .option('--teams', 'List teams')
   .option('--sql <query>', 'Custom SQL query')
   .option('--limit <number>', 'Limit results', '10')
-  .option('--db-path <path>', 'Database path', './db/vgc.db')
   .action(async (options) => {
-    const dbPath = options.dbPath || config.dbPath;
-    const db = new DB(dbPath);
+    const db = new DB();
+    await db.init();
     const limit = parseInt(options.limit, 10);
 
     try {

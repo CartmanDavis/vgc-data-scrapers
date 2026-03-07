@@ -3,7 +3,7 @@
 import { Command } from 'commander';
 import { LimitlessScraper } from '../scrapers/limitless.js';
 import { DB } from '../database/db.js';
-import { config } from '@vgc/common/config.js';
+import { config } from '@vgc/common/config';
 
 const program = new Command();
 
@@ -16,10 +16,9 @@ program
   .option('--page <number>', 'Starting page number', '1')
   .option('--api-key <key>', 'Override API key')
   .option('--rate-limit <number>', 'Rate limit (requests per minute)', '200')
-  .option('--db-path <path>', 'Database path', './db/vgc.db')
   .action(async (options) => {
-    const dbPath = options.dbPath || config.dbPath;
-    const db = new DB(dbPath);
+    const db = new DB();
+    await db.init();
 
     const apiKey = options.apiKey || config.limitlessApiKey;
     if (!apiKey) {
