@@ -1,0 +1,39 @@
+{
+  "name": "@vgc/cli",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "limitless": "node dist/limitless.js",
+    "rk9": "node dist/rk9.js",
+    "process": "node dist/process.js",
+    "query": "node dist/query.js",
+    "analyze-teams": "node dist/analyze-teams.js",
+    "find-best-duo": "node dist/find-best-duo.js",
+    "combined-paste": "node dist/combined-paste.js",
+    "upload": "node dist/upload.js",
+    "player-tournament-report": "node dist/player-tournament-report.js",
+    "create-upload": "node dist/create-upload.js"
+  },
+  "dependencies": {
+    "@vgc/common": "file:../common",
+    "axios": "^1.6.0",
+    "sql.js": "^1.10.0",
+    "cheerio": "^1.0.0-rc.12",
+    "commander": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/sql.js": "^1.4.9",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  }
+}

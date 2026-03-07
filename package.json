@@ -1,0 +1,19 @@
+{
+  "name": "vgc-usage-stats",
+  "private": true,
+  "workspaces": [
+    "common",
+    "cli"
+  ],
+  "scripts": {
+    "build": "npm run build -w @vgc/common && npm run build -w @vgc/cli",
+    "clean": "npm run clean -w @vgc/common && npm run clean -w @vgc/cli"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

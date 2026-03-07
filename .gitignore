@@ -1,19 +1,12 @@
 node_modules/
 dist/
+*.tsbuildinfo
 *.log
 .DS_Store
 config.json
-
-# Database
 db/*
 !db/README.md
-
-# Logs
 logs/*
 !logs/README.md
-
-# Output - generated files
-output/visualization/*
-output/markdown/*
-!output/visualization/README.md
-!output/markdown/README.md
+output/*
+!output/README.md

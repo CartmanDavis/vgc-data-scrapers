@@ -1,0 +1,60 @@
+{
+  "name": "@vgc/common",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./config": {
+      "import": "./dist/config.js",
+      "types": "./dist/config.d.ts"
+    },
+    "./logging": {
+      "import": "./dist/logging.js",
+      "types": "./dist/logging.d.ts"
+    },
+    "./api": {
+      "import": "./dist/api.js",
+      "types": "./dist/api.d.ts"
+    },
+    "./database/db": {
+      "import": "./dist/database/db.js",
+      "types": "./dist/database/db.d.ts"
+    },
+    "./scrapers/limitless": {
+      "import": "./dist/scrapers/limitless.js",
+      "types": "./dist/scrapers/limitless.d.ts"
+    },
+    "./scrapers/rk9": {
+      "import": "./dist/scrapers/rk9.js",
+      "types": "./dist/scrapers/rk9.d.ts"
+    },
+    "./scrapers/base": {
+      "import": "./dist/scrapers/base.js",
+      "types": "./dist/scrapers/base.d.ts"
+    },
+    "./processors/processor": {
+      "import": "./dist/processors/processor.js",
+      "types": "./dist/processors/processor.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "pino": "^8.17.0",
+    "pino-pretty": "^10.3.0",
+    "sql.js": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/sql.js": "^1.4.9",
+    "typescript": "^5.3.0"
+  }
+}
