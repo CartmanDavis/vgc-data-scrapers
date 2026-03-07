@@ -6,8 +6,8 @@
     "cli"
   ],
   "scripts": {
-    "build": "npm run build -w @vgc/common && npm run build -w @vgc/cli",
-    "clean": "npm run clean -w @vgc/common && npm run clean -w @vgc/cli",
+    "build": "tsc --build --verbose",
+    "clean": "tsc --build --clean",
     "test": "vitest run",
     "test:watch": "vitest"
   },
