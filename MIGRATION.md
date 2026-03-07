@@ -1,6 +1,8 @@
 # TypeScript Migration
 
-This repository has been migrated from Python to TypeScript to leverage the rich ecosystem of Pokemon-related TypeScript libraries and tools.
+This document outlines the planned migration from Python to TypeScript to leverage the rich ecosystem of Pokemon-related TypeScript libraries and tools.
+
+> **Status**: Not yet started. The Python codebase was recently reorganized into `cli/` subdirectories.
 
 ## What Changed
 
@@ -15,49 +17,52 @@ This repository has been migrated from Python to TypeScript to leverage the rich
 | `click` | `commander` |
 | `structlog` | `pino` + `pino-pretty` |
 | `beautifulsoup4` | `cheerio` |
-| `sqlite3` | `better-sqlite3` |
+| `lxml` | `lxml` (or `fast-xml-parser`) |
 
 ### Project Structure
 ```
-Python                          TypeScript
-────────────────────────────────────────────────
-common/config.py           →   src/common/config.ts
-common/api.py               →   src/common/api.ts
-common/logging.py           →   src/common/logging.ts
-database/db.py             →   src/database/db.ts
-scrapers/base.py           →   src/scrapers/base.ts
-scrapers/limitless.py      →   src/scrapers/limitless.ts
-scrapers/rk9.py            →   src/scrapers/rk9.ts
-processors/processor.py    →   src/processors/processor.ts
-scrapers/cli.py            →   src/cli/limitless.ts
-scrapers/rk9_cli.py        →   src/cli/rk9.ts
-processors/cli.py          →   src/cli/process.ts
-database/cli.py            →   src/cli/query.ts
+Current Python                          TypeScript (planned)
+───────────────────────────────────────────────────────────────────────
+common/config.py                    →   src/common/config.ts
+common/api.py                       →   src/common/api.ts
+common/logging.py                   →   src/common/logging.ts
+cli/database/db.py                 →   src/database/db.ts
+cli/scrapers/base.py               →   src/scrapers/base.ts
+cli/scrapers/limitless.py          →   src/scrapers/limitless.ts
+cli/scrapers/rk9.py                →   src/scrapers/rk9.ts
+cli/scrapers/cli.py                →   src/cli/scrapers.ts
+cli/processors/processor.py        →   src/processors/processor.ts
+cli/processors/cli.py               →   src/cli/process.ts
+cli/database/cli.py                →   src/cli/query.ts
+cli/analyze_teams.py               →   src/cli/analyze-teams.ts
+cli/combined_paste.py              →   src/cli/combined-paste.ts
+cli/create_and_upload.py           →   src/cli/create-upload.ts
+cli/find_best_duo.py                →   src/cli/find-best-duo.ts
+cli/player_tournament_report.py    →   src/cli/player-tournament-report.ts
+cli/upload.py                       →   src/cli/upload.ts
+cli/visualization/visualizations.py →  src/cli/visualizations.ts
 ```
 
-## Migration Process
+## Migration Steps (Not Yet Executed)
 
-1. Created `package.json` with TypeScript and tooling dependencies
-2. Created `tsconfig.json` with strict TypeScript configuration
-3. Migrated all Python modules to TypeScript
-4. Created CLI entry points using `commander`
-5. Updated `README.md` with TypeScript commands
-6. Maintained database schema compatibility
+1. Create `package.json` with TypeScript and tooling dependencies
+2. Create `tsconfig.json` with strict TypeScript configuration
+3. Migrate all Python modules to TypeScript
+4. Create CLI entry points using `commander`
+5. Maintain database schema compatibility
+6. Update `README.md` with TypeScript commands
 
-## Getting Started with TypeScript
+## Getting Started (Current Python)
 
 ```bash
 # Install dependencies
-npm install
-
-# Build the project
-npm run build
+pip install -r requirements.txt
 
 # Run commands
-npm run limitless -- --format gen9vgc2026regf --limit 50
-npm run rk9 -- --url "https://rk9.gg/tournament/example/"
-npm run process -- --source limitless
-npm run query -- --tournaments --limit 10
+python -m cli.scrapers.limitless --format gen9vgc2026regf --limit 50
+python -m cli.scrapers.rk9 --url "https://rk9.gg/tournament/example/"
+python -m cli.processors.cli --source limitless
+python -m cli.database.cli --tournaments --limit 10
 ```
 
 ## Benefits of TypeScript Migration
