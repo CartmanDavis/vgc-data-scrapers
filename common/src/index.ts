@@ -5,7 +5,7 @@ export type { Logger } from './logging.js';
 export { APIClient } from './api.js';
 export type { APIClientOptions } from './api.js';
 export { DB } from './database/db.js';
-export type { RunResult } from './database/db.js';
+export type { IDB, IStatement, IRunResult, RunResult } from './database/db.js';
 export { LimitlessScraper } from './scrapers/limitless.js';
 export type { LimitlessScraperOptions } from './scrapers/limitless.js';
 export { RK9Scraper } from './scrapers/rk9.js';

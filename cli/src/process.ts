@@ -2,7 +2,7 @@
 
 import { Command } from 'commander';
 import { DataProcessor } from '@vgc/common/processors/processor';
-import { DB } from '@vgc/common/database/db';
+import { DB } from './db/db.js';
 
 const program = new Command();
 
@@ -14,7 +14,7 @@ program
   .option('--force', 'Re-process even if already processed', false)
   .action(async (options) => {
     const db = new DB();
-    await db.init();
+    db.init();
 
     const processor = new DataProcessor(db);
 

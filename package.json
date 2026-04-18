@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "common",
-    "cli"
+    "cli",
+    "frontend"
   ],
   "scripts": {
     "build": "tsc --build --verbose",

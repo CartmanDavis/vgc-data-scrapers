@@ -26,11 +26,45 @@ export class LimitlessScraper extends BaseScraper {
     this.rateLimit = options.rateLimit || 200;
   }
 
+  async scrapeSingle(tournamentId: string): Promise<Record<string, unknown>> {
+    if (!this.apiKey) {
+      logger.error('Limitless API key not provided');
+      return { success: false, error: 'API key required' };
+    }
+
+    const client = new APIClient({
+      baseUrl: this.baseUrl,
+      headers: { 'X-Access-Key': this.apiKey },
+      rateLimit: this.rateLimit,
+    });
+
+    const results: Record<string, unknown> = {
+      success: true,
+      tournamentsScraped: 0,
+      rawResponsesStored: 0,
+    };
+
+    const detailsResponse = await client.get(`/tournaments/${tournamentId}/details`);
+    const standingsResponse = await client.get(`/tournaments/${tournamentId}/standings`);
+    const pairingsResponse = await client.get(`/tournaments/${tournamentId}/pairings`);
+
+    if (detailsResponse || standingsResponse || pairingsResponse) {
+      this.storeRawResponse(
+        tournamentId,
+        detailsResponse || {},
+        standingsResponse || {},
+        pairingsResponse || {}
+      );
+      results.rawResponsesStored = 1;
+    }
+
+    logger.info({ tournamentId }, 'Raw data stored');
+    return results;
+  }
+
   async scrape(params: Record<string, unknown>): Promise<Record<string, unknown>> {
     const formatFilter = params.format_filter as string | undefined;
-    const limit = params.limit as number | undefined;
     const since = params.since as string | undefined;
-    const page = (params.page as number) || 1;
 
     if (!this.apiKey) {
       logger.error('Limitless API key not provided');
@@ -44,10 +78,10 @@ export class LimitlessScraper extends BaseScraper {
     });
 
     const allTournaments: LimitlessTournament[] = [];
-    let currentPage = page;
+    let currentPage = 1;
 
     while (true) {
-      const queryParams: Record<string, unknown> = { page: currentPage };
+      const queryParams: Record<string, unknown> = { page: currentPage, game: 'VGC' };
       if (formatFilter) {
         if (['svf', 'reg f'].includes(formatFilter.toLowerCase())) {
           queryParams.format = formatFilter.toUpperCase();
@@ -80,10 +114,6 @@ export class LimitlessScraper extends BaseScraper {
     if (since) {
       this.filterByDate(allTournaments, since);
       logger.info({ since, count: allTournaments.length }, 'Filtered tournaments by date');
-    }
-
-    if (limit) {
-      allTournaments.splice(limit);
     }
 
     logger.info({ count: allTournaments.length }, 'Found tournaments');

@@ -22,17 +22,19 @@
     "combined-paste": "node dist/combined-paste.js",
     "upload": "node dist/upload.js",
     "player-tournament-report": "node dist/player-tournament-report.js",
-    "create-upload": "node dist/create-upload.js"
+    "create-upload": "node dist/create-upload.js",
+    "generate-csvs": "node dist/generate-csvs.js",
+    "clean-db": "node dist/clean-db.js"
   },
   "dependencies": {
     "@vgc/common": "file:../common",
     "axios": "^1.6.0",
-    "sql.js": "^1.10.0",
+    "better-sqlite3": "^11.7.0",
     "cheerio": "^1.0.0-rc.12",
     "commander": "^11.1.0"
   },
   "devDependencies": {
-    "@types/sql.js": "^1.4.9",
+    "@types/better-sqlite3": "^7.6.8",
     "@types/node": "^20.10.0",
     "typescript": "^5.3.0"
   }

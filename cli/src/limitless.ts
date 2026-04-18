@@ -1,28 +1,29 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
-import { LimitlessScraper } from '@vgc/common/scrapers/limitless';
-import { DB } from '@vgc/common/database/db';
-import { config } from '@vgc/common/config';
+import { Command } from "commander";
+import { LimitlessScraper } from "@vgc/common/scrapers/limitless";
+import { DB } from "@vgc/common/database/db";
+import { config } from "@vgc/common/config";
 
 const program = new Command();
 
 program
-  .name('limitless')
-  .description('Scrape tournaments from Limitless')
-  .option('--format <format>', 'Format filter (e.g., gen9vgc2026regf)')
-  .option('--limit <number>', 'Maximum tournaments to scrape', '50')
-  .option('--since <date>', 'Only scrape after date (YYYY-MM-DD)')
-  .option('--page <number>', 'Starting page number', '1')
-  .option('--api-key <key>', 'Override API key')
-  .option('--rate-limit <number>', 'Rate limit (requests per minute)', '200')
+  .name("limitless")
+  .description("Scrape tournaments from Limitless")
+  .option("--format <format>", "Format filter (e.g., gen9vgc2026regf)")
+  .option("--since <date>", "Only scrape after date (YYYY-MM-DD)")
+  .option("--api-key <key>", "Override API key")
+  .option("--rate-limit <number>", "Rate limit (requests per minute)", "400")
+  .option("--id <id>", "Scrape a single tournament by ID")
   .action(async (options) => {
     const db = new DB();
     await db.init();
 
     const apiKey = options.apiKey || config.limitlessApiKey;
     if (!apiKey) {
-      console.error('Error: Limitless API key is required. Provide via --api-key or config.json');
+      console.error(
+        "Error: Limitless API key is required. Provide via --api-key or config.json",
+      );
       process.exit(1);
     }
 
@@ -31,12 +32,15 @@ program
       rateLimit: parseInt(options.rateLimit, 10),
     });
 
-    const result = await scraper.scrape({
-      format_filter: options.format,
-      limit: parseInt(options.limit, 10),
-      since: options.since,
-      page: parseInt(options.page, 10),
-    });
+    let result;
+    if (options.id) {
+      result = await scraper.scrapeSingle(options.id);
+    } else {
+      result = await scraper.scrape({
+        format_filter: options.format,
+        since: options.since,
+      });
+    }
 
     console.log(JSON.stringify(result, null, 2));
     db.close();

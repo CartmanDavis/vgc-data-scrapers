@@ -1,5 +1,5 @@
-import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
-import { mkdirSync, existsSync, writeFileSync } from 'fs';
+import Database from 'better-sqlite3';
+import { mkdirSync, existsSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -8,9 +8,8 @@ const __dirname = dirname(__filename);
 const PROJECT_ROOT = resolve(__dirname, '../../..');
 
 export class DB {
-  public db!: SqlJsDatabase;
+  public db!: Database.Database;
   private dbPath: string;
-  private SQL: Awaited<ReturnType<typeof initSqlJs>> | null = null;
 
   constructor() {
     this.dbPath = resolve(PROJECT_ROOT, 'db/vgc.db');
@@ -20,36 +19,13 @@ export class DB {
     }
   }
 
-  async init(): Promise<void> {
-    this.SQL = await initSqlJs();
-    await this.loadDatabase();
+  init(): void {
+    this.db = new Database(this.dbPath);
     this.createTables();
   }
 
-  private async loadDatabase(): Promise<void> {
-    try {
-      const { readFileSync } = await import('fs');
-      if (existsSync(this.dbPath)) {
-        const buffer = readFileSync(this.dbPath);
-        this.db = new this.SQL!.Database(buffer);
-      } else {
-        this.db = new this.SQL!.Database();
-      }
-    } catch {
-      this.db = new this.SQL!.Database();
-    }
-  }
-
-  async reset(): Promise<void> {
-    if (this.db) {
-      this.save();
-      this.db.close();
-    }
-    await this.loadDatabase();
-  }
-
   private createTables(): void {
-    this.db.run(`
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS tournaments (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -83,7 +59,6 @@ export class DB {
         item TEXT,
         ability TEXT,
         tera_type TEXT,
-        is_mega INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (team_id) REFERENCES teams(id)
       );
 
@@ -141,24 +116,17 @@ export class DB {
       );
     `);
 
-    this.db.run(`CREATE INDEX IF NOT EXISTS idx_tournaments_date ON tournaments(date);`);
-    this.db.run(`CREATE INDEX IF NOT EXISTS idx_tournaments_generation_format ON tournaments(generation, format);`);
-    this.db.run(`CREATE INDEX IF NOT EXISTS idx_teams_tournament ON teams(tournament_id);`);
-    this.db.run(`CREATE INDEX IF NOT EXISTS idx_pokemon_sets_team ON pokemon_sets(team_id);`);
-    this.db.run(`CREATE INDEX IF NOT EXISTS idx_matches_tournament ON matches(tournament_id);`);
-    this.db.run(`CREATE INDEX IF NOT EXISTS idx_tournament_standings_tournament ON tournament_standings(tournament_id);`);
-    this.db.run(`CREATE INDEX IF NOT EXISTS idx_tournament_standings_player ON tournament_standings(player_id);`);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_tournaments_date ON tournaments(date);`);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_tournaments_generation_format ON tournaments(generation, format);`);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_teams_tournament ON teams(tournament_id);`);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_pokemon_sets_team ON pokemon_sets(team_id);`);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_matches_tournament ON matches(tournament_id);`);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_tournament_standings_tournament ON tournament_standings(tournament_id);`);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_tournament_standings_player ON tournament_standings(player_id);`);
   }
 
   close(): void {
-    this.save();
     this.db.close();
-  }
-
-  save(): void {
-    const data = this.db.export();
-    const buffer = Buffer.from(data);
-    writeFileSync(this.dbPath, buffer);
   }
 
   prepare(sql: string): Statement {
@@ -167,55 +135,31 @@ export class DB {
 }
 
 export class Statement {
-  private db: SqlJsDatabase;
+  private db: Database.Database;
   private sql: string;
 
-  constructor(db: SqlJsDatabase, sql: string) {
+  constructor(db: Database.Database, sql: string) {
     this.db = db;
     this.sql = sql;
   }
 
   run(...params: unknown[]): RunResult {
-    this.db.run(this.sql, params as (string | number | null | Uint8Array)[]);
-    const lastId = this.db.exec('SELECT last_insert_rowid() as id')[0]?.values[0]?.[0] as number | undefined;
+    const stmt = this.db.prepare(this.sql);
+    const result = stmt.run(...params as (string | number | null | Uint8Array)[]);
     return {
-      lastInsertRowid: lastId ?? 0,
-      changes: this.db.getRowsModified(),
+      lastInsertRowid: Number(result.lastInsertRowid),
+      changes: result.changes,
     };
   }
 
   get(...params: unknown[]): unknown {
     const stmt = this.db.prepare(this.sql);
-    stmt.bind(params as (string | number | null | Uint8Array)[]);
-    if (stmt.step()) {
-      const columns = stmt.getColumnNames();
-      const values = stmt.get();
-      stmt.free();
-      const result: Record<string, unknown> = {};
-      columns.forEach((col, i) => {
-        result[col] = values[i];
-      });
-      return result;
-    }
-    stmt.free();
-    return undefined;
+    return stmt.get(...params as (string | number | null | Uint8Array)[]) as unknown;
   }
 
   all(...params: unknown[]): unknown[] {
-    const results: unknown[] = [];
     const stmt = this.db.prepare(this.sql);
-    stmt.bind(params as (string | number | null | Uint8Array)[]);
-    while (stmt.step()) {
-      const columns = stmt.getColumnNames();
-      const values = stmt.get();
-      const row: Record<string, unknown> = {};
-      columns.forEach((col, i) => {
-        row[col] = values[i];
-      });
-      results.push(row);
-    }
-    stmt.free();
-    return results;
+    return stmt.all(...params as (string | number | null | Uint8Array)[]) as unknown[];
   }
 }
 
@@ -223,21 +167,3 @@ export interface RunResult {
   lastInsertRowid: number;
   changes: number;
 }
-
-export interface IDB {
-  prepare(sql: string): IStatement;
-  close(): void;
-}
-
-export interface IStatement {
-  run(...params: unknown[]): IRunResult;
-  get(...params: unknown[]): unknown;
-  all(...params: unknown[]): unknown[];
-}
-
-export interface IRunResult {
-  lastInsertRowid: number;
-  changes: number;
-}
-
-export const db = new DB();
