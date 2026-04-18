@@ -4,7 +4,6 @@ dist/
 *.log
 .DS_Store
 config.json
-db/*
 !db/README.md
 logs/*
 !logs/README.md
