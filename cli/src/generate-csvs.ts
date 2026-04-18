@@ -129,6 +129,7 @@ function generatePokemonUsage(db: DB): Record<string, unknown>[] {
     CROSS JOIN total_ma
     CROSS JOIN total_4plus
     CROSS JOIN total_top_cut
+    WHERE ROUND(CAST(sa.teams AS REAL) * 100.0 / total_ma.cnt, 2) >= 0.1
     ORDER BY sa.teams DESC
   `).all() as Record<string, unknown>[];
 }
@@ -218,10 +219,10 @@ function generateMegaH2H(db: DB): Record<string, unknown>[] {
     ),
     h2h_raw AS (
       SELECT
-        CASE WHEN mtp1.pokemon < mtp2.pokemon THEN mtp1.pokemon ELSE mtp2.pokemon END AS p1,
-        CASE WHEN mtp1.pokemon < mtp2.pokemon THEN mtp2.pokemon ELSE mtp1.pokemon END AS p2,
-        CASE WHEN mtp1.pokemon < mtp2.pokemon THEN mp1.score ELSE mp2.score END AS score1,
-        CASE WHEN mtp1.pokemon < mtp2.pokemon THEN mp2.score ELSE mp1.score END AS score2,
+        mtp1.pokemon AS p1,
+        mtp2.pokemon AS p2,
+        mp1.score AS score1,
+        mp2.score AS score2,
         m.phase,
         CASE WHEN mp1.team_id IN (SELECT team_id FROM four_plus_team_ids)
               AND mp2.team_id IN (SELECT team_id FROM four_plus_team_ids)
@@ -233,6 +234,11 @@ function generateMegaH2H(db: DB): Record<string, unknown>[] {
       JOIN mega_team_pokemon mtp1 ON mtp1.team_id = mp1.team_id
       JOIN mega_team_pokemon mtp2 ON mtp2.team_id = mp2.team_id
       WHERE mtp1.pokemon != mtp2.pokemon
+    ),
+    h2h_all AS (
+      SELECT * FROM h2h_raw
+      UNION ALL
+      SELECT p2 AS p1, p1 AS p2, score2 AS score1, score1 AS score2, phase, both_4plus FROM h2h_raw
     )
     SELECT
       p1 AS "Mega 1",
@@ -253,10 +259,10 @@ function generateMegaH2H(db: DB): Record<string, unknown>[] {
       CASE WHEN SUM(CASE WHEN phase >= 2 THEN 1 ELSE 0 END) > 0
         THEN ROUND(CAST(SUM(CASE WHEN phase >= 2 AND score1 > score2 THEN 1 ELSE 0 END) AS REAL) * 100.0 / SUM(CASE WHEN phase >= 2 THEN 1 ELSE 0 END), 2)
         ELSE NULL END AS top_cut_mega1_winrate
-    FROM h2h_raw
+    FROM h2h_all
     GROUP BY p1, p2
     HAVING COUNT(*) >= ${H2H_MIN_MATCHES}
-    ORDER BY mega1_winrate DESC
+    ORDER BY "Mega 1", mega1_winrate DESC
   `).all() as Record<string, unknown>[];
 }
 
