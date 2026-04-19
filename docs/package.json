@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://cartmandavis.github.io/vgc-data-scrapers/",
+  "homepage": "https://stats.carter.dev/",
   "scripts": {
     "dev": "vite --host",
     "build": "tsc -b && vite build",
