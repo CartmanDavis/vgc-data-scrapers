@@ -93,19 +93,36 @@ function generatePokemonUsage(db: DB): Record<string, unknown>[] {
     ),
     species_4plus AS (
       SELECT ps.species, ps.is_mega,
-        COUNT(DISTINCT ps.team_id) AS teams,
-        ROUND(CAST(SUM(mp.score) AS REAL) * 100.0 / COUNT(mp.id), 2) AS win_rate
+        COUNT(DISTINCT ps.team_id) AS teams
       FROM pokemon_sets ps
       JOIN four_plus_teams ft ON ps.team_id = ft.team_id
-      JOIN match_participants mp ON mp.team_id = ps.team_id
       GROUP BY ps.species, ps.is_mega
     ),
     species_top_cut AS (
       SELECT ps.species, ps.is_mega,
-        COUNT(DISTINCT ps.team_id) AS teams,
-        ROUND(CAST(SUM(mp.score) AS REAL) * 100.0 / COUNT(mp.id), 2) AS win_rate
+        COUNT(DISTINCT ps.team_id) AS teams
       FROM pokemon_sets ps
       JOIN top_cut_teams tct ON ps.team_id = tct.team_id
+      GROUP BY ps.species, ps.is_mega
+    ),
+    -- win rate for any MA team when the opponent finished with 4+ wins
+    species_4plus_wr AS (
+      SELECT ps.species, ps.is_mega,
+        ROUND(CAST(SUM(mp1.score) AS REAL) * 100.0 / COUNT(mp1.id), 2) AS win_rate
+      FROM pokemon_sets ps
+      JOIN ma_teams mt ON ps.team_id = mt.team_id
+      JOIN match_participants mp1 ON mp1.team_id = ps.team_id
+      JOIN match_participants mp2
+        ON mp2.match_id = mp1.match_id AND mp2.team_id != mp1.team_id
+      JOIN four_plus_teams ft ON mp2.team_id = ft.team_id
+      GROUP BY ps.species, ps.is_mega
+    ),
+    -- win rate for any MA team in top cut rounds (phase >= 2)
+    species_top_cut_wr AS (
+      SELECT ps.species, ps.is_mega,
+        ROUND(CAST(SUM(mp.score) AS REAL) * 100.0 / COUNT(mp.id), 2) AS win_rate
+      FROM pokemon_sets ps
+      JOIN ma_teams mt ON ps.team_id = mt.team_id
       JOIN match_participants mp ON mp.team_id = ps.team_id
       JOIN matches m ON mp.match_id = m.id
       WHERE m.phase >= 2
@@ -119,13 +136,15 @@ function generatePokemonUsage(db: DB): Record<string, unknown>[] {
       sa.win_rate,
       COALESCE(s4.teams, 0) AS "4plus_teams",
       ROUND(CAST(COALESCE(s4.teams, 0) AS REAL) * 100.0 / total_4plus.cnt, 2) AS "4plus_usage_pct",
-      COALESCE(s4.win_rate, 0) AS "4plus_win_rate",
+      COALESCE(s4wr.win_rate, 0) AS "4plus_win_rate",
       COALESCE(stc.teams, 0) AS top_cut_teams,
       ROUND(CAST(COALESCE(stc.teams, 0) AS REAL) * 100.0 / total_top_cut.cnt, 2) AS top_cut_usage_pct,
-      COALESCE(stc.win_rate, 0) AS top_cut_win_rate
+      COALESCE(stcwr.win_rate, 0) AS top_cut_win_rate
     FROM species_all sa
     LEFT JOIN species_4plus s4 ON sa.species = s4.species AND sa.is_mega = s4.is_mega
     LEFT JOIN species_top_cut stc ON sa.species = stc.species AND sa.is_mega = stc.is_mega
+    LEFT JOIN species_4plus_wr s4wr ON sa.species = s4wr.species AND sa.is_mega = s4wr.is_mega
+    LEFT JOIN species_top_cut_wr stcwr ON sa.species = stcwr.species AND sa.is_mega = stcwr.is_mega
     CROSS JOIN total_ma
     CROSS JOIN total_4plus
     CROSS JOIN total_top_cut
@@ -166,19 +185,34 @@ function generateMegaUsage(db: DB): Record<string, unknown>[] {
     ),
     pokemon_4plus AS (
       SELECT mtp.pokemon,
-        COUNT(DISTINCT mtp.team_id) AS usage_count,
-        ROUND(CAST(SUM(mp.score) AS REAL) * 100.0 / COUNT(mp.id), 2) AS win_rate
+        COUNT(DISTINCT mtp.team_id) AS usage_count
       FROM mega_team_pokemon mtp
       JOIN four_plus_mega_teams ft ON mtp.team_id = ft.team_id
-      JOIN match_participants mp ON mp.team_id = mtp.team_id
       GROUP BY mtp.pokemon
     ),
     pokemon_top_cut AS (
       SELECT mtp.pokemon,
-        COUNT(DISTINCT mtp.team_id) AS usage_count,
-        ROUND(CAST(SUM(mp.score) AS REAL) * 100.0 / COUNT(mp.id), 2) AS win_rate
+        COUNT(DISTINCT mtp.team_id) AS usage_count
       FROM mega_team_pokemon mtp
       JOIN top_cut_mega_teams tct ON mtp.team_id = tct.team_id
+      GROUP BY mtp.pokemon
+    ),
+    -- win rate for any mega team when the opponent finished with 4+ wins
+    pokemon_4plus_wr AS (
+      SELECT mtp.pokemon,
+        ROUND(CAST(SUM(mp1.score) AS REAL) * 100.0 / COUNT(mp1.id), 2) AS win_rate
+      FROM mega_team_pokemon mtp
+      JOIN match_participants mp1 ON mp1.team_id = mtp.team_id
+      JOIN match_participants mp2
+        ON mp2.match_id = mp1.match_id AND mp2.team_id != mp1.team_id
+      JOIN four_plus_mega_teams ft ON mp2.team_id = ft.team_id
+      GROUP BY mtp.pokemon
+    ),
+    -- win rate for any mega team in top cut rounds (phase >= 2)
+    pokemon_top_cut_wr AS (
+      SELECT mtp.pokemon,
+        ROUND(CAST(SUM(mp.score) AS REAL) * 100.0 / COUNT(mp.id), 2) AS win_rate
+      FROM mega_team_pokemon mtp
       JOIN match_participants mp ON mp.team_id = mtp.team_id
       JOIN matches m ON mp.match_id = m.id
       WHERE m.phase >= 2
@@ -191,13 +225,15 @@ function generateMegaUsage(db: DB): Record<string, unknown>[] {
       pa.win_rate,
       COALESCE(p4.usage_count, 0) AS "4plus_teams",
       ROUND(CAST(COALESCE(p4.usage_count, 0) AS REAL) * 100.0 / total_4plus_mega.cnt, 2) AS "4plus_usage_pct",
-      COALESCE(p4.win_rate, 0) AS "4plus_win_rate",
+      COALESCE(p4wr.win_rate, 0) AS "4plus_win_rate",
       COALESCE(ptc.usage_count, 0) AS top_cut_teams,
       ROUND(CAST(COALESCE(ptc.usage_count, 0) AS REAL) * 100.0 / total_top_cut_mega.cnt, 2) AS top_cut_usage_pct,
-      COALESCE(ptc.win_rate, 0) AS top_cut_win_rate
+      COALESCE(ptcwr.win_rate, 0) AS top_cut_win_rate
     FROM pokemon_all pa
     LEFT JOIN pokemon_4plus p4 ON pa.pokemon = p4.pokemon
     LEFT JOIN pokemon_top_cut ptc ON pa.pokemon = ptc.pokemon
+    LEFT JOIN pokemon_4plus_wr p4wr ON pa.pokemon = p4wr.pokemon
+    LEFT JOIN pokemon_top_cut_wr ptcwr ON pa.pokemon = ptcwr.pokemon
     CROSS JOIN total_mega
     CROSS JOIN total_4plus_mega
     CROSS JOIN total_top_cut_mega
@@ -225,8 +261,9 @@ function generateMegaH2H(db: DB): Record<string, unknown>[] {
         mp2.score AS score2,
         m.phase,
         CASE WHEN mp1.team_id IN (SELECT team_id FROM four_plus_team_ids)
-              AND mp2.team_id IN (SELECT team_id FROM four_plus_team_ids)
-        THEN 1 ELSE 0 END AS both_4plus
+          THEN 1 ELSE 0 END AS p1_4plus,
+        CASE WHEN mp2.team_id IN (SELECT team_id FROM four_plus_team_ids)
+          THEN 1 ELSE 0 END AS p2_4plus
       FROM match_participants mp1
       JOIN match_participants mp2
         ON mp1.match_id = mp2.match_id AND mp1.team_id < mp2.team_id
@@ -236,9 +273,9 @@ function generateMegaH2H(db: DB): Record<string, unknown>[] {
       WHERE mtp1.pokemon != mtp2.pokemon
     ),
     h2h_all AS (
-      SELECT * FROM h2h_raw
+      SELECT p1, p2, score1, score2, phase, p2_4plus AS opp_4plus FROM h2h_raw
       UNION ALL
-      SELECT p2 AS p1, p1 AS p2, score2 AS score1, score1 AS score2, phase, both_4plus FROM h2h_raw
+      SELECT p2 AS p1, p1 AS p2, score2 AS score1, score1 AS score2, phase, p1_4plus AS opp_4plus FROM h2h_raw
     )
     SELECT
       p1 AS "Mega 1",
@@ -247,11 +284,11 @@ function generateMegaH2H(db: DB): Record<string, unknown>[] {
       SUM(CASE WHEN score1 > score2 THEN 1 ELSE 0 END) AS mega1_wins,
       SUM(CASE WHEN score2 > score1 THEN 1 ELSE 0 END) AS mega2_wins,
       ROUND(CAST(SUM(CASE WHEN score1 > score2 THEN 1 ELSE 0 END) AS REAL) * 100.0 / COUNT(*), 2) AS mega1_winrate,
-      SUM(both_4plus) AS "4plus_matches",
-      SUM(CASE WHEN both_4plus = 1 AND score1 > score2 THEN 1 ELSE 0 END) AS "4plus_mega1_wins",
-      SUM(CASE WHEN both_4plus = 1 AND score2 > score1 THEN 1 ELSE 0 END) AS "4plus_mega2_wins",
-      CASE WHEN SUM(both_4plus) > 0
-        THEN ROUND(CAST(SUM(CASE WHEN both_4plus = 1 AND score1 > score2 THEN 1 ELSE 0 END) AS REAL) * 100.0 / SUM(both_4plus), 2)
+      SUM(opp_4plus) AS "4plus_matches",
+      SUM(CASE WHEN opp_4plus = 1 AND score1 > score2 THEN 1 ELSE 0 END) AS "4plus_mega1_wins",
+      SUM(CASE WHEN opp_4plus = 1 AND score2 > score1 THEN 1 ELSE 0 END) AS "4plus_mega2_wins",
+      CASE WHEN SUM(opp_4plus) > 0
+        THEN ROUND(CAST(SUM(CASE WHEN opp_4plus = 1 AND score1 > score2 THEN 1 ELSE 0 END) AS REAL) * 100.0 / SUM(opp_4plus), 2)
         ELSE NULL END AS "4plus_mega1_winrate",
       SUM(CASE WHEN phase >= 2 THEN 1 ELSE 0 END) AS top_cut_matches,
       SUM(CASE WHEN phase >= 2 AND score1 > score2 THEN 1 ELSE 0 END) AS top_cut_mega1_wins,
@@ -301,16 +338,19 @@ function generateMegaCombos(db: DB): Record<string, unknown>[] {
     combo_stats AS (
       SELECT
         tc.combo,
-        ROUND(CAST(SUM(mp.score) AS REAL) * 100.0 / COUNT(*), 2) AS win_rate,
+        ROUND(CAST(SUM(mp1.score) AS REAL) * 100.0 / COUNT(*), 2) AS win_rate,
         COUNT(DISTINCT CASE WHEN tc.team_id IN (SELECT team_id FROM four_plus_mega_teams) THEN tc.team_id END) AS "4plus_teams",
-        ROUND(CAST(SUM(CASE WHEN mp.score IS NOT NULL AND tc.team_id IN (SELECT team_id FROM four_plus_mega_teams) THEN mp.score ELSE 0 END) AS REAL) * 100.0 /
-          NULLIF(COUNT(CASE WHEN tc.team_id IN (SELECT team_id FROM four_plus_mega_teams) THEN 1 END), 0), 2) AS "4plus_win_rate",
+        -- win rate against opponents who finished with 4+ wins
+        ROUND(CAST(SUM(CASE WHEN mp2.team_id IN (SELECT team_id FROM four_plus_mega_teams) THEN mp1.score ELSE 0 END) AS REAL) * 100.0 /
+          NULLIF(COUNT(CASE WHEN mp2.team_id IN (SELECT team_id FROM four_plus_mega_teams) THEN 1 END), 0), 2) AS "4plus_win_rate",
         COUNT(DISTINCT CASE WHEN tc.team_id IN (SELECT team_id FROM top_cut_mega_teams) THEN tc.team_id END) AS top_cut_teams,
-        ROUND(CAST(SUM(CASE WHEN m.phase >= 2 AND tc.team_id IN (SELECT team_id FROM top_cut_mega_teams) THEN mp.score ELSE 0 END) AS REAL) * 100.0 /
-          NULLIF(COUNT(CASE WHEN m.phase >= 2 AND tc.team_id IN (SELECT team_id FROM top_cut_mega_teams) THEN 1 END), 0), 2) AS top_cut_win_rate
+        -- win rate in top cut rounds (phase >= 2) for any team with this combo
+        ROUND(CAST(SUM(CASE WHEN m.phase >= 2 THEN mp1.score ELSE 0 END) AS REAL) * 100.0 /
+          NULLIF(COUNT(CASE WHEN m.phase >= 2 THEN 1 END), 0), 2) AS top_cut_win_rate
       FROM team_combos tc
-      JOIN match_participants mp ON mp.team_id = tc.team_id
-      JOIN matches m ON mp.match_id = m.id
+      JOIN match_participants mp1 ON mp1.team_id = tc.team_id
+      JOIN match_participants mp2 ON mp2.match_id = mp1.match_id AND mp2.team_id != mp1.team_id
+      JOIN matches m ON mp1.match_id = m.id
       GROUP BY tc.combo
     )
     SELECT
