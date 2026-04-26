@@ -4,7 +4,7 @@
   "workspaces": [
     "common",
     "cli",
-    "frontend"
+    "docs"
   ],
   "scripts": {
     "build": "tsc --build --verbose",
