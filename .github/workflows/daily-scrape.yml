@@ -36,7 +36,7 @@ jobs:
         run: echo '${{ secrets.CONFIG_JSON }}' > config.json
 
       - name: Ensure valid SQLite DB
-        run: sqlite3 db/vgc.db "SELECT 1" 2>/dev/null || echo "WARN: INVALID DB"
+        run: sqlite3 db/vgc.db "SELECT 1" 2>/dev/null || echo "[WARN] db/vgc.db is not a valid SQLite database"
 
       - name: Scrape M-A tournaments
         run: pnpm --filter @vgc/cli run limitless --format M-A
