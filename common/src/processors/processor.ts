@@ -1,5 +1,6 @@
 import { logger } from '@vgc/common/logging';
 import type { IDB } from '../database/db.js';
+import { validatePokemon } from './validate.js';
 
 export interface ProcessorOptions {
   source?: string;
@@ -120,8 +121,8 @@ export class DataProcessor {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const insertPokemonSet = this.db.prepare(`
-      INSERT INTO pokemon_sets (team_id, species, item, ability, tera_type)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO pokemon_sets (team_id, species, item, ability, tera_type, is_mega, invalid)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     const insertMove = this.db.prepare(`
       INSERT INTO moves (pokemon_set_id, move_name)
@@ -185,17 +186,34 @@ export class DataProcessor {
 
         const decklist = (standing.decklist as Array<Record<string, unknown>>) || [];
         for (const pokemon of decklist) {
-          const pokemonName = (pokemon.name as string) || '';
-          const item = pokemon.item as string | undefined;
-          const ability = pokemon.ability as string | undefined;
-          const teraType = pokemon.tera as string | undefined;
-          const attacks = (pokemon.attacks as string[]) || [];
+          const validated = validatePokemon({
+            name: (pokemon.name as string) || '',
+            item: pokemon.item as string | undefined,
+            ability: pokemon.ability as string | undefined,
+            tera: pokemon.tera as string | undefined,
+            attacks: (pokemon.attacks as string[]) || [],
+          });
 
-          const pokemonSetResult = insertPokemonSet.run(teamId, pokemonName, item ?? null, ability ?? null, teraType ?? null);
+          for (const fix of validated.fixes) {
+            logger.debug({ tournamentId, playerName, fix }, 'Auto-fixed pokemon data');
+          }
+          for (const warning of validated.warnings) {
+            logger.warn({ tournamentId, playerName, warning }, 'Unknown pokemon data');
+          }
+
+          const pokemonSetResult = insertPokemonSet.run(
+            teamId,
+            validated.species,
+            validated.item,
+            validated.ability,
+            validated.tera_type,
+            validated.is_mega ? 1 : 0,
+            validated.invalid ? 1 : 0,
+          );
           const pokemonSetId = pokemonSetResult.lastInsertRowid as number;
           results.pokemonSetsAdded = (results.pokemonSetsAdded as number) + 1;
 
-          for (const move of attacks) {
+          for (const move of validated.moves) {
             insertMove.run(pokemonSetId, move);
           }
         }

@@ -84,6 +84,7 @@ export class DB {
         ability TEXT,
         tera_type TEXT,
         is_mega INTEGER NOT NULL DEFAULT 0,
+        invalid INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (team_id) REFERENCES teams(id)
       );
 
@@ -148,6 +149,10 @@ export class DB {
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_matches_tournament ON matches(tournament_id);`);
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_tournament_standings_tournament ON tournament_standings(tournament_id);`);
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_tournament_standings_player ON tournament_standings(player_id);`);
+
+    // Migrations for columns added after initial schema deployment
+    try { this.db.run(`ALTER TABLE pokemon_sets ADD COLUMN is_mega INTEGER NOT NULL DEFAULT 0`); } catch { /* already exists */ }
+    try { this.db.run(`ALTER TABLE pokemon_sets ADD COLUMN invalid INTEGER NOT NULL DEFAULT 0`); } catch { /* already exists */ }
   }
 
   close(): void {

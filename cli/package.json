@@ -24,7 +24,10 @@
     "player-tournament-report": "node dist/player-tournament-report.js",
     "create-upload": "node dist/create-upload.js",
     "generate-csvs": "node dist/generate-csvs.js",
-    "clean-db": "node dist/clean-db.js"
+    "clean-db": "node dist/clean-db.js",
+    "move-winrates": "node dist/move-winrates.js",
+    "item-winrates": "node dist/item-winrates.js",
+    "validate-db": "node dist/validate-db.js"
   },
   "dependencies": {
     "@vgc/common": "file:../common",

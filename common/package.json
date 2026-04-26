@@ -40,6 +40,10 @@
     "./processors/processor": {
       "import": "./dist/processors/processor.js",
       "types": "./dist/processors/processor.d.ts"
+    },
+    "./processors/validate": {
+      "import": "./dist/processors/validate.js",
+      "types": "./dist/processors/validate.d.ts"
     }
   },
   "scripts": {
@@ -49,6 +53,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@pkmn/dex": "^0.10.7",
     "axios": "^1.6.0",
     "cheerio": "^1.0.0-rc.12",
     "pino": "^8.17.0",
