@@ -17,13 +17,7 @@ function App() {
             <p>Files available to download. All files are available in the <a href="https://github.com/CartmanDavis/vgc-data-scrapers">Github repository</a></p>
             <ul>
               <li>
-                <a href="outputs/" target="_blank">
-                  <i className="bi bi-cloud-arrow-down"></i>
-                  CSV Files
-                </a>
-              </li>
-              <li>
-                <a href="" target="_blank">
+                <a href="https://github.com/CartmanDavis/vgc-data-scrapers/raw/refs/heads/main/db/vgc.db?download=" target="_blank">
                   <i className="bi bi-cloud-arrow-down"></i>
                   SQLite Database
                 </a>
