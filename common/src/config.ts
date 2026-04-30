@@ -25,10 +25,17 @@ export interface LogConfig {
   dir?: string;
 }
 
+export interface SupabaseConfig {
+  url?: string;
+  anonKey?: string;
+  serviceRoleKey?: string;
+}
+
 export interface AppConfig {
   limitless?: LimitlessConfig;
   rk9?: Rk9Config;
   log?: LogConfig;
+  supabase?: SupabaseConfig;
 }
 
 export class Config {
@@ -86,6 +93,18 @@ export class Config {
 
   get rk9RequestDelay(): number {
     return Number(this.get('rk9.requestDelay', 1.0)) || 1.0;
+  }
+
+  get supabaseUrl(): string | undefined {
+    return this.get('supabase.url', undefined, 'SUPABASE_URL') as string | undefined;
+  }
+
+  get supabaseAnonKey(): string | undefined {
+    return this.get('supabase.anonKey', undefined, 'SUPABASE_ANON_KEY') as string | undefined;
+  }
+
+  get supabaseServiceRoleKey(): string | undefined {
+    return this.get('supabase.serviceRoleKey', undefined, 'SUPABASE_SERVICE_ROLE_KEY') as string | undefined;
   }
 
   get logDir(): string {
