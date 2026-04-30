@@ -13,5 +13,10 @@
   },
   "log": {
     "dir": "./logs"
+  },
+  "supabase": {
+    "url": "<PROJECT ID>",
+    "anonKey": "sb_publishable_<KEY>",
+    "serviceRoleKey": "sb_secret_<KEY>", 
   }
 }
