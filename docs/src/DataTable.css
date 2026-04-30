@@ -200,6 +200,77 @@
   background: #0f172a;
 }
 
+.date-filter {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  padding: 12px 24px 0;
+}
+
+.date-filter button {
+  border: 1px solid #334155;
+  background: transparent;
+  padding: 5px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+  transition: all 0.2s;
+}
+
+.date-filter button:hover { background: #1e293b; }
+.date-filter button.active { background: #334155; color: #f1f5f9; border-color: #475569; }
+
+.detail-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.species-input {
+  background: #0f172a;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
+  min-width: 220px;
+}
+
+.species-input:focus { border-color: #22d3ee; }
+
+.mega-select {
+  background: #0f172a;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  min-width: 220px;
+}
+
+.mega-select:focus {
+  border-color: #22d3ee;
+}
+
+.table-status {
+  text-align: center;
+  padding: 40px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.table-error {
+  color: #f87171;
+}
+
 #csv-tables {
   border-top: 1px solid #1e293b;
   background: transparent;
