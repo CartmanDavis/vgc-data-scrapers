@@ -2,24 +2,6 @@
 -- Run in the Supabase SQL editor (safe to re-run; all are CREATE OR REPLACE).
 -- After running, execute: NOTIFY pgrst, 'reload schema';
 
--- ─── Drop old overloads ───────────────────────────────────────────────────────
-
-DROP FUNCTION IF EXISTS get_pokemon_usage();
-DROP FUNCTION IF EXISTS get_mega_usage();
-DROP FUNCTION IF EXISTS get_mega_h2h(INT);
-DROP FUNCTION IF EXISTS get_mega_combos(INT);
-DROP FUNCTION IF EXISTS get_mega_teammates(TEXT);
-DROP FUNCTION IF EXISTS get_pokemon_moves(TEXT);
-DROP FUNCTION IF EXISTS get_pokemon_moves(TEXT, DATE);
-DROP FUNCTION IF EXISTS get_pokemon_items(TEXT);
-DROP FUNCTION IF EXISTS get_pokemon_items(TEXT, DATE);
-DROP FUNCTION IF EXISTS get_pokemon_partners(TEXT);
-DROP FUNCTION IF EXISTS get_pokemon_partners(TEXT, DATE);
-DROP FUNCTION IF EXISTS get_pokemon_matchups(TEXT);
-DROP FUNCTION IF EXISTS get_pokemon_matchups(TEXT, DATE);
-DROP FUNCTION IF EXISTS top_cut_teams_ma();
-DROP FUNCTION IF EXISTS top_cut_match_participants_ma();
-
 -- ─── Helper: canonical mega items ────────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION canonical_mega_items()
@@ -60,35 +42,21 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
 $$;
 GRANT EXECUTE ON FUNCTION top_cut_teams_ma(DATE) TO anon;
 
--- ─── Helper: top-cut match_participants rows for M-A ─────────────────────────
--- Only matches played in the final elimination phase.
-
-CREATE OR REPLACE FUNCTION top_cut_match_participants_ma(p_since DATE DEFAULT NULL)
-RETURNS TABLE (team_id BIGINT, score INTEGER)
-LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT mp.team_id, mp.score
-  FROM match_participants mp
-  JOIN matches m  ON m.id  = mp.match_id
-  JOIN tournaments t ON t.id = m.tournament_id
-  WHERE t.format = 'M-A'
-    AND (p_since IS NULL OR t.date >= p_since)
-    AND m.phase = (SELECT MAX(m2.phase) FROM matches m2 WHERE m2.tournament_id = t.id)
-    AND (SELECT COUNT(DISTINCT m3.phase) FROM matches m3 WHERE m3.tournament_id = t.id) > 1
-$$;
-GRANT EXECUTE ON FUNCTION top_cut_match_participants_ma(DATE) TO anon;
-
 -- ─── 1. Pokemon usage ─────────────────────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION get_pokemon_usage(p_since DATE DEFAULT NULL)
 RETURNS TABLE (
-  species       TEXT,
-  is_mega       BOOLEAN,
-  teams         BIGINT,
-  usage_pct     NUMERIC,
-  win_rate      NUMERIC,
-  top_cut_teams BIGINT,
-  top_cut_usage NUMERIC,
-  top_cut_wr    NUMERIC
+  species          TEXT,
+  is_mega          BOOLEAN,
+  teams            BIGINT,
+  usage_pct        NUMERIC,
+  win_rate         NUMERIC,
+  four_plus_teams  BIGINT,
+  four_plus_usage  NUMERIC,
+  four_plus_wr     NUMERIC,
+  top_cut_teams    BIGINT,
+  top_cut_usage    NUMERIC,
+  top_cut_wr       NUMERIC
 )
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
   WITH
@@ -97,6 +65,13 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     FROM teams t
     JOIN tournaments tour ON tour.id = t.tournament_id
     WHERE tour.format = 'M-A' AND (p_since IS NULL OR tour.date >= p_since)
+  ),
+  four_plus_total AS (
+    SELECT COUNT(*)::numeric AS n
+    FROM teams t
+    JOIN tournaments tour ON tour.id = t.tournament_id
+    JOIN tournament_standings ts ON ts.tournament_id = t.tournament_id AND ts.player_id = t.player_id
+    WHERE tour.format = 'M-A' AND (p_since IS NULL OR tour.date >= p_since) AND ts.wins >= 4
   ),
   top_cut_total AS (SELECT COUNT(*)::numeric AS n FROM top_cut_teams_ma(p_since)),
   base AS (
@@ -112,26 +87,44 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     WHERE tour.format = 'M-A' AND (p_since IS NULL OR tour.date >= p_since)
     GROUP BY ps.species
   ),
+  four_plus AS (
+    SELECT
+      ps.species,
+      COUNT(DISTINCT t.id) AS teams,
+      ROUND(SUM(mp.score) * 100.0 / NULLIF(COUNT(mp.score), 0), 2) AS win_rate
+    FROM pokemon_sets ps
+    JOIN teams t ON t.id = ps.team_id
+    JOIN tournaments tour ON tour.id = t.tournament_id
+    JOIN tournament_standings ts ON ts.tournament_id = t.tournament_id AND ts.player_id = t.player_id
+    JOIN match_participants mp ON mp.team_id = t.id
+    WHERE tour.format = 'M-A' AND (p_since IS NULL OR tour.date >= p_since) AND ts.wins >= 4
+    GROUP BY ps.species
+  ),
   top_cut AS (
     SELECT
       ps.species,
       COUNT(DISTINCT t.id) AS teams,
-      ROUND(SUM(tcmp.score) * 100.0 / NULLIF(COUNT(tcmp.score), 0), 2) AS win_rate
+      ROUND(SUM(mp.score) * 100.0 / NULLIF(COUNT(mp.score), 0), 2) AS win_rate
     FROM pokemon_sets ps
     JOIN teams t ON t.id = ps.team_id
-    JOIN top_cut_match_participants_ma(p_since) tcmp ON tcmp.team_id = t.id
+    JOIN top_cut_teams_ma(p_since) tc ON tc.team_id = t.id
+    JOIN match_participants mp ON mp.team_id = t.id
     GROUP BY ps.species
   )
   SELECT
     b.species, b.is_mega, b.teams,
     ROUND(b.teams * 100.0 / total.n, 2),
     b.win_rate,
+    COALESCE(fp.teams, 0),
+    ROUND(COALESCE(fp.teams, 0) * 100.0 / four_plus_total.n, 2),
+    fp.win_rate,
     COALESCE(tc.teams, 0),
     ROUND(COALESCE(tc.teams, 0) * 100.0 / top_cut_total.n, 2),
     tc.win_rate
   FROM base b
-  CROSS JOIN total CROSS JOIN top_cut_total
-  LEFT JOIN top_cut tc ON tc.species = b.species
+  CROSS JOIN total CROSS JOIN four_plus_total CROSS JOIN top_cut_total
+  LEFT JOIN four_plus fp ON fp.species = b.species
+  LEFT JOIN top_cut   tc ON tc.species = b.species
   ORDER BY b.teams DESC
 $$;
 GRANT EXECUTE ON FUNCTION get_pokemon_usage(DATE) TO anon;
@@ -140,13 +133,16 @@ GRANT EXECUTE ON FUNCTION get_pokemon_usage(DATE) TO anon;
 
 CREATE OR REPLACE FUNCTION get_mega_usage(p_since DATE DEFAULT NULL)
 RETURNS TABLE (
-  pokemon       TEXT,
-  teams         BIGINT,
-  usage_pct     NUMERIC,
-  win_rate      NUMERIC,
-  top_cut_teams BIGINT,
-  top_cut_usage NUMERIC,
-  top_cut_wr    NUMERIC
+  pokemon          TEXT,
+  teams            BIGINT,
+  usage_pct        NUMERIC,
+  win_rate         NUMERIC,
+  four_plus_teams  BIGINT,
+  four_plus_usage  NUMERIC,
+  four_plus_wr     NUMERIC,
+  top_cut_teams    BIGINT,
+  top_cut_usage    NUMERIC,
+  top_cut_wr       NUMERIC
 )
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
   WITH
@@ -161,8 +157,14 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     WHERE tour.format = 'M-A' AND (p_since IS NULL OR tour.date >= p_since)
     ORDER BY t.id, ci.item
   ),
-  total_mega    AS (SELECT COUNT(DISTINCT team_id)::numeric AS n FROM team_mega),
-  top_cut_mega  AS (
+  total_mega     AS (SELECT COUNT(DISTINCT team_id)::numeric AS n FROM team_mega),
+  four_plus_mega AS (
+    SELECT COUNT(DISTINCT tm.team_id)::numeric AS n
+    FROM team_mega tm
+    JOIN tournament_standings ts ON ts.tournament_id = tm.tournament_id AND ts.player_id = tm.player_id
+    WHERE ts.wins >= 4
+  ),
+  top_cut_mega AS (
     SELECT COUNT(DISTINCT tm.team_id)::numeric AS n
     FROM team_mega tm JOIN top_cut_teams_ma(p_since) tc ON tc.team_id = tm.team_id
   ),
@@ -172,19 +174,31 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     FROM team_mega tm JOIN match_participants mp ON mp.team_id = tm.team_id
     GROUP BY tm.item
   ),
+  four_plus AS (
+    SELECT tm.item AS pokemon, COUNT(DISTINCT tm.team_id) AS teams,
+      ROUND(SUM(mp.score) * 100.0 / NULLIF(COUNT(mp.score), 0), 2) AS win_rate
+    FROM team_mega tm
+    JOIN tournament_standings ts ON ts.tournament_id = tm.tournament_id AND ts.player_id = tm.player_id
+    JOIN match_participants mp ON mp.team_id = tm.team_id
+    WHERE ts.wins >= 4
+    GROUP BY tm.item
+  ),
   top_cut AS (
     SELECT tm.item AS pokemon, COUNT(DISTINCT tm.team_id) AS teams,
-      ROUND(SUM(tcmp.score) * 100.0 / NULLIF(COUNT(tcmp.score), 0), 2) AS win_rate
-    FROM team_mega tm JOIN top_cut_match_participants_ma(p_since) tcmp ON tcmp.team_id = tm.team_id
+      ROUND(SUM(mp.score) * 100.0 / NULLIF(COUNT(mp.score), 0), 2) AS win_rate
+    FROM team_mega tm JOIN top_cut_teams_ma(p_since) tc ON tc.team_id = tm.team_id
+    JOIN match_participants mp ON mp.team_id = tm.team_id
     GROUP BY tm.item
   )
   SELECT
     b.pokemon, b.teams,
     ROUND(b.teams * 100.0 / total_mega.n, 2), b.win_rate,
+    COALESCE(fp.teams, 0), ROUND(COALESCE(fp.teams, 0) * 100.0 / four_plus_mega.n, 2), fp.win_rate,
     COALESCE(tc.teams, 0), ROUND(COALESCE(tc.teams, 0) * 100.0 / top_cut_mega.n, 2), tc.win_rate
   FROM base b
-  CROSS JOIN total_mega CROSS JOIN top_cut_mega
-  LEFT JOIN top_cut tc ON tc.pokemon = b.pokemon
+  CROSS JOIN total_mega CROSS JOIN four_plus_mega CROSS JOIN top_cut_mega
+  LEFT JOIN four_plus fp ON fp.pokemon = b.pokemon
+  LEFT JOIN top_cut   tc ON tc.pokemon = b.pokemon
   ORDER BY b.teams DESC
 $$;
 GRANT EXECUTE ON FUNCTION get_mega_usage(DATE) TO anon;
@@ -195,6 +209,7 @@ CREATE OR REPLACE FUNCTION get_mega_h2h(p_min_matches INT DEFAULT 20, p_since DA
 RETURNS TABLE (
   mega1 TEXT, mega2 TEXT,
   matches BIGINT, mega1_wins BIGINT, mega2_wins BIGINT, mega1_wr NUMERIC,
+  four_plus_matches BIGINT, four_plus_mega1_wins BIGINT, four_plus_mega2_wins BIGINT, four_plus_mega1_wr NUMERIC,
   top_cut_matches BIGINT, top_cut_mega1_wins BIGINT, top_cut_mega2_wins BIGINT, top_cut_mega1_wr NUMERIC
 )
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
@@ -211,9 +226,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     ORDER BY t.id, ci.item
   ),
   matchups AS (
-    SELECT mp1.team_id AS t1, mp2.team_id AS t2,
-           mp1.score AS s1, mp2.score AS s2,
-           m.tournament_id, m.phase, m.id AS match_id
+    SELECT mp1.team_id AS t1, mp2.team_id AS t2, mp1.score AS s1, mp2.score AS s2, m.tournament_id
     FROM match_participants mp1
     JOIN match_participants mp2 ON mp1.match_id = mp2.match_id AND mp1.team_id < mp2.team_id
     JOIN matches m ON m.id = mp1.match_id
@@ -225,7 +238,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
       LEAST(tm1.item, tm2.item) AS mega1, GREATEST(tm1.item, tm2.item) AS mega2,
       CASE WHEN tm1.item < tm2.item THEN mu.s1 ELSE mu.s2 END AS score1,
       CASE WHEN tm1.item < tm2.item THEN mu.s2 ELSE mu.s1 END AS score2,
-      mu.tournament_id, mu.phase, mu.match_id
+      mu.t1, mu.t2, mu.tournament_id
     FROM matchups mu
     JOIN team_mega tm1 ON tm1.team_id = mu.t1
     JOIN team_mega tm2 ON tm2.team_id = mu.t2
@@ -236,20 +249,32 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
       ROUND(SUM(score1) * 100.0 / NULLIF(COUNT(*), 0), 2) AS mega1_wr
     FROM mega_matchups GROUP BY mega1, mega2
   ),
+  four_plus AS (
+    SELECT mm.mega1, mm.mega2, COUNT(*) AS matches,
+      SUM(mm.score1) AS mega1_wins, SUM(mm.score2) AS mega2_wins,
+      ROUND(SUM(mm.score1) * 100.0 / NULLIF(COUNT(*), 0), 2) AS mega1_wr
+    FROM mega_matchups mm
+    JOIN tournament_standings ts1 ON ts1.tournament_id = mm.tournament_id AND ts1.team_id = mm.t1
+    JOIN tournament_standings ts2 ON ts2.tournament_id = mm.tournament_id AND ts2.team_id = mm.t2
+    WHERE ts1.wins >= 4 AND ts2.wins >= 4
+    GROUP BY mm.mega1, mm.mega2
+  ),
   top_cut AS (
     SELECT mm.mega1, mm.mega2, COUNT(*) AS matches,
       SUM(mm.score1) AS mega1_wins, SUM(mm.score2) AS mega2_wins,
       ROUND(SUM(mm.score1) * 100.0 / NULLIF(COUNT(*), 0), 2) AS mega1_wr
     FROM mega_matchups mm
-    WHERE mm.phase = (SELECT MAX(m2.phase) FROM matches m2 WHERE m2.tournament_id = mm.tournament_id)
-      AND (SELECT COUNT(DISTINCT m3.phase) FROM matches m3 WHERE m3.tournament_id = mm.tournament_id) > 1
+    JOIN top_cut_teams_ma(p_since) tc1 ON tc1.team_id = mm.t1
+    JOIN top_cut_teams_ma(p_since) tc2 ON tc2.team_id = mm.t2
     GROUP BY mm.mega1, mm.mega2
   )
   SELECT
     b.mega1, b.mega2, b.matches, b.mega1_wins, b.mega2_wins, b.mega1_wr,
+    COALESCE(fp.matches, 0), COALESCE(fp.mega1_wins, 0), COALESCE(fp.mega2_wins, 0), fp.mega1_wr,
     COALESCE(tc.matches, 0), COALESCE(tc.mega1_wins, 0), COALESCE(tc.mega2_wins, 0), tc.mega1_wr
   FROM base b
-  LEFT JOIN top_cut tc ON tc.mega1 = b.mega1 AND tc.mega2 = b.mega2
+  LEFT JOIN four_plus fp ON fp.mega1 = b.mega1 AND fp.mega2 = b.mega2
+  LEFT JOIN top_cut   tc ON tc.mega1 = b.mega1 AND tc.mega2 = b.mega2
   WHERE b.matches >= p_min_matches
   ORDER BY b.matches DESC
 $$;
@@ -260,6 +285,7 @@ GRANT EXECUTE ON FUNCTION get_mega_h2h(INT, DATE) TO anon;
 CREATE OR REPLACE FUNCTION get_mega_combos(p_min_teams INT DEFAULT 10, p_since DATE DEFAULT NULL)
 RETURNS TABLE (
   combo TEXT, teams BIGINT, usage_pct NUMERIC, win_rate NUMERIC,
+  four_plus_teams BIGINT, four_plus_usage NUMERIC, four_plus_wr NUMERIC,
   top_cut_teams BIGINT, top_cut_usage NUMERIC, top_cut_wr NUMERIC
 )
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
@@ -277,7 +303,13 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     SELECT team_id, player_id, tournament_id, STRING_AGG(item, ' + ' ORDER BY item) AS combo
     FROM team_megas GROUP BY team_id, player_id, tournament_id
   ),
-  total_mega    AS (SELECT COUNT(DISTINCT team_id)::numeric AS n FROM team_combos),
+  total_mega     AS (SELECT COUNT(DISTINCT team_id)::numeric AS n FROM team_combos),
+  four_plus_total AS (
+    SELECT COUNT(DISTINCT tc.team_id)::numeric AS n
+    FROM team_combos tc
+    JOIN tournament_standings ts ON ts.tournament_id = tc.tournament_id AND ts.player_id = tc.player_id
+    WHERE ts.wins >= 4
+  ),
   top_cut_total AS (
     SELECT COUNT(DISTINCT tc.team_id)::numeric AS n
     FROM team_combos tc JOIN top_cut_teams_ma(p_since) tct ON tct.team_id = tc.team_id
@@ -288,18 +320,30 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     FROM team_combos tc JOIN match_participants mp ON mp.team_id = tc.team_id
     GROUP BY tc.combo
   ),
+  four_plus AS (
+    SELECT tc.combo, COUNT(DISTINCT tc.team_id) AS teams,
+      ROUND(SUM(mp.score) * 100.0 / NULLIF(COUNT(mp.score), 0), 2) AS win_rate
+    FROM team_combos tc
+    JOIN tournament_standings ts ON ts.tournament_id = tc.tournament_id AND ts.player_id = tc.player_id
+    JOIN match_participants mp ON mp.team_id = tc.team_id
+    WHERE ts.wins >= 4 GROUP BY tc.combo
+  ),
   top_cut AS (
     SELECT tc.combo, COUNT(DISTINCT tc.team_id) AS teams,
-      ROUND(SUM(tcmp.score) * 100.0 / NULLIF(COUNT(tcmp.score), 0), 2) AS win_rate
-    FROM team_combos tc JOIN top_cut_match_participants_ma(p_since) tcmp ON tcmp.team_id = tc.team_id
+      ROUND(SUM(mp.score) * 100.0 / NULLIF(COUNT(mp.score), 0), 2) AS win_rate
+    FROM team_combos tc
+    JOIN top_cut_teams_ma(p_since) tct ON tct.team_id = tc.team_id
+    JOIN match_participants mp ON mp.team_id = tc.team_id
     GROUP BY tc.combo
   )
   SELECT
     b.combo, b.teams, ROUND(b.teams * 100.0 / total_mega.n, 2), b.win_rate,
+    COALESCE(fp.teams, 0), ROUND(COALESCE(fp.teams, 0) * 100.0 / four_plus_total.n, 2), fp.win_rate,
     COALESCE(tc.teams, 0), ROUND(COALESCE(tc.teams, 0) * 100.0 / top_cut_total.n, 2), tc.win_rate
   FROM base b
-  CROSS JOIN total_mega CROSS JOIN top_cut_total
-  LEFT JOIN top_cut tc ON tc.combo = b.combo
+  CROSS JOIN total_mega CROSS JOIN four_plus_total CROSS JOIN top_cut_total
+  LEFT JOIN four_plus fp ON fp.combo = b.combo
+  LEFT JOIN top_cut   tc ON tc.combo = b.combo
   WHERE b.teams >= p_min_teams
   ORDER BY b.teams DESC
 $$;
@@ -358,7 +402,7 @@ GRANT EXECUTE ON FUNCTION get_mega_teammates(TEXT, DATE) TO anon;
 
 -- ─── 6. Pokemon detail — moves ────────────────────────────────────────────────
 
-CREATE OR REPLACE FUNCTION get_pokemon_moves(p_species TEXT, p_since DATE DEFAULT NULL, p_mode TEXT DEFAULT 'all')
+CREATE OR REPLACE FUNCTION get_pokemon_moves(p_species TEXT, p_since DATE DEFAULT NULL)
 RETURNS TABLE (move_name TEXT, teams BIGINT, win_rate NUMERIC)
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT MAX(m.move_name) AS move_name,
@@ -369,23 +413,18 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   JOIN teams t ON t.id = ps.team_id
   JOIN tournaments tour ON tour.id = t.tournament_id
   JOIN match_participants mp ON mp.team_id = t.id
-  JOIN matches mf ON mf.id = mp.match_id
   WHERE tour.format = 'M-A'
     AND LOWER(ps.species) = LOWER(p_species)
     AND (p_since IS NULL OR tour.date >= p_since)
-    AND (p_mode = 'all'
-      OR (p_mode = 'topcut'
-          AND mf.phase = (SELECT MAX(m2.phase) FROM matches m2 WHERE m2.tournament_id = mf.tournament_id)
-          AND (SELECT COUNT(DISTINCT m3.phase) FROM matches m3 WHERE m3.tournament_id = mf.tournament_id) > 1))
   GROUP BY LOWER(m.move_name)
   HAVING COUNT(DISTINCT t.id) >= 3
   ORDER BY teams DESC
 $$;
-GRANT EXECUTE ON FUNCTION get_pokemon_moves(TEXT, DATE, TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION get_pokemon_moves(TEXT, DATE) TO anon;
 
 -- ─── 7. Pokemon detail — items ────────────────────────────────────────────────
 
-CREATE OR REPLACE FUNCTION get_pokemon_items(p_species TEXT, p_since DATE DEFAULT NULL, p_mode TEXT DEFAULT 'all')
+CREATE OR REPLACE FUNCTION get_pokemon_items(p_species TEXT, p_since DATE DEFAULT NULL)
 RETURNS TABLE (item TEXT, teams BIGINT, win_rate NUMERIC)
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT COALESCE(NULLIF(ps.item, ''), 'No Item') AS item,
@@ -395,23 +434,18 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   JOIN teams t ON t.id = ps.team_id
   JOIN tournaments tour ON tour.id = t.tournament_id
   JOIN match_participants mp ON mp.team_id = t.id
-  JOIN matches mf ON mf.id = mp.match_id
   WHERE tour.format = 'M-A'
     AND LOWER(ps.species) = LOWER(p_species)
     AND (p_since IS NULL OR tour.date >= p_since)
-    AND (p_mode = 'all'
-      OR (p_mode = 'topcut'
-          AND mf.phase = (SELECT MAX(m2.phase) FROM matches m2 WHERE m2.tournament_id = mf.tournament_id)
-          AND (SELECT COUNT(DISTINCT m3.phase) FROM matches m3 WHERE m3.tournament_id = mf.tournament_id) > 1))
   GROUP BY LOWER(ps.item), COALESCE(NULLIF(ps.item, ''), 'No Item')
   HAVING COUNT(DISTINCT t.id) >= 3
   ORDER BY teams DESC
 $$;
-GRANT EXECUTE ON FUNCTION get_pokemon_items(TEXT, DATE, TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION get_pokemon_items(TEXT, DATE) TO anon;
 
 -- ─── 8. Pokemon detail — partners ────────────────────────────────────────────
 
-CREATE OR REPLACE FUNCTION get_pokemon_partners(p_species TEXT, p_since DATE DEFAULT NULL, p_mode TEXT DEFAULT 'all')
+CREATE OR REPLACE FUNCTION get_pokemon_partners(p_species TEXT, p_since DATE DEFAULT NULL)
 RETURNS TABLE (partner_species TEXT, teams BIGINT, usage_pct NUMERIC, win_rate NUMERIC)
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
   WITH
@@ -420,44 +454,30 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     FROM pokemon_sets ps
     JOIN teams t ON t.id = ps.team_id
     JOIN tournaments tour ON tour.id = t.tournament_id
-    JOIN match_participants mp ON mp.team_id = t.id
-    JOIN matches mf ON mf.id = mp.match_id
     WHERE tour.format = 'M-A'
       AND LOWER(ps.species) = LOWER(p_species)
       AND (p_since IS NULL OR tour.date >= p_since)
-      AND (p_mode = 'all'
-        OR (p_mode = 'topcut'
-            AND mf.phase = (SELECT MAX(m2.phase) FROM matches m2 WHERE m2.tournament_id = mf.tournament_id)
-            AND (SELECT COUNT(DISTINCT m3.phase) FROM matches m3 WHERE m3.tournament_id = mf.tournament_id) > 1))
   ),
-  total AS (SELECT COUNT(*)::numeric AS n FROM target_teams),
-  filtered_mp AS (
-    SELECT mp.team_id, mp.score
-    FROM match_participants mp
-    JOIN matches mf ON mf.id = mp.match_id
-    WHERE p_mode = 'all'
-      OR (mf.phase = (SELECT MAX(m2.phase) FROM matches m2 WHERE m2.tournament_id = mf.tournament_id)
-          AND (SELECT COUNT(DISTINCT m3.phase) FROM matches m3 WHERE m3.tournament_id = mf.tournament_id) > 1)
-  )
+  total AS (SELECT COUNT(*)::numeric AS n FROM target_teams)
   SELECT
     ps.species AS partner_species,
     COUNT(DISTINCT tt.team_id) AS teams,
     ROUND(COUNT(DISTINCT tt.team_id) * 100.0 / total.n, 2) AS usage_pct,
-    ROUND(SUM(fmp.score) * 100.0 / NULLIF(COUNT(fmp.score), 0), 2) AS win_rate
+    ROUND(SUM(mp.score) * 100.0 / NULLIF(COUNT(mp.score), 0), 2) AS win_rate
   FROM target_teams tt
   JOIN pokemon_sets ps ON ps.team_id = tt.team_id
-  JOIN filtered_mp fmp ON fmp.team_id = tt.team_id
+  JOIN match_participants mp ON mp.team_id = tt.team_id
   CROSS JOIN total
   WHERE LOWER(ps.species) != LOWER(p_species)
   GROUP BY ps.species, total.n
   HAVING COUNT(DISTINCT tt.team_id) >= 5
   ORDER BY teams DESC
 $$;
-GRANT EXECUTE ON FUNCTION get_pokemon_partners(TEXT, DATE, TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION get_pokemon_partners(TEXT, DATE) TO anon;
 
 -- ─── 9. Pokemon detail — matchups ────────────────────────────────────────────
 
-CREATE OR REPLACE FUNCTION get_pokemon_matchups(p_species TEXT, p_since DATE DEFAULT NULL, p_mode TEXT DEFAULT 'all')
+CREATE OR REPLACE FUNCTION get_pokemon_matchups(p_species TEXT, p_since DATE DEFAULT NULL)
 RETURNS TABLE (opponent_species TEXT, matches BIGINT, wins BIGINT, win_rate NUMERIC)
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
   WITH
@@ -466,17 +486,12 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     FROM match_participants mp
     JOIN teams t ON t.id = mp.team_id
     JOIN tournaments tour ON tour.id = t.tournament_id
-    JOIN matches mf ON mf.id = mp.match_id
     WHERE tour.format = 'M-A'
       AND (p_since IS NULL OR tour.date >= p_since)
       AND EXISTS (
         SELECT 1 FROM pokemon_sets ps
         WHERE ps.team_id = mp.team_id AND LOWER(ps.species) = LOWER(p_species)
       )
-      AND (p_mode = 'all'
-        OR (p_mode = 'topcut'
-            AND mf.phase = (SELECT MAX(m2.phase) FROM matches m2 WHERE m2.tournament_id = mf.tournament_id)
-            AND (SELECT COUNT(DISTINCT m3.phase) FROM matches m3 WHERE m3.tournament_id = mf.tournament_id) > 1))
   ),
   opponent_info AS (
     SELECT DISTINCT tm.match_id, tm.target_score, mp.team_id AS opp_team
@@ -498,4 +513,4 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   HAVING COUNT(*) >= 10
   ORDER BY matches DESC
 $$;
-GRANT EXECUTE ON FUNCTION get_pokemon_matchups(TEXT, DATE, TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION get_pokemon_matchups(TEXT, DATE) TO anon;

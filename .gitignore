@@ -8,3 +8,4 @@ config.json
 !db/README.md
 logs/*
 !logs/README.md
+supabase/.temp/
