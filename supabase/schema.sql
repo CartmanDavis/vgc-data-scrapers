@@ -92,6 +92,7 @@ CREATE INDEX IF NOT EXISTS idx_pokemon_sets_team              ON pokemon_sets(te
 CREATE INDEX IF NOT EXISTS idx_pokemon_sets_species           ON pokemon_sets(species);
 CREATE INDEX IF NOT EXISTS idx_moves_pokemon_set              ON moves(pokemon_set_id);
 CREATE INDEX IF NOT EXISTS idx_matches_tournament             ON matches(tournament_id);
+CREATE INDEX IF NOT EXISTS idx_matches_tournament_phase       ON matches(tournament_id, phase);
 CREATE INDEX IF NOT EXISTS idx_match_participants_match       ON match_participants(match_id);
 CREATE INDEX IF NOT EXISTS idx_match_participants_team        ON match_participants(team_id);
 CREATE INDEX IF NOT EXISTS idx_tournament_standings_tournament ON tournament_standings(tournament_id);
