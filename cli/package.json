@@ -27,9 +27,11 @@
     "clean-db": "node dist/clean-db.js",
     "move-winrates": "node dist/move-winrates.js",
     "item-winrates": "node dist/item-winrates.js",
-    "validate-db": "node dist/validate-db.js"
+    "validate-db": "node dist/validate-db.js",
+    "migrate-to-supabase": "node dist/migrate-to-supabase.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
     "@vgc/common": "file:../common",
     "axios": "^1.6.0",
     "better-sqlite3": "^11.7.0",

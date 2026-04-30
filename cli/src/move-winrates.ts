@@ -11,6 +11,7 @@ program
   .requiredOption('--pokemon <name>', 'Pokemon species name (required)')
   .option('--item <name>', 'Filter to a specific held item')
   .option('--format <code>', 'Tournament format code (e.g. M-A, SVF)')
+  .option('--since <date>', 'Only include tournaments on or after this date (YYYY-MM-DD)')
   .option('--min-matches <number>', 'Minimum matches to include a move', '1')
   .action(async (options) => {
     const db = new DB();
@@ -20,6 +21,7 @@ program
       const minMatches = parseInt(options.minMatches, 10);
       const hasItem = !!options.item;
       const hasFormat = !!options.format;
+      const hasSince = !!options.since;
 
       const rows = db.prepare(`
         SELECT
@@ -35,6 +37,7 @@ program
         WHERE LOWER(ps.species) = LOWER(?)
           AND (${hasItem   ? 'LOWER(ps.item) = LOWER(?)'   : '1'})
           AND (${hasFormat ? 'tour.format = ?'             : '1'})
+          AND (${hasSince  ? 'tour.date >= ?'              : '1'})
           AND ts.wins + ts.losses > 0
         GROUP BY LOWER(m.move_name)
         HAVING COUNT(DISTINCT t.id) >= ?
@@ -43,6 +46,7 @@ program
         options.pokemon,
         ...(hasItem   ? [options.item]   : []),
         ...(hasFormat ? [options.format] : []),
+        ...(hasSince  ? [options.since]  : []),
         minMatches,
       ) as Array<{ move_name: string; teams: number; win_rate_pct: number }>;
 
@@ -55,6 +59,7 @@ program
         options.pokemon,
         hasItem   ? `@ ${options.item}`        : null,
         hasFormat ? `[${options.format}]`      : null,
+        hasSince  ? `since ${options.since}`   : null,
       ].filter(Boolean).join(' ');
 
       console.log(`\nMove win rates for ${label} (min ${minMatches} matches)\n`);

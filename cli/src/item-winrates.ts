@@ -10,6 +10,7 @@ program
   .description('Win rate of each held item for a given Pokemon')
   .requiredOption('--pokemon <name>', 'Pokemon species name (required)')
   .option('--format <code>', 'Tournament format code (e.g. M-A, SVF)')
+  .option('--since <date>', 'Only include tournaments on or after this date (YYYY-MM-DD)')
   .option('--min-teams <number>', 'Minimum teams to include an item', '1')
   .action(async (options) => {
     const db = new DB();
@@ -18,6 +19,7 @@ program
     try {
       const minTeams = parseInt(options.minTeams, 10);
       const hasFormat = !!options.format;
+      const hasSince = !!options.since;
 
       const rows = db.prepare(`
         SELECT
@@ -31,6 +33,7 @@ program
         JOIN tournaments tour     ON tour.id = t.tournament_id
         WHERE LOWER(ps.species) = LOWER(?)
           AND (${hasFormat ? 'tour.format = ?' : '1'})
+          AND (${hasSince  ? 'tour.date >= ?' : '1'})
           AND ts.wins + ts.losses > 0
         GROUP BY LOWER(ps.item)
         HAVING COUNT(DISTINCT t.id) >= ?
@@ -38,6 +41,7 @@ program
       `).all(
         options.pokemon,
         ...(hasFormat ? [options.format] : []),
+        ...(hasSince  ? [options.since]  : []),
         minTeams,
       ) as Array<{ item: string; teams: number; win_rate_pct: number }>;
 
@@ -49,6 +53,7 @@ program
       const label = [
         options.pokemon,
         hasFormat ? `[${options.format}]` : null,
+        hasSince  ? `since ${options.since}` : null,
       ].filter(Boolean).join(' ');
 
       console.log(`\nItem win rates for ${label} (min ${minTeams} teams)\n`);
