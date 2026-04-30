@@ -12,13 +12,13 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Dataset    = 'pokemon' | 'mega' | 'h2h' | 'combos' | 'teammates' | 'detail';
-type Mode       = 'all' | '4plus' | 'topcut';
+type Mode       = 'all' | 'topcut';
 type DetailTab  = 'moves' | 'items' | 'partners' | 'matchups';
 
 // ─── URL state helpers ────────────────────────────────────────────────────────
 
 const VALID_DATASETS  = new Set<Dataset>(['pokemon','mega','h2h','combos','teammates','detail']);
-const VALID_MODES     = new Set<Mode>(['all','4plus','topcut']);
+const VALID_MODES     = new Set<Mode>(['all','topcut']);
 const VALID_DETAIL    = new Set<DetailTab>(['moves','items','partners','matchups']);
 
 function parseSortParam(s: string | null): string | null {
@@ -102,22 +102,18 @@ const NAME_COLS: Record<Exclude<Dataset, 'teammates' | 'detail'>, ColDef[]> = {
 const MODE_COLS: Record<Exclude<Dataset, 'teammates' | 'detail'>, ModeColDef> = {
   pokemon: {
     all:    [numCol('teams','Teams'), pctCol('usage_pct','Usage %','desc'), pctCol('win_rate','Win Rate')],
-    '4plus':[numCol('four_plus_teams','Teams'), pctCol('four_plus_usage','Usage %','desc'), pctCol('four_plus_wr','Win Rate')],
     topcut: [numCol('top_cut_teams','Teams'), pctCol('top_cut_usage','Usage %','desc'), pctCol('top_cut_wr','Win Rate')],
   },
   mega: {
     all:    [numCol('teams','Teams'), pctCol('usage_pct','Usage %','desc'), pctCol('win_rate','Win Rate')],
-    '4plus':[numCol('four_plus_teams','Teams'), pctCol('four_plus_usage','Usage %','desc'), pctCol('four_plus_wr','Win Rate')],
     topcut: [numCol('top_cut_teams','Teams'), pctCol('top_cut_usage','Usage %','desc'), pctCol('top_cut_wr','Win Rate')],
   },
   h2h: {
     all:    [numCol('matches','Matches'), numCol('mega1_wins','Wins'), numCol('mega2_wins','Opp Wins'), pctCol('mega1_wr','Win Rate')],
-    '4plus':[numCol('four_plus_matches','Matches'), numCol('four_plus_mega1_wins','Wins'), numCol('four_plus_mega2_wins','Opp Wins'), pctCol('four_plus_mega1_wr','Win Rate')],
     topcut: [numCol('top_cut_matches','Matches'), numCol('top_cut_mega1_wins','Wins'), numCol('top_cut_mega2_wins','Opp Wins'), pctCol('top_cut_mega1_wr','Win Rate')],
   },
   combos: {
     all:    [numCol('teams','Teams'), pctCol('usage_pct','Usage %','desc'), pctCol('win_rate','Win Rate')],
-    '4plus':[numCol('four_plus_teams','Teams'), pctCol('four_plus_usage','Usage %','desc'), pctCol('four_plus_wr','Win Rate')],
     topcut: [numCol('top_cut_teams','Teams'), pctCol('top_cut_usage','Usage %','desc'), pctCol('top_cut_wr','Win Rate')],
   },
 };
@@ -169,7 +165,6 @@ const DATASETS: { value: Dataset; label: string }[] = [
 
 const MODES: { value: Mode; label: string }[] = [
   { value: 'all',    label: 'All'      },
-  { value: '4plus',  label: '4+ Wins'  },
   { value: 'topcut', label: 'Top Cut'  },
 ];
 
