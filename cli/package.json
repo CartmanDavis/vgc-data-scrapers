@@ -28,7 +28,8 @@
     "move-winrates": "node dist/move-winrates.js",
     "item-winrates": "node dist/item-winrates.js",
     "validate-db": "node dist/validate-db.js",
-    "migrate-to-supabase": "node dist/migrate-to-supabase.js"
+    "migrate-to-supabase": "node dist/migrate-to-supabase.js",
+    "showdown": "node dist/showdown.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.0",
