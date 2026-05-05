@@ -1,29 +1,17 @@
 import './App.css'
 import { Header } from './Header.tsx'
 import { DataTable } from './DataTable.tsx'
-import 'bootstrap-icons/font/bootstrap-icons.css' 
+import 'bootstrap-icons/font/bootstrap-icons.css'
 
 function App() {
   return (
     <>
-      <Header/>
+      <Header />
       <section id="csv-tables">
-        <DataTable/>
+        <DataTable />
       </section>
       <footer>
         <div className="footer-content">
-          <div className="footer-left">
-            <h2>Downloads</h2>
-            <p>Files available to download. All files are available in the <a href="https://github.com/CartmanDavis/vgc-data-scrapers">Github repository</a></p>
-            <ul>
-              <li>
-                <a href="https://github.com/CartmanDavis/vgc-data-scrapers/raw/refs/heads/main/db/vgc.db?download=" target="_blank">
-                  <i className="bi bi-cloud-arrow-down"></i>
-                  SQLite Database
-                </a>
-              </li>
-            </ul>
-          </div>
           <div className="footer-right">
             <h2>Contribute</h2>
             <p>Want to contribute to the project, request a feature, or file a bug report?</p>
