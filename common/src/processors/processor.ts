@@ -28,6 +28,7 @@ export class DataProcessor {
       pokemonSetsAdded: 0,
       matchesAdded: 0,
       tournamentStandingsAdded: 0,
+      processedTournamentIds: [],
       errors: [],
     };
 
@@ -81,6 +82,7 @@ export class DataProcessor {
 
         this.processTournament(tournamentId, details, standings, pairings, results);
         results.tournamentsProcessed = (results.tournamentsProcessed as number) + 1;
+        (results.processedTournamentIds as string[]).push(tournamentId);
 
         logger.info({ id: tournamentId }, 'Processed tournament');
       } catch (error) {
