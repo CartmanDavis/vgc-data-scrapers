@@ -1,9 +1,9 @@
-name: Daily Scrape
+name: Scrape
 
 on:
   schedule:
-    - cron: '0 8 * * *'  # 8 AM UTC daily
-  workflow_dispatch:       # allow manual runs
+    - cron: '0 */12 * * *'  # every 12 hours
+  workflow_dispatch:          # allow manual runs
 
 jobs:
   scrape-and-process:
@@ -12,8 +12,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -35,23 +33,16 @@ jobs:
       - name: Write config
         run: echo '${{ secrets.CONFIG_JSON }}' > config.json
 
-      - name: Ensure valid SQLite DB
-        run: sqlite3 db/vgc.db "SELECT 1" 2>/dev/null || echo "[WARN] db/vgc.db is not a valid SQLite database"
-
       - name: Scrape M-A tournaments
-        run: pnpm --filter @vgc/cli run limitless --format M-A
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          SINCE=$(date -u -d '2 days ago' '+%Y-%m-%d' 2>/dev/null || date -u -v-2d '+%Y-%m-%d')
+          pnpm --filter @vgc/cli run limitless --format M-A --since "$SINCE"
 
       - name: Process new data
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: pnpm --filter @vgc/cli run process
-
-      - name: Commit and push if changed
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add db/vgc.db
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "chore: daily scrape $(date -u '+%Y-%m-%d')"
-            git push
-          fi
