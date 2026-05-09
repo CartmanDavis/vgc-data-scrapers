@@ -25,6 +25,10 @@
       "import": "./dist/database/db.js",
       "types": "./dist/database/db.d.ts"
     },
+    "./database/interfaces": {
+      "import": "./dist/database/interfaces.js",
+      "types": "./dist/database/interfaces.d.ts"
+    },
     "./scrapers/limitless": {
       "import": "./dist/scrapers/limitless.js",
       "types": "./dist/scrapers/limitless.d.ts"
