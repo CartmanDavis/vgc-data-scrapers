@@ -1,5 +1,7 @@
+import { BaseScraper } from './base.js';
 import { APIClient } from '@vgc/common/api';
 import { logger } from '@vgc/common/logging';
+import type { IDataStore } from '../database/interfaces.js';
 
 export interface LimitlessTournament {
   id: string;
@@ -13,27 +15,21 @@ export interface LimitlessScraperOptions {
   rateLimit?: number;
 }
 
-export interface ScrapedRawData {
-  id: string;
-  details: unknown;
-  standings: unknown;
-  pairings: unknown;
-}
-
-export class LimitlessScraper {
+export class LimitlessScraper extends BaseScraper {
   private apiKey: string;
   private baseUrl: string = 'https://play.limitlesstcg.com/api';
   private rateLimit: number;
 
-  constructor(options: LimitlessScraperOptions) {
+  constructor(db: IDataStore, options: LimitlessScraperOptions) {
+    super(db);
     this.apiKey = options.apiKey;
     this.rateLimit = options.rateLimit || 200;
   }
 
-  async scrapeSingle(tournamentId: string): Promise<{ success: boolean; rawDataFetched: ScrapedRawData[] }> {
+  async scrapeSingle(tournamentId: string): Promise<Record<string, unknown>> {
     if (!this.apiKey) {
       logger.error('Limitless API key not provided');
-      return { success: false, rawDataFetched: [] };
+      return { success: false, error: 'API key required' };
     }
 
     const client = new APIClient({
@@ -42,39 +38,37 @@ export class LimitlessScraper {
       rateLimit: this.rateLimit,
     });
 
-    const detailsResponse = await client.get(`/tournaments/${tournamentId}/details`);
+    const detailsResponse = await client.get(`/tournaments/${tournamentId}/details`) as Record<string, unknown> | null;
     const standingsResponse = await client.get(`/tournaments/${tournamentId}/standings`);
     const pairingsResponse = await client.get(`/tournaments/${tournamentId}/pairings`);
 
     if (!detailsResponse && !standingsResponse && !pairingsResponse) {
-      return { success: false, rawDataFetched: [] };
+      logger.warn({ tournamentId }, 'No data returned for tournament');
+      return { success: false, error: 'No data returned from API' };
     }
 
-    const raw: ScrapedRawData = {
-      id: tournamentId,
-      details: detailsResponse || {},
-      standings: standingsResponse || {},
-      pairings: pairingsResponse || {},
-    };
+    const details = detailsResponse || {};
+    const { generation, format } = this.parseFormat((details as Record<string, unknown>).format as string || '');
+    await this.db.ensureTournamentStub(
+      tournamentId,
+      (details as Record<string, unknown>).name as string || tournamentId,
+      (details as Record<string, unknown>).date as string || new Date().toISOString(),
+      format,
+      generation,
+    );
+    await this.db.storeRawData(tournamentId, details, standingsResponse || {}, pairingsResponse || {});
 
-    logger.info({ tournamentId }, 'Fetched raw tournament data');
-    return { success: true, rawDataFetched: [raw] };
+    logger.info({ tournamentId }, 'Raw data stored');
+    return { success: true, tournamentsScraped: 0, rawResponsesStored: 1 };
   }
 
-  async scrape(params: {
-    format_filter?: string;
-    since?: string;
-    skipIds?: Set<string>;
-  }): Promise<{ success: boolean; tournamentsFound: number; rawDataFetched: ScrapedRawData[] }> {
-    const { format_filter: formatFilter, since, skipIds } = params;
+  async scrape(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const formatFilter = params.format_filter as string | undefined;
+    const since = params.since as string | undefined;
 
     if (!this.apiKey) {
       logger.error('Limitless API key not provided');
-      return { success: false, tournamentsFound: 0, rawDataFetched: [] };
-    }
-
-    if (since) {
-      logger.info({ since }, 'Scraping tournaments since date');
+      return { success: false, error: 'API key required' };
     }
 
     const client = new APIClient({
@@ -97,7 +91,7 @@ export class LimitlessScraper {
         }
       }
 
-      logger.info({ page: currentPage, format: formatFilter }, 'Fetching tournaments page');
+      logger.info({ page: currentPage, format: formatFilter, params: queryParams }, 'Fetching tournaments');
 
       const tournamentsData = await client.get<LimitlessTournament[]>('/tournaments', queryParams);
       if (!tournamentsData || tournamentsData.length === 0) {
@@ -113,7 +107,8 @@ export class LimitlessScraper {
         break;
       }
 
-      // API returns newest-first; stop once the oldest result on this page predates since
+      // Stop early once the oldest result on this page predates --since, avoiding
+      // fetching additional pages that won't have any new tournaments.
       if (sinceDt) {
         const oldest = tournamentsData.reduce((min, t) => {
           const d = new Date(t.date);
@@ -130,53 +125,79 @@ export class LimitlessScraper {
 
     logger.info({ total: allTournaments.length }, 'Total tournaments fetched');
 
-    // Filter by date
-    let filtered = allTournaments;
-    if (sinceDt) {
-      filtered = allTournaments.filter(t => {
-        const d = new Date(t.date);
-        return !isNaN(d.getTime()) && d > sinceDt;
-      });
-      logger.info({ since, count: filtered.length }, 'Filtered tournaments by date');
+    if (since) {
+      this.filterByDate(allTournaments, since);
+      logger.info({ since, count: allTournaments.length }, 'Filtered tournaments by date');
     }
 
-    // Filter out already-stored tournaments
-    if (skipIds?.size) {
-      filtered = filtered.filter(t => !skipIds.has(t.id));
-      logger.info({ skipped: allTournaments.length - filtered.length, remaining: filtered.length }, 'Skipped already-stored tournaments');
+    logger.info({ count: allTournaments.length }, 'Found tournaments');
+
+    const results: Record<string, unknown> = {
+      success: true,
+      tournamentsScraped: 0,
+      rawResponsesStored: 0,
+    };
+
+    for (const tournamentData of allTournaments) {
+      await this.scrapeTournament(client, tournamentData, results);
     }
 
-    logger.info({ count: filtered.length }, 'Tournaments to scrape');
-
-    const rawDataFetched: ScrapedRawData[] = [];
-
-    for (const tournamentData of filtered) {
-      const raw = await this.fetchTournament(client, tournamentData);
-      if (raw) rawDataFetched.push(raw);
-    }
-
-    return { success: true, tournamentsFound: filtered.length, rawDataFetched };
+    return results;
   }
 
-  private async fetchTournament(client: APIClient, tournamentData: LimitlessTournament): Promise<ScrapedRawData | null> {
+  private filterByDate(tournaments: LimitlessTournament[], sinceDate: string): void {
+    const sinceDt = new Date(sinceDate);
+    if (isNaN(sinceDt.getTime())) {
+      logger.error({ since: sinceDate }, 'Invalid since date format. Use YYYY-MM-DD');
+      return;
+    }
+
+    const filtered: LimitlessTournament[] = [];
+    for (const tournament of tournaments) {
+      const tournamentDate = new Date(tournament.date);
+      if (!isNaN(tournamentDate.getTime()) && tournamentDate > sinceDt) {
+        filtered.push(tournament);
+      }
+    }
+    tournaments.length = 0;
+    tournaments.push(...filtered);
+  }
+
+  private async scrapeTournament(
+    client: APIClient,
+    tournamentData: LimitlessTournament,
+    results: Record<string, unknown>,
+  ): Promise<void> {
     const tournamentId = tournamentData.id;
-    logger.info({ id: tournamentId, name: tournamentData.name }, 'Fetching tournament');
+    logger.info({ id: tournamentId, name: tournamentData.name }, 'Scraping tournament');
+
+    if (await this.db.rawDataExists(tournamentId)) {
+      logger.info({ id: tournamentId }, 'Raw data already exists, skipping');
+      return;
+    }
 
     const detailsResponse = await client.get(`/tournaments/${tournamentId}/details`);
     const standingsResponse = await client.get(`/tournaments/${tournamentId}/standings`);
     const pairingsResponse = await client.get(`/tournaments/${tournamentId}/pairings`);
 
-    if (!detailsResponse && !standingsResponse && !pairingsResponse) {
-      logger.warn({ tournamentId }, 'No data returned for tournament');
-      return null;
+    if (detailsResponse || standingsResponse || pairingsResponse) {
+      const { generation, format } = this.parseFormat(tournamentData.format || '');
+      await this.db.ensureTournamentStub(
+        tournamentId,
+        tournamentData.name,
+        tournamentData.date,
+        format,
+        generation,
+      );
+      await this.db.storeRawData(
+        tournamentId,
+        detailsResponse || {},
+        standingsResponse || {},
+        pairingsResponse || {},
+      );
+      results.rawResponsesStored = (results.rawResponsesStored as number) + 1;
     }
 
-    logger.info({ tournamentId }, 'Fetched tournament data');
-    return {
-      id: tournamentId,
-      details: detailsResponse || {},
-      standings: standingsResponse || {},
-      pairings: pairingsResponse || {},
-    };
+    logger.info({ tournamentId }, 'Raw data stored');
   }
 }

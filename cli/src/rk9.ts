@@ -2,8 +2,8 @@
 
 import { Command } from 'commander';
 import { RK9Scraper } from '@vgc/common/scrapers/rk9';
-import { DB } from '@vgc/common/database/db';
 import { config } from '@vgc/common/config';
+import { SupabaseDataStore } from './db/supabase-db.js';
 
 const program = new Command();
 
@@ -13,13 +13,19 @@ program
   .option('--url <url>', 'Tournament URL (required)')
   .option('--delay <seconds>', 'Request delay in seconds', '1.0')
   .action(async (options) => {
-    const db = new DB();
-    await db.init();
+    const supabaseUrl = config.supabaseUrl;
+    const serviceRoleKey = config.supabaseServiceRoleKey;
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('Error: Supabase URL and service role key are required. Set supabase.url and supabase.serviceRoleKey in config.json or SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY env vars.');
+      process.exit(1);
+    }
 
     if (!options.url) {
       console.error('Error: --url is required');
       process.exit(1);
     }
+
+    const db = new SupabaseDataStore(supabaseUrl, serviceRoleKey);
 
     const scraper = new RK9Scraper(db, {
       requestDelay: parseFloat(options.delay) || config.rk9RequestDelay,

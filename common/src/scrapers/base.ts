@@ -1,4 +1,4 @@
-import { DB } from '../database/db.js';
+import type { IDataStore } from '../database/interfaces.js';
 
 export interface ParseFormatResult {
   generation: number;
@@ -6,9 +6,9 @@ export interface ParseFormatResult {
 }
 
 export abstract class BaseScraper {
-  protected db: DB;
+  protected db: IDataStore;
 
-  constructor(db: DB) {
+  constructor(db: IDataStore) {
     this.db = db;
   }
 
@@ -46,28 +46,15 @@ export abstract class BaseScraper {
     return { generation: 9, format: formatString };
   }
 
-  getOrCreatePlayer(name: string, country?: string): number {
-    const existing = this.db.prepare('SELECT id FROM players WHERE name = ?').get(name) as { id: number } | undefined;
-    if (existing) {
-      return existing.id;
-    }
-
-    const result = this.db.prepare('INSERT INTO players (name, country) VALUES (?, ?)').run(name, country ?? null);
-    return result.lastInsertRowid as number;
+  async getOrCreatePlayer(name: string, country?: string): Promise<number> {
+    return this.db.findOrCreatePlayer(name, country);
   }
 
-  getOrCreateTeam(playerId: number, tournamentId: string): number {
-    const existing = this.db.prepare('SELECT id FROM teams WHERE player_id = ? AND tournament_id = ?').get(playerId, tournamentId) as { id: number } | undefined;
-    if (existing) {
-      return existing.id;
-    }
-
-    const result = this.db.prepare('INSERT INTO teams (player_id, tournament_id) VALUES (?, ?)').run(playerId, tournamentId);
-    return result.lastInsertRowid as number;
+  async getOrCreateTeam(playerId: number, tournamentId: string): Promise<number> {
+    return this.db.findOrCreateTeam(playerId, tournamentId);
   }
 
-  tournamentExists(tournamentId: string): boolean {
-    const result = this.db.prepare('SELECT id FROM tournaments WHERE id = ?').get(tournamentId);
-    return result !== undefined;
+  async tournamentExists(tournamentId: string): Promise<boolean> {
+    return this.db.tournamentExists(tournamentId);
   }
 }

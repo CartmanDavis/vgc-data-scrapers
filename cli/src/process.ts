@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { createClient } from '@supabase/supabase-js';
+import { DataProcessor } from '@vgc/common/processors/processor';
 import { config } from '@vgc/common/config';
-import { SupabaseProcessor } from './supabase-processor.js';
+import { SupabaseDataStore } from './db/supabase-db.js';
 
 const program = new Command();
 
@@ -15,14 +15,14 @@ program
   .option('--force', 'Re-process even if already processed', false)
   .action(async (options) => {
     const supabaseUrl = config.supabaseUrl;
-    const supabaseKey = config.supabaseServiceRoleKey;
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Error: Supabase is required. Set supabase.url and supabase.serviceRoleKey in config.json');
+    const serviceRoleKey = config.supabaseServiceRoleKey;
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('Error: Supabase URL and service role key are required. Set supabase.url and supabase.serviceRoleKey in config.json or SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY env vars.');
       process.exit(1);
     }
-    const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
-    const processor = new SupabaseProcessor(supabase);
+    const db = new SupabaseDataStore(supabaseUrl, serviceRoleKey);
+    const processor = new DataProcessor(db);
 
     let tournamentIds: string[] | undefined;
     if (options.tournaments) {
@@ -36,6 +36,8 @@ program
     });
 
     console.log(JSON.stringify(result, null, 2));
+    db.close();
+    if (!result.success || (result.errors as string[]).length > 0) process.exit(1);
   });
 
 program.parse();
