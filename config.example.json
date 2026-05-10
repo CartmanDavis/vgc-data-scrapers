@@ -8,15 +8,12 @@
     "baseUrl": "https://rk9.gg",
     "requestDelay": 1.0
   },
-  "database": {
-    "path": "./db/vgc.db"
-  },
   "log": {
     "dir": "./logs"
   },
   "supabase": {
-    "url": "<PROJECT ID>",
-    "anonKey": "sb_publishable_<KEY>",
-    "serviceRoleKey": "sb_secret_<KEY>", 
+    "url": "<project-url>",
+    "anonKey": "<anon-key>",
+    "serviceRoleKey": "<service-role-key>"
   }
 }

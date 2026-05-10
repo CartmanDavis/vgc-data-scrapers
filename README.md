@@ -1,12 +1,12 @@
 # VGC Analytics Scraper
 
-Scrapes competitive Pokemon VGC (Video Game Championships) analytics data from Limitless and RK9.gg tournaments.
+Scrapes competitive Pokemon VGC (Video Game Championships) analytics data from Limitless and RK9.gg tournaments, stores it in Supabase (PostgreSQL), and generates usage/win rate CSV reports.
 
 ## Tech Stack
 
 - **Language**: TypeScript 5.3+
-- **Database**: SQLite (`db/vgc.db`) via sql.js
-- **Monorepo**: npm workspaces
+- **Database**: Supabase (PostgreSQL)
+- **Monorepo**: pnpm workspaces
 - **HTTP Client**: `axios`
 - **CLI**: `commander`
 - **Logging**: `pino`
@@ -16,65 +16,62 @@ Scrapes competitive Pokemon VGC (Video Game Championships) analytics data from L
 
 ```
 usage-stats/
-├── common/           # Shared utilities (config, api, logging)
-├── cli/             # CLI tools and scrapers
+├── common/           # Shared utilities (config, api, logging, scrapers, processor)
+├── cli/              # CLI tools and scrapers
 │   └── src/
-│       ├── cli/     # 10 CLI commands
-│       ├── scrapers/
-│       ├── processors/
-│       └── database/
-├── db/              # SQLite database
-├── logs/            # Application logs
-└── config.json      # Configuration
+│       ├── db/       # SupabaseDataStore + legacy SQLite DB
+│       └── *.ts      # CLI scripts
+├── supabase/         # PostgreSQL schema and migrations
+├── output/           # Generated CSV reports
+├── logs/             # Application logs
+└── config.json       # Configuration (gitignored — copy from config.example.json)
 ```
 
 ## Setup
 
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm build
 ```
 
-## Commands
-
-```bash
-# Scrape Limitless tournaments
-npm run limitless -- --format gen9vgc2026regf --limit 50
-
-# Scrape RK9 tournament
-npm run rk9 -- --url "https://rk9.gg/tournament/example/"
-
-# Process raw data
-npm run process -- --source limitless
-
-# Query database
-npm run query -- --tournaments --limit 10
-
-# Analyze teams
-npm run analyze-teams
-npm run find-best-duo
-
-# Upload to pokepast.es
-npm run upload -- --paste "team content"
-npm run player-tournament-report <playerName>
-npm run create-upload <playerId> [format]
-npm run combined-paste
-```
-
-## Configuration
-
-Copy `config.example.json` to `config.json` and add your Limitless API key:
+Copy `config.example.json` to `config.json` and fill in your credentials:
 
 ```json
 {
   "limitless": {
     "apiKey": "your_api_key_here"
+  },
+  "supabase": {
+    "url": "<project-url>",
+    "anonKey": "<anon-key>",
+    "serviceRoleKey": "<service-role-key>"
   }
 }
 ```
 
-Or set environment variable: `export LIMITLESS_API_KEY=your_key`
+Env var overrides: `LIMITLESS_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
 
-## Legacy
+## Commands
 
-Original Python code preserved in `python-legacy/`.
+```bash
+# Scrape Limitless tournaments
+pnpm --filter @vgc/cli run limitless -- --format M-A
+pnpm --filter @vgc/cli run limitless -- --id <tournament-id>
+
+# Scrape RK9 tournament
+pnpm --filter @vgc/cli run rk9 -- --url "https://rk9.gg/tournament/example/"
+
+# Process raw data into normalized tables
+pnpm --filter @vgc/cli run process
+
+# Generate CSV reports (output/)
+pnpm --filter @vgc/cli run generate-csvs
+
+# Analyze teams
+pnpm --filter @vgc/cli run analyze-teams
+pnpm --filter @vgc/cli run find-best-duo
+
+# Upload to pokepast.es
+pnpm --filter @vgc/cli run player-tournament-report "Player Name"
+pnpm --filter @vgc/cli run combined-paste <player-id>
+```
