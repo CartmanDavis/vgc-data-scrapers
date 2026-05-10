@@ -66,29 +66,7 @@ try {
   const movesChanged = normalizeField(db, 'moves', 'move_name');
   console.log(`${movesChanged} unique values updated\n`);
 
-  // --- Strip "Mega " prefix from species names ---
-  // Done unconditionally: a species stored as "Mega Charizard Y" should be "Charizard",
-  // stripping both the "Mega " prefix and any trailing X/Y/Z form letter.
-  // is_mega (below) is set based on the item held, not the species name.
-
-  console.log('=== Mega species name fix ===');
-  const megaSpecies = db.prepare(
-    `SELECT DISTINCT species FROM pokemon_sets WHERE species LIKE 'Mega %'`
-  ).all() as { species: string }[];
-
-  for (const { species } of megaSpecies) {
-    let fixed = species.slice(5); // remove "Mega " (5 chars)
-    // Strip trailing form letter from X/Y/Z mega variants (e.g. "Charizard Y" → "Charizard")
-    if (/^.+ [XYZ]$/.test(fixed)) {
-      fixed = fixed.slice(0, -2);
-    }
-    db.prepare(`UPDATE pokemon_sets SET species = ? WHERE species = ?`).run(fixed, species);
-    console.log(`  "${species}" → "${fixed}"`);
-  }
-  console.log(`${megaSpecies.length} species names updated\n`);
-
   // --- Detect mega pokemon via held item and set is_mega ---
-  // (Run before the X/Y/Z suffix pass so is_mega is populated)
 
   db.prepare('UPDATE pokemon_sets SET is_mega = 0').run();
   db.prepare(`
@@ -108,20 +86,6 @@ try {
 
   console.log(`=== is_mega ===`);
   console.log(`${megaCount} pokemon_sets marked is_mega = 1\n`);
-
-  // --- Strip leftover X/Y/Z form suffixes from mega species ---
-  // Catches cases like "Charizard Y" left by a prior clean run before this fix was added.
-  console.log('=== Mega form suffix fix (X/Y/Z) ===');
-  const xyzSpecies = db.prepare(`
-    SELECT DISTINCT species FROM pokemon_sets
-    WHERE is_mega = 1 AND (species LIKE '% X' OR species LIKE '% Y' OR species LIKE '% Z')
-  `).all() as { species: string }[];
-  for (const { species } of xyzSpecies) {
-    const fixed = species.slice(0, -2);
-    db.prepare('UPDATE pokemon_sets SET species = ? WHERE species = ?').run(fixed, species);
-    console.log(`  "${species}" → "${fixed}"`);
-  }
-  console.log(`${xyzSpecies.length} species names updated\n`);
 
   console.log('Done. Saving database...');
 } finally {

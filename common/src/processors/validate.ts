@@ -48,7 +48,20 @@ export function validatePokemon(raw: RawPokemon): ValidatedPokemon {
 
   // --- Species ---
   const rawSpecies = raw.name ?? '';
-  const speciesData = Dex.species.get(rawSpecies);
+  let lookupSpecies = rawSpecies;
+  let isMegaFromName = false;
+
+  // Strip "Mega " prefix and optional trailing X/Y/Z form letter before Dex lookup.
+  // @pkmn/dex only knows base species names, not "Mega Venusaur"-style names.
+  if (lookupSpecies.startsWith('Mega ')) {
+    isMegaFromName = true;
+    lookupSpecies = lookupSpecies.slice(5);
+    if (/^.+ [XYZ]$/.test(lookupSpecies)) {
+      lookupSpecies = lookupSpecies.slice(0, -2);
+    }
+  }
+
+  const speciesData = Dex.species.get(lookupSpecies);
   let species: string;
   if (speciesData.exists) {
     if (speciesData.name !== rawSpecies) {
@@ -56,8 +69,11 @@ export function validatePokemon(raw: RawPokemon): ValidatedPokemon {
     }
     species = speciesData.name;
   } else {
-    const custom = CUSTOM_SPECIES.get(rawSpecies.toLowerCase());
+    const custom = CUSTOM_SPECIES.get(lookupSpecies.toLowerCase());
     if (custom !== undefined) {
+      if (custom !== rawSpecies) {
+        fixes.push(`species: "${rawSpecies}" → "${custom}"`);
+      }
       species = custom;
     } else {
       warnings.push(`Unknown species: "${rawSpecies}"`);
@@ -68,7 +84,7 @@ export function validatePokemon(raw: RawPokemon): ValidatedPokemon {
 
   // --- Item ---
   let item: string | null = null;
-  let is_mega = false;
+  let is_mega = isMegaFromName;
   if (raw.item) {
     const itemData = Dex.items.get(raw.item);
     if (itemData.exists) {

@@ -28,6 +28,33 @@ describe('validatePokemon', () => {
       const result = validatePokemon({ name: '' });
       expect(result.invalid).toBe(true);
     });
+
+    it('strips "Mega " prefix and resolves to base species', () => {
+      const result = validatePokemon({ name: 'Mega Venusaur' });
+      expect(result.species).toBe('Venusaur');
+      expect(result.invalid).toBe(false);
+      expect(result.fixes).toContain('species: "Mega Venusaur" → "Venusaur"');
+    });
+
+    it('sets is_mega = true from "Mega " prefix in species name', () => {
+      const result = validatePokemon({ name: 'Mega Venusaur' });
+      expect(result.is_mega).toBe(true);
+    });
+
+    it('strips "Mega " prefix and trailing X form letter', () => {
+      const result = validatePokemon({ name: 'Mega Charizard X' });
+      expect(result.species).toBe('Charizard');
+      expect(result.invalid).toBe(false);
+      expect(result.is_mega).toBe(true);
+      expect(result.fixes).toContain('species: "Mega Charizard X" → "Charizard"');
+    });
+
+    it('strips "Mega " prefix and trailing Y form letter', () => {
+      const result = validatePokemon({ name: 'Mega Charizard Y' });
+      expect(result.species).toBe('Charizard');
+      expect(result.invalid).toBe(false);
+      expect(result.is_mega).toBe(true);
+    });
   });
 
   describe('item', () => {
