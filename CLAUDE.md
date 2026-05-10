@@ -1,26 +1,26 @@
 # VGC Usage Stats
 
-Competitive Pokemon VGC analytics platform. Scrapes tournament data from Limitless TCG and RK9.gg, stores it in SQLite, and surfaces usage/win rate stats via a React frontend.
+Competitive Pokemon VGC analytics platform. Scrapes tournament data from Limitless TCG and RK9.gg, stores it in Supabase (PostgreSQL), and surfaces usage/win rate stats via generated CSV reports.
 
 ## Workspace structure
 
-Pnpm monorepo with three packages and a shared SQLite database:
+Pnpm monorepo with two packages:
 
 ```
-common/     Shared library: DB wrapper, scrapers, processor, API client
+common/     Shared library: scrapers, processor, validator, API client, config
 cli/        Node.js scripts for scraping, processing, and querying data
-frontend/   React + Vite SPA that reads the DB in-browser via sql.js
-db/vgc.db   The SQLite database (not in version control)
-config.json Limitless API key and other runtime config (not in version control)
+  src/db/   Data store implementations (SupabaseDataStore, legacy SQLite DB)
+config.json Limitless API key, Supabase credentials (not in version control)
 output/     Generated CSV reports
 docs/data/  Query documentation and data notes
+supabase/   PostgreSQL schema and migration files
 ```
 
 ## Build & test
 
 ```bash
-pnpm build          # tsc --build (compiles all three packages)
-pnpm test           # vitest run (runs common/ and frontend/ tests)
+pnpm build          # tsc --build (compiles both packages)
+pnpm test           # vitest run (runs common/ tests)
 pnpm clean          # tsc --build --clean
 ```
 
@@ -28,7 +28,7 @@ Always build before running CLI commands — scripts run from `cli/dist/`.
 
 ## Config
 
-`config.json` at the repo root (gitignored):
+`config.json` at the repo root (gitignored). Copy `config.example.json` to get started:
 
 ```json
 {
@@ -36,20 +36,25 @@ Always build before running CLI commands — scripts run from `cli/dist/`.
     "apiKey": "<key>",
     "baseUrl": "https://play.limitlesstcg.com/api",
     "rateLimit": 200
+  },
+  "supabase": {
+    "url": "<project-url>",
+    "anonKey": "<anon-key>",
+    "serviceRoleKey": "<service-role-key>"
   }
 }
 ```
 
-The API key can also be set via the `LIMITLESS_API_KEY` environment variable.
+Env var overrides: `LIMITLESS_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## Data pipeline
 
 ```
-Limitless API → limitless scraper → limitless_api_raw_data table
+Limitless API → limitless scraper → limitless_api_raw_data (Supabase)
                                               ↓
-                                         processor → normalized tables
+                                         processor → normalized tables (Supabase)
                                                           ↓
-                                                    query / frontend
+                                                    generate-csvs → output/
 ```
 
 ### Step 1 — Scrape
@@ -68,7 +73,7 @@ pnpm --filter @vgc/cli run limitless --id <tournament-id>
 pnpm --filter @vgc/cli run limitless --format SVF
 ```
 
-Raw JSON (details + standings + pairings) is stored in `limitless_api_raw_data`. Already-scraped tournaments are skipped automatically.
+Raw JSON (details + standings + pairings) is stored in `limitless_api_raw_data` in Supabase. Already-scraped tournaments are skipped automatically.
 
 ### Step 2 — Process
 
@@ -84,33 +89,17 @@ The processor reads `limitless_api_raw_data`, skips non-VGC games, and populates
 
 ## Querying the database
 
-```bash
-# Quick inspection shortcuts
-pnpm --filter @vgc/cli run query --tournaments          # recent tournaments
-pnpm --filter @vgc/cli run query --players              # players list
-pnpm --filter @vgc/cli run query --teams                # teams list
-pnpm --filter @vgc/cli run query --limit 50 --sql "SELECT ..."
-```
+Ad-hoc queries are best run directly in the Supabase SQL editor (Database → SQL Editor). The schema is in `supabase/schema.sql`.
 
-For ad-hoc analysis, use the `query` script with `--sql`. The DB is at `db/vgc.db` and can also be opened directly with any SQLite client.
-
-### Writing queries directly
-
-The `common/src/database/db.ts` `DB` class wraps sql.js. Usage from a script:
+For script-level queries, use `SupabaseDataStore` from `cli/src/db/supabase-db.ts`, or call the Supabase JS client directly:
 
 ```typescript
-const db = new DB();
-await db.init();
-const rows = db.prepare('SELECT ...').all(param1, param2);
-db.close(); // saves db to disk
+import { createClient } from '@supabase/supabase-js';
+const supabase = createClient(url, serviceRoleKey, { auth: { persistSession: false } });
+const { data } = await supabase.from('tournaments').select('*').eq('format', 'M-A');
 ```
 
-For quick one-off scripts without TypeScript overhead, use `better-sqlite3` directly (already installed):
-
-```javascript
-import Database from '.../node_modules/.pnpm/better-sqlite3@11.10.0/.../lib/index.js';
-const db = new Database('db/vgc.db', { readonly: true });
-```
+The `query` CLI script (`pnpm --filter @vgc/cli run query`) still exists but reads from a local SQLite file — it's a legacy holdover and not useful for Supabase data.
 
 ## Database schema
 
@@ -119,7 +108,7 @@ const db = new Database('db/vgc.db', { readonly: true });
 | `tournaments` | `id, name, date, format, generation, official` |
 | `players` | `id, name, country` |
 | `teams` | `id, player_id, tournament_id` — one row per player per tournament |
-| `pokemon_sets` | `id, team_id, species, form, item, ability, tera_type` |
+| `pokemon_sets` | `id, team_id, species, form, item, ability, tera_type, is_mega, invalid` |
 | `moves` | `id, pokemon_set_id, move_name` |
 | `matches` | `id, tournament_id, round_number, table_number, phase` |
 | `match_participants` | `id, match_id, player_id, team_id, score` — two rows per match |
@@ -144,7 +133,7 @@ const db = new Database('db/vgc.db', { readonly: true });
 
 ## Output CSVs
 
-Generated by ad-hoc scripts and stored in `output/`. For M-A format:
+Generated by `pnpm --filter @vgc/cli run generate-csvs` and stored in `output/`. For M-A format:
 
 | File | What it measures |
 |------|-----------------|
@@ -156,14 +145,6 @@ Generated by ad-hoc scripts and stored in `output/`. For M-A format:
 **Canonical mega items** are the known `*ite` item names listed in `docs/data/mega-pokemon-queries.md`. Usage % for these is relative to total mega teams (teams with at least one canonical item), not total M-A teams.
 
 **Combo detection** uses a broader `LIKE '%ite%'` pattern (excluding `Eviolite`, `No Item`, `White Herb`), so combo totals may differ slightly from canonical counts.
-
-Regenerate all four CSVs with:
-
-```javascript
-// regenerate-csvs.mjs — ad-hoc Node.js script (not committed)
-import Database from '.../better-sqlite3/.../lib/index.js';
-// ... build itemMap, teamScoresMap, etc. then write to output/
-```
 
 ## Other CLI scripts
 
@@ -180,17 +161,6 @@ pnpm --filter @vgc/cli run player-tournament-report "Player Name" --days 90
 # Create a combined paste for a player's teams across SVF tournaments
 pnpm --filter @vgc/cli run combined-paste <player-id>
 ```
-
-## Frontend
-
-React + Vite SPA using sql.js to run SQLite queries in the browser.
-
-```bash
-pnpm --filter @vgc/frontend run dev     # start dev server
-pnpm --filter @vgc/frontend run build   # production build to frontend/dist/
-```
-
-The frontend fetches `db/vgc.db` at `/db/vgc.db` on startup. For local dev, Vite must be able to serve the file — place `db/vgc.db` in `frontend/public/db/` or configure the Vite dev server proxy. Pages: tournament list, tournament detail, usage stats, player profile, team analysis.
 
 ## Data quality notes
 
