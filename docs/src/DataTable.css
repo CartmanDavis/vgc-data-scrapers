@@ -39,8 +39,9 @@
 }
 
 .dataset-toggle button.active {
-  background: #0891b2;
-  color: #fff;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
 }
 
 .mode-toggle {
@@ -69,8 +70,9 @@
 }
 
 .mode-toggle button.active {
-  background: #22d3ee;
-  color: #0f172a;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
 }
 
 .table-grid {
@@ -102,7 +104,7 @@
 
 .ag-theme-alpine .ag-header {
   background: #0f172a;
-  border-bottom: 2px solid #22d3ee;
+  border-bottom: 2px solid var(--accent);
 }
 
 .ag-theme-alpine .ag-header-cell-text {
@@ -294,7 +296,7 @@
   min-width: 220px;
 }
 
-.species-input:focus { border-color: #22d3ee; }
+.species-input:focus { border-color: var(--accent); }
 
 .mega-select {
   background: #0f172a;
@@ -310,7 +312,7 @@
 }
 
 .mega-select:focus {
-  border-color: #22d3ee;
+  border-color: var(--accent);
 }
 
 .table-status {
