@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
-import type { ColDef } from 'ag-grid-community';
+import type { ColDef, ICellRendererParams } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { supabase } from './supabase';
+import { UsageChart } from './components/UsageChart';
 import './DataTable.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -14,6 +16,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 type Dataset    = 'pokemon' | 'mega' | 'h2h' | 'combos' | 'teammates' | 'detail';
 type Mode       = 'all' | 'topcut';
 type DetailTab  = 'moves' | 'items' | 'partners' | 'matchups';
+type ViewMode   = 'table' | 'chart';
 
 // ─── URL state helpers ────────────────────────────────────────────────────────
 
@@ -77,6 +80,38 @@ const numCmp = (a: unknown, b: unknown) => (Number(a) || 0) - (Number(b) || 0);
 function nameCol(field: string, header: string, flex = 2): ColDef {
   return { field, headerName: header, flex, minWidth: 110, cellClass: 'string-cell', sortable: true, filter: true };
 }
+
+function linkCol(
+  field: string,
+  header: string,
+  makeHref: (val: string) => string,
+  flex = 2,
+): ColDef {
+  return {
+    field,
+    headerName: header,
+    flex,
+    minWidth: 110,
+    cellClass: 'string-cell',
+    sortable: true,
+    filter: true,
+    cellRenderer: (params: ICellRendererParams) => {
+      const val = String(params.value ?? '');
+      const el = document.createElement('a');
+      el.textContent = val;
+      el.href = makeHref(val);
+      el.className = 'cell-link';
+      el.addEventListener('click', e => {
+        e.preventDefault();
+        // Navigation handled by the navigate callback injected via context
+        const event = new CustomEvent('cell-navigate', { detail: { href: makeHref(val) }, bubbles: true });
+        el.dispatchEvent(event);
+      });
+      return el;
+    },
+  };
+}
+
 function pctCol(field: string, header: string, sort?: 'asc' | 'desc'): ColDef {
   return {
     field, headerName: header, flex: 1, minWidth: 90,
@@ -91,13 +126,6 @@ function numCol(field: string, header: string): ColDef {
 // ─── Column definitions per dataset / mode ────────────────────────────────────
 
 type ModeColDef = Record<Mode, ColDef[]>;
-
-const NAME_COLS: Record<Exclude<Dataset, 'teammates' | 'detail'>, ColDef[]> = {
-  pokemon: [nameCol('species', 'Pokemon')],
-  mega:    [nameCol('pokemon', 'Mega Item')],
-  h2h:     [nameCol('mega1', 'Mega', 1.5), nameCol('mega2', 'Opponent', 1.5)],
-  combos:  [nameCol('combo', 'Combo', 3)],
-};
 
 const MODE_COLS: Record<Exclude<Dataset, 'teammates' | 'detail'>, ModeColDef> = {
   pokemon: {
@@ -175,10 +203,18 @@ const DETAIL_TABS: { value: DetailTab; label: string }[] = [
   { value: 'matchups', label: 'Matchups' },
 ];
 
+// Datasets that support chart view
+const CHARTABLE_DATASETS = new Set<Dataset>(['pokemon', 'mega']);
+
+function readStoredViewMode(): ViewMode {
+  try { return (localStorage.getItem('viewMode') as ViewMode) ?? 'table'; } catch { return 'table'; }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function DataTable() {
   const init = useMemo(readUrl, []);
+  const navigate = useNavigate();
 
   const [dataset,         setDataset]         = useState<Dataset>(init.dataset);
   const [mode,            setMode]             = useState<Mode>(init.mode);
@@ -186,6 +222,7 @@ export function DataTable() {
   const [rows,            setRows]             = useState<unknown[]>([]);
   const [loading,         setLoading]          = useState(false);
   const [error,           setError]            = useState<string | null>(null);
+  const [viewMode,        setViewMode]         = useState<ViewMode>(readStoredViewMode);
 
   // Teammates tab
   const [megaList,        setMegaList]         = useState<string[]>([]);
@@ -205,8 +242,37 @@ export function DataTable() {
   useEffect(() => { filterParamRef.current = filterParam; }, [filterParam]);
 
   const gridRef = useRef<AgGridReact>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const since = toSince(sinceDays);
+  const canChart = CHARTABLE_DATASETS.has(dataset);
+  const showChart = canChart && viewMode === 'chart';
+
+  // Persist view mode
+  const handleViewMode = (vm: ViewMode) => {
+    setViewMode(vm);
+    try { localStorage.setItem('viewMode', vm); } catch { /* ignore */ }
+  };
+
+  // Navigate on cell link click
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: Event) => {
+      const href = (e as CustomEvent<{ href: string }>).detail?.href;
+      if (href) navigate(href);
+    };
+    el.addEventListener('cell-navigate', handler);
+    return () => el.removeEventListener('cell-navigate', handler);
+  }, [navigate]);
+
+  // Build species/mega name columns with navigation links
+  const NAME_COLS_WITH_LINKS = useMemo<Record<Exclude<Dataset, 'teammates' | 'detail'>, ColDef[]>>(() => ({
+    pokemon: [linkCol('species', 'Pokemon', s => `/pokemon/${encodeURIComponent(s)}`)],
+    mega:    [linkCol('pokemon', 'Mega Item', s => `/mega/${encodeURIComponent(s)}`)],
+    h2h:     [nameCol('mega1', 'Mega', 1.5), nameCol('mega2', 'Opponent', 1.5)],
+    combos:  [nameCol('combo', 'Combo', 3)],
+  }), []);
 
   // Sync all UI state → URL
   useEffect(() => {
@@ -238,21 +304,19 @@ export function DataTable() {
     if (fp) gridRef.current.api.setFilterModel(fp);
   }, []);
 
-  // Capture sort changes → state → URL
   const onSortChanged = useCallback(() => {
     if (!gridRef.current) return;
     const sorted = gridRef.current.api.getColumnState().find(c => c.sort);
     setSortParam(sorted ? `${sorted.colId}:${sorted.sort}` : null);
   }, []);
 
-  // Capture filter changes → state → URL
   const onFilterChanged = useCallback(() => {
     if (!gridRef.current) return;
     const model = gridRef.current.api.getFilterModel();
     setFilterParam(Object.keys(model).length ? model : null);
   }, []);
 
-  // Load species + mega lists once (from pokemon/mega usage data)
+  // Load species + mega lists once
   useEffect(() => {
     rpc('get_pokemon_usage', since ? { p_since: since } : {})
       .then(d => setSpeciesList((d as { species: string }[]).map(r => r.species)))
@@ -310,16 +374,35 @@ export function DataTable() {
   const columnDefs = useMemo<ColDef[]>(() => {
     if (dataset === 'teammates') return TEAMMATES_COLS;
     if (dataset === 'detail')    return DETAIL_COLS[detailTab];
-    return [...NAME_COLS[dataset], ...MODE_COLS[dataset][mode]];
-  }, [dataset, mode, detailTab]);
+    return [...NAME_COLS_WITH_LINKS[dataset], ...MODE_COLS[dataset][mode]];
+  }, [dataset, mode, detailTab, NAME_COLS_WITH_LINKS]);
 
   const showModeToggle   = dataset !== 'teammates';
   const showMegaSelect   = dataset === 'teammates';
   const showSpeciesInput = dataset === 'detail';
   const showPlaceholder  = (showMegaSelect && !selectedMega) || (showSpeciesInput && !selectedSpecies);
 
+  // Shape rows for chart view
+  const chartData = useMemo(() => {
+    if (dataset === 'pokemon') {
+      return (rows as { species: string; usage_pct: number; win_rate: number }[]).map(r => ({
+        name: r.species,
+        usage: r.usage_pct,
+        winRate: r.win_rate,
+      }));
+    }
+    if (dataset === 'mega') {
+      return (rows as { pokemon: string; usage_pct: number; win_rate: number }[]).map(r => ({
+        name: r.pokemon,
+        usage: r.usage_pct,
+        winRate: r.win_rate,
+      }));
+    }
+    return [];
+  }, [rows, dataset]);
+
   return (
-    <div className="tables-container">
+    <div className="tables-container" ref={containerRef}>
 
       {/* Date filter */}
       <div className="date-filter">
@@ -349,19 +432,40 @@ export function DataTable() {
         </div>
 
         {/* Secondary controls */}
-        {showModeToggle && (
-          <div className="mode-toggle">
-            {MODES.map(({ value, label }) => (
+        <div className="controls-row">
+          {showModeToggle && (
+            <div className="mode-toggle">
+              {MODES.map(({ value, label }) => (
+                <button
+                  key={value}
+                  className={mode === value ? 'active' : ''}
+                  onClick={() => { setMode(value); setSortParam(null); setFilterParam(null); }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {canChart && (
+            <div className="view-toggle" role="group" aria-label="View mode">
               <button
-                key={value}
-                className={mode === value ? 'active' : ''}
-                onClick={() => { setMode(value); setSortParam(null); setFilterParam(null); }}
+                className={viewMode === 'table' ? 'active' : ''}
+                onClick={() => handleViewMode('table')}
+                aria-pressed={viewMode === 'table'}
               >
-                {label}
+                <i className="bi bi-table" /> Table
               </button>
-            ))}
-          </div>
-        )}
+              <button
+                className={viewMode === 'chart' ? 'active' : ''}
+                onClick={() => handleViewMode('chart')}
+                aria-pressed={viewMode === 'chart'}
+              >
+                <i className="bi bi-bar-chart-horizontal-fill" /> Chart
+              </button>
+            </div>
+          )}
+        </div>
 
         {showMegaSelect && (
           <select className="mega-select" value={selectedMega} onChange={e => setSelectedMega(e.target.value)}>
@@ -405,9 +509,13 @@ export function DataTable() {
         </div>
       )}
 
+      {!loading && !error && !showPlaceholder && showChart && (
+        <UsageChart data={chartData} />
+      )}
+
       <div
         className="ag-theme-alpine table-grid"
-        style={{ display: loading || showPlaceholder ? 'none' : undefined }}
+        style={{ display: loading || showPlaceholder || showChart ? 'none' : undefined }}
       >
         <AgGridReact
           ref={gridRef}
