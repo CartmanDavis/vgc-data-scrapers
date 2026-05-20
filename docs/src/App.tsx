@@ -1,15 +1,24 @@
-import './App.css'
-import { Header } from './Header.tsx'
-import { DataTable } from './DataTable.tsx'
-import 'bootstrap-icons/font/bootstrap-icons.css'
+import { Routes, Route } from 'react-router-dom';
+import './App.css';
+import { Header } from './Header';
+import { NavBar } from './components/NavBar';
+import { MetagamePage } from './pages/MetagamePage';
+import { PokemonPage } from './pages/PokemonPage';
+import { MegaPage } from './pages/MegaPage';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
 function App() {
   return (
     <>
       <Header />
-      <section id="csv-tables">
-        <DataTable />
-      </section>
+      <NavBar />
+      <main>
+        <Routes>
+          <Route path="/" element={<MetagamePage />} />
+          <Route path="/pokemon/:species" element={<PokemonPage />} />
+          <Route path="/mega/:item" element={<MegaPage />} />
+        </Routes>
+      </main>
       <footer>
         <div className="footer-content">
           <div className="footer-right">
@@ -42,7 +51,7 @@ function App() {
         </div>
       </footer>
     </>
-  )
+  );
 }
 
-export default App
+export default App;

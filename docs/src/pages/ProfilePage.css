@@ -1,0 +1,44 @@
+.profile-page {
+  padding: 32px 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  padding: 6px 0;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.profile-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-h);
+  margin: 0 0 8px;
+  text-transform: capitalize;
+}
+
+.profile-empty,
+.profile-placeholder {
+  color: var(--text);
+  font-size: 15px;
+  margin-top: 16px;
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 24px 16px 80px;
+  }
+}
