@@ -37,7 +37,7 @@ describe('StatCards', () => {
   it('renders four stat cards after loading', async () => {
     render(<StatCards />);
     await waitFor(() => {
-      expect(screen.queryAllByClass?.('stat-card--skeleton')).toHaveLength(0);
+      expect(document.querySelectorAll('.stat-card--skeleton')).toHaveLength(0);
     });
     await waitFor(() => {
       expect(screen.getByText('Tournaments')).toBeInTheDocument();

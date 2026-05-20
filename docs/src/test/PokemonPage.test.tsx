@@ -73,7 +73,7 @@ describe('PokemonPage', () => {
 
   it('switches to items tab', async () => {
     renderPage('Garchomp');
-    await waitFor(() => screen.getByText('Moves'));
+    await waitFor(() => screen.getByText('Earthquake'));
     fireEvent.click(screen.getByRole('button', { name: /items/i }));
     await waitFor(() => {
       expect(screen.getByText('Life Orb')).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe('PokemonPage', () => {
 
   it('switches to partners tab', async () => {
     renderPage('Garchomp');
-    await waitFor(() => screen.getByText('Moves'));
+    await waitFor(() => screen.getByText('Earthquake'));
     fireEvent.click(screen.getByRole('button', { name: /partners/i }));
     await waitFor(() => {
       expect(screen.getByText('Gengar')).toBeInTheDocument();
@@ -91,7 +91,7 @@ describe('PokemonPage', () => {
 
   it('switches to matchups tab', async () => {
     renderPage('Garchomp');
-    await waitFor(() => screen.getByText('Moves'));
+    await waitFor(() => screen.getByText('Earthquake'));
     fireEvent.click(screen.getByRole('button', { name: /matchups/i }));
     await waitFor(() => {
       expect(screen.getByText('Kyogre')).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe('PokemonPage', () => {
 
   it('partner links navigate to pokemon profile', async () => {
     renderPage('Garchomp');
-    await waitFor(() => screen.getByText('Moves'));
+    await waitFor(() => screen.getByText('Earthquake'));
     fireEvent.click(screen.getByRole('button', { name: /partners/i }));
     await waitFor(() => {
       const link = screen.getByRole('link', { name: 'Gengar' });

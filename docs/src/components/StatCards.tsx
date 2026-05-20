@@ -63,18 +63,18 @@ export function StatCards() {
 
   if (loading) {
     return (
-      <div className="stat-cards" aria-label="Metagame summary">
+      <section className="stat-cards" aria-label="Metagame summary">
         {[0, 1, 2, 3].map(i => (
           <div key={i} className="stat-card stat-card--skeleton" aria-hidden="true" />
         ))}
-      </div>
+      </section>
     );
   }
 
   if (!stats) return null;
 
   return (
-    <div className="stat-cards" aria-label="Metagame summary">
+    <section className="stat-cards" aria-label="Metagame summary">
       {cards.map(({ label, value, icon }) => (
         <div key={label} className="stat-card">
           <i className={`bi ${icon} stat-card__icon`} aria-hidden="true" />
@@ -82,6 +82,6 @@ export function StatCards() {
           <span className="stat-card__label">{label}</span>
         </div>
       ))}
-    </div>
+    </section>
   );
 }
