@@ -948,7 +948,6 @@ export function PokemonPage() {
                       <th>Move</th>
                       <th>Type</th>
                       <th>Cat.</th>
-                      <th className="right">Teams</th>
                       <th>Win Rate</th>
                     </tr>
                   </thead>
@@ -993,7 +992,6 @@ export function PokemonPage() {
                               <CategoryIcon category={r.category} />
                             )}
                           </td>
-                          <td className="profile-table__num">{r.teams}</td>
                           <td style={{ width: 180 }}>
                             <WinRateBar value={r.win_rate} />
                           </td>
