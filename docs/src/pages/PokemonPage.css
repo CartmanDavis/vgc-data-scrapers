@@ -76,7 +76,9 @@
 
 .insights-panel {
   padding: 20px 0 24px;
+  border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
+  margin-top: 28px;
   margin-bottom: 4px;
 }
 

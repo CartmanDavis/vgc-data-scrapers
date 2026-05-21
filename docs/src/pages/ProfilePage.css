@@ -171,6 +171,15 @@
   font-family: var(--font-ui);
 }
 
+.profile-section-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin: 36px 0 12px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+
 /* ─── Data table ────────────────────────────────────────────────────────────── */
 
 .profile-table {

@@ -87,18 +87,31 @@ function TypeBadge({ type }: { type: string }) {
       src={`/types/${slug}.png`}
       alt={type}
       style={{ verticalAlign: "middle", height: 18, width: "auto" }}
-      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+      onError={(e) => {
+        (e.target as HTMLImageElement).style.display = "none";
+      }}
     />
   );
 }
 
-function CategoryIcon({ category }: { category: "physical" | "special" | "status" }) {
+function CategoryIcon({
+  category,
+}: {
+  category: "physical" | "special" | "status";
+}) {
   return (
     <img
       src={`https://img.pokemondb.net/images/icons/move-${category}.png`}
       alt={category}
-      style={{ marginRight: 6, verticalAlign: "middle", height: 20, width: "auto" }}
-      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+      style={{
+        marginRight: 6,
+        verticalAlign: "middle",
+        height: 20,
+        width: "auto",
+      }}
+      onError={(e) => {
+        (e.target as HTMLImageElement).style.display = "none";
+      }}
     />
   );
 }
@@ -435,14 +448,7 @@ function SectionSkeleton({ cols = 3 }: { cols?: number }) {
   );
 }
 
-type Tab =
-  | "overview"
-  | "moves"
-  | "items"
-  | "partners"
-  | "matchups"
-  | "players"
-  | "teams";
+type Tab = "overview" | "moves" | "items" | "partners" | "matchups";
 
 // ─── Mock teams data ──────────────────────────────────────────────────────────
 
@@ -740,46 +746,176 @@ export function PokemonPage() {
 
       {/* ── Tabs ── */}
       <div className="profile-tabs">
-        {(
-          [
-            "overview",
-            "moves",
-            "items",
-            "partners",
-            "matchups",
-            "players",
-            "teams",
-          ] as Tab[]
-        ).map((t) => (
-          <button
-            key={t}
-            className={`profile-tab${tab === t ? " active" : ""}`}
-            onClick={() => setTab(t)}
-          >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
+        {(["overview", "moves", "items", "partners", "matchups"] as Tab[]).map(
+          (t) => (
+            <button
+              key={t}
+              className={`profile-tab${tab === t ? " active" : ""}`}
+              onClick={() => setTab(t)}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ),
+        )}
       </div>
 
       {/* ── Content ── */}
       <div className="profile-body">
         {tab === "overview" && (
           <>
-            <InsightsPanel
-              insights={computeInsights(decoded, trend, matchups, allUsage)}
-            />
+            <h3 className="profile-section-heading" style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}>Usage trend</h3>
             {trend.length > 0 ? (
-              <TrendChart
-                data={trend}
-                name={decoded}
-                defaultMetric="both"
-                height={280}
-              />
+              <TrendChart data={trend} defaultMetric="both" height={280} />
             ) : (
               <p className="profile-no-data" style={{ padding: "32px 0" }}>
                 No trend data available.
               </p>
             )}
+
+            <InsightsPanel
+              insights={computeInsights(decoded, trend, matchups, allUsage)}
+            />
+
+            <h3 className="profile-section-heading" style={{ borderTop: "none", paddingTop: 0 }}>Players</h3>
+            <table className="profile-table">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th className="right">Entries</th>
+                  <th className="right">Best</th>
+                  <th>Win Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {players.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="profile-no-data">
+                      No data available.
+                    </td>
+                  </tr>
+                ) : (
+                  players.map((r, i) => (
+                    <tr key={i}>
+                      <td className="profile-table__name">
+                        <Link
+                          to={`/players/${r.player_id}`}
+                          className="cell-link"
+                        >
+                          <span style={{ marginRight: 6 }}>{r.flag}</span>
+                          {r.player_name}
+                        </Link>
+                      </td>
+                      <td className="profile-table__num">{r.teams}</td>
+                      <td className="profile-table__num">
+                        <span
+                          style={{
+                            color:
+                              r.best_placing <= 3
+                                ? "var(--accent-2)"
+                                : "var(--text-2)",
+                          }}
+                        >
+                          {placingLabel(r.best_placing)}
+                        </span>
+                      </td>
+                      <td style={{ width: 180 }}>
+                        <WinRateBar value={r.win_rate} />
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+
+            <h3 className="profile-section-heading">Teams</h3>
+            {(() => {
+              const rows = mockTeams(decoded);
+              return (
+                <table className="profile-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Tournament</th>
+                      <th>Player</th>
+                      <th className="right">Place</th>
+                      <th className="right">Record</th>
+                      <th>Team</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r, i) => (
+                      <tr key={i}>
+                        <td style={{ whiteSpace: "nowrap" }}>
+                          <span
+                            style={{
+                              fontFamily: "var(--font-data)",
+                              fontSize: 12,
+                              color: "var(--text-4)",
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            {formatDate(r.date)}
+                          </span>
+                        </td>
+                        <td className="profile-table__name">
+                          <Link
+                            to={`/tournaments/${r.tournament_id}`}
+                            className="cell-link"
+                          >
+                            {r.tournament_name}
+                          </Link>
+                        </td>
+                        <td className="profile-table__name">
+                          <Link
+                            to={`/players/${r.player_id}`}
+                            className="cell-link"
+                          >
+                            {r.player_name}
+                          </Link>
+                        </td>
+                        <td className="profile-table__num">
+                          <span
+                            style={{
+                              color:
+                                r.placing <= 3
+                                  ? "var(--accent-2)"
+                                  : "var(--text-2)",
+                            }}
+                          >
+                            {placingLabel(r.placing)}
+                          </span>
+                        </td>
+                        <td className="profile-table__num">
+                          <span style={{ color: "var(--green)" }}>
+                            {r.wins}
+                          </span>
+                          <span
+                            style={{ color: "var(--text-4)", margin: "0 2px" }}
+                          >
+                            –
+                          </span>
+                          <span style={{ color: "var(--red)" }}>
+                            {r.losses}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            style={{
+                              fontFamily: "var(--font-data)",
+                              fontSize: 12,
+                              color: "var(--text-3)",
+                              letterSpacing: "-0.01em",
+                            }}
+                          >
+                            {r.teammates.join(", ")}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            })()}
           </>
         )}
 
@@ -851,7 +987,11 @@ export function PokemonPage() {
                             {r.move_name}
                           </td>
                           <td>{r.type && <TypeBadge type={r.type} />}</td>
-                          <td>{r.category && <CategoryIcon category={r.category} />}</td>
+                          <td>
+                            {r.category && (
+                              <CategoryIcon category={r.category} />
+                            )}
+                          </td>
                           <td className="profile-table__num">{r.teams}</td>
                           <td style={{ width: 180 }}>
                             <WinRateBar value={r.win_rate} />
@@ -934,8 +1074,15 @@ export function PokemonPage() {
                               aria-hidden
                               width={24}
                               height={24}
-                              style={{ marginRight: 6, verticalAlign: "middle", imageRendering: "pixelated" }}
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                              style={{
+                                marginRight: 6,
+                                verticalAlign: "middle",
+                                imageRendering: "pixelated",
+                              }}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display =
+                                  "none";
+                              }}
                             />
                             {r.item}
                           </td>
@@ -1127,144 +1274,6 @@ export function PokemonPage() {
                   </tbody>
                 </table>
               </>
-            );
-          })()}
-
-        {tab === "players" && (
-          <table className="profile-table">
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th className="right">Entries</th>
-                <th className="right">Best</th>
-                <th>Win Rate</th>
-              </tr>
-            </thead>
-            <tbody>
-              {players.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="profile-no-data">
-                    No data available.
-                  </td>
-                </tr>
-              ) : (
-                players.map((r, i) => (
-                  <tr key={i}>
-                    <td className="profile-table__name">
-                      <Link
-                        to={`/players/${r.player_id}`}
-                        className="cell-link"
-                      >
-                        <span style={{ marginRight: 6 }}>{r.flag}</span>
-                        {r.player_name}
-                      </Link>
-                    </td>
-                    <td className="profile-table__num">{r.teams}</td>
-                    <td className="profile-table__num">
-                      <span
-                        style={{
-                          color:
-                            r.best_placing <= 3
-                              ? "var(--accent-2)"
-                              : "var(--text-2)",
-                        }}
-                      >
-                        {placingLabel(r.best_placing)}
-                      </span>
-                    </td>
-                    <td style={{ width: 180 }}>
-                      <WinRateBar value={r.win_rate} />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        )}
-
-        {tab === "teams" &&
-          (() => {
-            const rows = mockTeams(decoded);
-            return (
-              <table className="profile-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Tournament</th>
-                    <th>Player</th>
-                    <th className="right">Place</th>
-                    <th className="right">Record</th>
-                    <th>Team</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r, i) => (
-                    <tr key={i}>
-                      <td style={{ whiteSpace: "nowrap" }}>
-                        <span
-                          style={{
-                            fontFamily: "var(--font-data)",
-                            fontSize: 12,
-                            color: "var(--text-4)",
-                            fontVariantNumeric: "tabular-nums",
-                          }}
-                        >
-                          {formatDate(r.date)}
-                        </span>
-                      </td>
-                      <td className="profile-table__name">
-                        <Link
-                          to={`/tournaments/${r.tournament_id}`}
-                          className="cell-link"
-                        >
-                          {r.tournament_name}
-                        </Link>
-                      </td>
-                      <td className="profile-table__name">
-                        <Link
-                          to={`/players/${r.player_id}`}
-                          className="cell-link"
-                        >
-                          {r.player_name}
-                        </Link>
-                      </td>
-                      <td className="profile-table__num">
-                        <span
-                          style={{
-                            color:
-                              r.placing <= 3
-                                ? "var(--accent-2)"
-                                : "var(--text-2)",
-                          }}
-                        >
-                          {placingLabel(r.placing)}
-                        </span>
-                      </td>
-                      <td className="profile-table__num">
-                        <span style={{ color: "var(--green)" }}>{r.wins}</span>
-                        <span
-                          style={{ color: "var(--text-4)", margin: "0 2px" }}
-                        >
-                          –
-                        </span>
-                        <span style={{ color: "var(--red)" }}>{r.losses}</span>
-                      </td>
-                      <td>
-                        <span
-                          style={{
-                            fontFamily: "var(--font-data)",
-                            fontSize: 12,
-                            color: "var(--text-3)",
-                            letterSpacing: "-0.01em",
-                          }}
-                        >
-                          {r.teammates.join(", ")}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             );
           })()}
       </div>
