@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../supabase";
+import { PokemonIcon } from "../components/PokemonIcon";
 import "./ProfilePage.css";
 
 interface PokemonRow {
@@ -18,14 +19,6 @@ function wrColor(v: number) {
   if (v >= 55) return "var(--green)";
   if (v >= 50) return "var(--text-h)";
   return "var(--red)";
-}
-
-function spriteUrl(species: string): string {
-  const slug = species
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "-")
-    .replace(/-+/g, "-");
-  return `https://img.pokemondb.net/sprites/scarlet-violet/normal/${slug}.png`;
 }
 
 const SKEL_WIDTHS = [
@@ -127,13 +120,7 @@ export function PokemonListPage() {
                       className="cell-link"
                       style={{ display: "flex", alignItems: "center", gap: 8 }}
                     >
-                      <img
-                        src={spriteUrl(r.species)}
-                        alt=""
-                        width={80}
-                        height={80}
-                        style={{ flexShrink: 0 }}
-                      />
+                      <PokemonIcon species={r.species} size="medium" />
                       {r.species}
                     </Link>
                   </td>

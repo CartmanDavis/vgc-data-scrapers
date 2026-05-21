@@ -14,6 +14,7 @@ import {
 import type { TrendPoint, PokemonPlayerRow } from "../mock-data";
 import "./ProfilePage.css";
 import "./PokemonPage.css";
+import { PokemonIcon } from "../components/PokemonIcon";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,18 +61,9 @@ interface TeamRow {
   wins: number;
   losses: number;
   teammates: string[];
-  team_id: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function spriteUrl(species: string): string {
-  const slug = species
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "-")
-    .replace(/-+/g, "-");
-  return `https://img.pokemondb.net/sprites/scarlet-violet/normal/${slug}.png`;
-}
 
 function itemSpriteUrl(item: string): string {
   const slug = item
@@ -115,11 +107,6 @@ function CategoryIcon({
       }}
     />
   );
-}
-
-function pokepasteUrl(_teamId: string): string {
-  // TODO: generate real pokepaste URL from team_id
-  return "#";
 }
 
 function pct(v: number | undefined): string {
@@ -540,7 +527,6 @@ function mockTeams(species: string): TeamRow[] {
       wins: records[i][0],
       losses: records[i][1],
       teammates: [species, ...mates],
-      team_id: `team-${i}`,
     };
   });
 }
@@ -710,14 +696,7 @@ export function PokemonPage() {
       {/* ── Hero ── */}
       <div className="profile-hero">
         <div className="pokemon-art-glow" />
-        <img
-          src={spriteUrl(decoded)}
-          alt={decoded}
-          className="pokemon-art"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = "none";
-          }}
-        />
+        <PokemonIcon species={decoded} size="large" className="pokemon-art" />
         <div className="profile-hero__content">
           <Link to="/pokemon" className="back-link">
             <i className="bi bi-arrow-left" /> All Pokemon
@@ -929,34 +908,7 @@ export function PokemonPage() {
                               letterSpacing: "-0.01em",
                             }}
                           >
-                            {r.teammates.map((species) => (
-                              <a href={`/pokemon/${species}`} key={species}>
-                                <img
-                                  src={spriteUrl(species)}
-                                  alt={""}
-                                  width={"50px"}
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display =
-                                      "none";
-                                  }}
-                                />
-                              </a>
-                            ))}
-                            <a
-                              href={pokepasteUrl(r.team_id)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title="View pokepaste"
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                marginLeft: 4,
-                                color: "var(--text-4)",
-                                verticalAlign: "middle",
-                              }}
-                            >
-                              <i className="bi bi-paperclip" style={{ fontSize: 13 }} />
-                            </a>
+                            {r.teammates.join(", ")}
                           </span>
                         </td>
                       </tr>

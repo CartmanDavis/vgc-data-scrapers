@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { supabase } from "../supabase";
 import { MOCK_TOURNAMENTS } from "../mock-data";
 import "./ProfilePage.css";
+import { PokemonIcon } from "../components/PokemonIcon";
 
 interface StandingRow {
   placing: number;
@@ -13,7 +14,6 @@ interface StandingRow {
   wins: number;
   losses: number;
   team: string[];
-  team_id: string;
 }
 
 function medal(placing: number): string {
@@ -29,19 +29,6 @@ function formatDate(d: string) {
     month: "long",
     day: "numeric",
   });
-}
-
-function pokepasteUrl(_teamId: string): string {
-  // TODO: generate real pokepaste URL from team_id
-  return "#";
-}
-
-function spriteUrl(species: string): string {
-  const slug = species
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "-")
-    .replace(/-+/g, "-");
-  return `https://img.pokemondb.net/sprites/scarlet-violet/normal/${slug}.png`;
 }
 
 const SKEL_WIDTHS = [72, 58, 65, 80, 50, 68, 75, 55];
@@ -231,32 +218,9 @@ export function TournamentDetailPage() {
                     >
                       {r.team.map((species) => (
                         <a href={`/pokemon/${species}`} key={species}>
-                          <img
-                            src={spriteUrl(species)}
-                            alt={""}
-                            width={"50px"}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display =
-                                "none";
-                            }}
-                          />
+                          <PokemonIcon species={species} size="small" />
                         </a>
                       ))}
-                      <a
-                        href={pokepasteUrl(r.team_id)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="View pokepaste"
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          marginLeft: 4,
-                          color: "var(--text-4)",
-                          verticalAlign: "middle",
-                        }}
-                      >
-                        <i className="bi bi-paperclip" style={{ fontSize: 13 }} />
-                      </a>
                     </span>
                   </td>
                 </tr>
