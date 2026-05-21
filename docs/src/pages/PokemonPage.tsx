@@ -37,7 +37,7 @@ interface TeamRow {
 
 function spriteUrl(species: string): string {
   const slug = species.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-");
-  return `https://img.pokemondb.net/sprites/sword-shield/normal/${slug}.png`;
+  return `https://img.pokemondb.net/sprites/scarlet-violet/normal/${slug}.png`;
 }
 
 function pct(v: number | undefined): string {
