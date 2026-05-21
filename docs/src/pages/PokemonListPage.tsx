@@ -75,7 +75,7 @@ export function PokemonListPage() {
 
       {error && <p className="list-page__error">{error}</p>}
 
-      <table className="profile-table">
+      <table className="profile-table profile-table--pokemon-list">
         <thead>
           <tr>
             <th style={{ width: 36 }}>#</th>

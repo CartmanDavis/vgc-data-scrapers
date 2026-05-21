@@ -401,6 +401,8 @@
 
   .profile-table--player-results th:first-child,
   .profile-table--player-results td:first-child,
+  .profile-table--pokemon-list th:first-child,
+  .profile-table--pokemon-list td:first-child,
   .col-country { display: none; }
 
   /* Pokemon teams: card layout — 2-col grid per row */
