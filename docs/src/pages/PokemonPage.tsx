@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { TrendChart } from "../components/TrendChart";
+import { MultiTrendChart } from "../components/MultiTrendChart";
 import {
   MOCK_POKEMON_USAGE,
   MOCK_POKEMON_MOVES,
@@ -16,10 +17,10 @@ import "./PokemonPage.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface MoveRow    { move_name: string; teams: number; win_rate: number }
-interface ItemRow    { item: string;      teams: number; win_rate: number }
-interface PartnerRow { partner_species: string; teams: number; usage_pct: number; win_rate: number }
-interface MatchupRow { opponent_species: string; matches: number; wins: number; win_rate: number }
+interface MoveRow    { move_name: string; teams: number; win_rate: number; trend?: TrendPoint[] }
+interface ItemRow    { item: string;      teams: number; win_rate: number; trend?: TrendPoint[] }
+interface PartnerRow { partner_species: string; teams: number; usage_pct: number; win_rate: number; trend?: TrendPoint[] }
+interface MatchupRow { opponent_species: string; matches: number; wins: number; win_rate: number; trend?: TrendPoint[] }
 interface PokemonStats { usage_pct: number; win_rate: number; teams: number }
 interface TeamRow {
   player_id:       string;
@@ -352,23 +353,40 @@ function placingLabel(p: number): string {
   return `${p}th`;
 }
 
+// ─── Series color palette ─────────────────────────────────────────────────────
+
+const SERIES_COLORS = [
+  "var(--accent)",
+  "var(--green)",
+  "#f59e0b",
+  "#a78bfa",
+  "#f472b6",
+  "#34d399",
+  "#fb923c",
+  "#60a5fa",
+];
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function PokemonPage() {
   const { species } = useParams<{ species: string }>();
   const decoded = species ? decodeURIComponent(species) : "";
 
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState<string | null>(null);
-  const [stats,    setStats]    = useState<PokemonStats | null>(null);
-  const [allUsage, setAllUsage] = useState<UsageRow[]>([]);
-  const [moves,    setMoves]    = useState<MoveRow[]>([]);
-  const [items,    setItems]    = useState<ItemRow[]>([]);
-  const [partners, setPartners] = useState<PartnerRow[]>([]);
-  const [matchups, setMatchups] = useState<MatchupRow[]>([]);
-  const [trend,    setTrend]    = useState<TrendPoint[]>([]);
-  const [players,  setPlayers]  = useState<PokemonPlayerRow[]>([]);
-  const [tab,      setTab]      = useState<Tab>("overview");
+  const [loading,          setLoading]          = useState(true);
+  const [error,            setError]            = useState<string | null>(null);
+  const [stats,            setStats]            = useState<PokemonStats | null>(null);
+  const [allUsage,         setAllUsage]         = useState<UsageRow[]>([]);
+  const [moves,            setMoves]            = useState<MoveRow[]>([]);
+  const [items,            setItems]            = useState<ItemRow[]>([]);
+  const [partners,         setPartners]         = useState<PartnerRow[]>([]);
+  const [matchups,         setMatchups]         = useState<MatchupRow[]>([]);
+  const [trend,            setTrend]            = useState<TrendPoint[]>([]);
+  const [players,          setPlayers]          = useState<PokemonPlayerRow[]>([]);
+  const [tab,              setTab]              = useState<Tab>("overview");
+  const [selectedMoves,    setSelectedMoves]    = useState<string[]>([]);
+  const [selectedItems,    setSelectedItems]    = useState<string[]>([]);
+  const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
+  const [selectedMatchups, setSelectedMatchups] = useState<string[]>([]);
 
   useEffect(() => {
     if (!decoded) return;
@@ -384,10 +402,26 @@ export function PokemonPage() {
         setMatchups(d.matchups);
         setTrend(d.trend);
         setPlayers(d.players);
+        setSelectedMoves(d.moves.slice(0, 3).map((r) => r.move_name));
+        setSelectedItems(d.items.slice(0, 3).map((r) => r.item));
+        setSelectedPartners(d.partners.slice(0, 3).map((r) => r.partner_species));
+        setSelectedMatchups(d.matchups.slice(0, 3).map((r) => r.opponent_species));
       })
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
   }, [decoded]);
+
+  function toggleSelection(
+    key: string,
+    selected: string[],
+    setSelected: (v: string[]) => void,
+  ) {
+    if (selected.includes(key)) {
+      if (selected.length > 1) setSelected(selected.filter((k) => k !== key));
+    } else {
+      setSelected([...selected, key]);
+    }
+  }
 
   if (!decoded) {
     return <div className="profile-page"><div className="profile-empty">No Pokemon selected.</div></div>;
@@ -491,111 +525,171 @@ export function PokemonPage() {
           </>
         )}
 
-        {tab === "moves" && (
-          <>
-            {trend.length > 0 && <TrendChart data={trend} defaultMetric="both" height={200} />}
-            <table className="profile-table">
-              <thead><tr>
-                <th>Move</th>
-                <th className="right">Teams</th>
-                <th>Win Rate</th>
-              </tr></thead>
-              <tbody>
-                {moves.length === 0
-                  ? <tr><td colSpan={3} className="profile-no-data">No data available.</td></tr>
-                  : moves.map((r, i) => (
-                    <tr key={i}>
-                      <td className="profile-table__name">{r.move_name}</td>
-                      <td className="profile-table__num">{r.teams}</td>
-                      <td style={{ width: 180 }}><WinRateBar value={r.win_rate} /></td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </>
-        )}
+        {tab === "moves" && (() => {
+          const series = moves
+            .filter((r) => selectedMoves.includes(r.move_name))
+            .map((r) => ({
+              name: r.move_name,
+              color: SERIES_COLORS[moves.findIndex((m) => m.move_name === r.move_name) % SERIES_COLORS.length],
+              points: r.trend ?? trend,
+            }));
+          return (
+            <>
+              {series.length > 0 && <MultiTrendChart series={series} defaultMetric="usage" height={200} />}
+              <table className="profile-table">
+                <thead><tr>
+                  <th>Move</th>
+                  <th className="right">Teams</th>
+                  <th>Win Rate</th>
+                </tr></thead>
+                <tbody>
+                  {moves.length === 0
+                    ? <tr><td colSpan={3} className="profile-no-data">No data available.</td></tr>
+                    : moves.map((r, i) => (
+                      <tr
+                        key={i}
+                        className={selectedMoves.includes(r.move_name) ? "profile-table__row--selected" : ""}
+                        style={{ cursor: "pointer" }}
+                        onClick={() => toggleSelection(r.move_name, selectedMoves, setSelectedMoves)}
+                      >
+                        <td className="profile-table__name" style={{ color: selectedMoves.includes(r.move_name) ? SERIES_COLORS[i % SERIES_COLORS.length] : undefined }}>
+                          {r.move_name}
+                        </td>
+                        <td className="profile-table__num">{r.teams}</td>
+                        <td style={{ width: 180 }}><WinRateBar value={r.win_rate} /></td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </>
+          );
+        })()}
 
-        {tab === "items" && (
-          <>
-            {trend.length > 0 && <TrendChart data={trend} defaultMetric="both" height={200} />}
-            <table className="profile-table">
-              <thead><tr>
-                <th>Item</th>
-                <th className="right">Teams</th>
-                <th>Win Rate</th>
-              </tr></thead>
-              <tbody>
-                {items.length === 0
-                  ? <tr><td colSpan={3} className="profile-no-data">No data available.</td></tr>
-                  : items.map((r, i) => (
-                    <tr key={i}>
-                      <td className="profile-table__name">{r.item}</td>
-                      <td className="profile-table__num">{r.teams}</td>
-                      <td style={{ width: 180 }}><WinRateBar value={r.win_rate} /></td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </>
-        )}
+        {tab === "items" && (() => {
+          const series = items
+            .filter((r) => selectedItems.includes(r.item))
+            .map((r) => ({
+              name: r.item,
+              color: SERIES_COLORS[items.findIndex((m) => m.item === r.item) % SERIES_COLORS.length],
+              points: r.trend ?? trend,
+            }));
+          return (
+            <>
+              {series.length > 0 && <MultiTrendChart series={series} defaultMetric="usage" height={200} />}
+              <table className="profile-table">
+                <thead><tr>
+                  <th>Item</th>
+                  <th className="right">Teams</th>
+                  <th>Win Rate</th>
+                </tr></thead>
+                <tbody>
+                  {items.length === 0
+                    ? <tr><td colSpan={3} className="profile-no-data">No data available.</td></tr>
+                    : items.map((r, i) => (
+                      <tr
+                        key={i}
+                        className={selectedItems.includes(r.item) ? "profile-table__row--selected" : ""}
+                        style={{ cursor: "pointer" }}
+                        onClick={() => toggleSelection(r.item, selectedItems, setSelectedItems)}
+                      >
+                        <td className="profile-table__name" style={{ color: selectedItems.includes(r.item) ? SERIES_COLORS[i % SERIES_COLORS.length] : undefined }}>
+                          {r.item}
+                        </td>
+                        <td className="profile-table__num">{r.teams}</td>
+                        <td style={{ width: 180 }}><WinRateBar value={r.win_rate} /></td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </>
+          );
+        })()}
 
-        {tab === "partners" && (
-          <>
-            {trend.length > 0 && <TrendChart data={trend} defaultMetric="both" height={200} />}
-            <table className="profile-table">
-              <thead><tr>
-                <th>Pokémon</th>
-                <th className="right">Teams</th>
-                <th className="right">Usage</th>
-                <th>Win Rate</th>
-              </tr></thead>
-              <tbody>
-                {partners.length === 0
-                  ? <tr><td colSpan={4} className="profile-no-data">No data available.</td></tr>
-                  : partners.map((r, i) => (
-                    <tr key={i}>
-                      <td className="profile-table__name">
-                        <Link to={`/pokemon/${encodeURIComponent(r.partner_species)}`} className="cell-link">
-                          {r.partner_species}
-                        </Link>
-                      </td>
-                      <td className="profile-table__num">{r.teams}</td>
-                      <td className="profile-table__num">{pct(r.usage_pct)}</td>
-                      <td style={{ width: 180 }}><WinRateBar value={r.win_rate} /></td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </>
-        )}
+        {tab === "partners" && (() => {
+          const series = partners
+            .filter((r) => selectedPartners.includes(r.partner_species))
+            .map((r) => ({
+              name: r.partner_species,
+              color: SERIES_COLORS[partners.findIndex((m) => m.partner_species === r.partner_species) % SERIES_COLORS.length],
+              points: r.trend ?? trend,
+            }));
+          return (
+            <>
+              {series.length > 0 && <MultiTrendChart series={series} defaultMetric="usage" height={200} />}
+              <table className="profile-table">
+                <thead><tr>
+                  <th>Pokémon</th>
+                  <th className="right">Teams</th>
+                  <th className="right">Usage</th>
+                  <th>Win Rate</th>
+                </tr></thead>
+                <tbody>
+                  {partners.length === 0
+                    ? <tr><td colSpan={4} className="profile-no-data">No data available.</td></tr>
+                    : partners.map((r, i) => (
+                      <tr
+                        key={i}
+                        className={selectedPartners.includes(r.partner_species) ? "profile-table__row--selected" : ""}
+                        style={{ cursor: "pointer" }}
+                        onClick={() => toggleSelection(r.partner_species, selectedPartners, setSelectedPartners)}
+                      >
+                        <td className="profile-table__name" style={{ color: selectedPartners.includes(r.partner_species) ? SERIES_COLORS[i % SERIES_COLORS.length] : undefined }}>
+                          <Link to={`/pokemon/${encodeURIComponent(r.partner_species)}`} className="cell-link" onClick={(e) => e.stopPropagation()}>
+                            {r.partner_species}
+                          </Link>
+                        </td>
+                        <td className="profile-table__num">{r.teams}</td>
+                        <td className="profile-table__num">{pct(r.usage_pct)}</td>
+                        <td style={{ width: 180 }}><WinRateBar value={r.win_rate} /></td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </>
+          );
+        })()}
 
-        {tab === "matchups" && (
-          <>
-            {trend.length > 0 && <TrendChart data={trend} defaultMetric="both" height={200} />}
-            <table className="profile-table">
-              <thead><tr>
-                <th>Opponent</th>
-                <th className="right">Matches</th>
-                <th>Win Rate</th>
-              </tr></thead>
-              <tbody>
-                {matchups.length === 0
-                  ? <tr><td colSpan={3} className="profile-no-data">No data available.</td></tr>
-                  : matchups.map((r, i) => (
-                    <tr key={i}>
-                      <td className="profile-table__name">
-                        <Link to={`/pokemon/${encodeURIComponent(r.opponent_species)}`} className="cell-link">
-                          {r.opponent_species}
-                        </Link>
-                      </td>
-                      <td className="profile-table__num">{r.matches}</td>
-                      <td style={{ width: 180 }}><WinRateBar value={r.win_rate} /></td>
-                    </tr>
-                  ))}
-            </tbody>
-            </table>
-          </>
-        )}
+        {tab === "matchups" && (() => {
+          const series = matchups
+            .filter((r) => selectedMatchups.includes(r.opponent_species))
+            .map((r) => ({
+              name: r.opponent_species,
+              color: SERIES_COLORS[matchups.findIndex((m) => m.opponent_species === r.opponent_species) % SERIES_COLORS.length],
+              points: r.trend ?? trend,
+            }));
+          return (
+            <>
+              {series.length > 0 && <MultiTrendChart series={series} defaultMetric="winrate" height={200} />}
+              <table className="profile-table">
+                <thead><tr>
+                  <th>Opponent</th>
+                  <th className="right">Matches</th>
+                  <th>Win Rate</th>
+                </tr></thead>
+                <tbody>
+                  {matchups.length === 0
+                    ? <tr><td colSpan={3} className="profile-no-data">No data available.</td></tr>
+                    : matchups.map((r, i) => (
+                      <tr
+                        key={i}
+                        className={selectedMatchups.includes(r.opponent_species) ? "profile-table__row--selected" : ""}
+                        style={{ cursor: "pointer" }}
+                        onClick={() => toggleSelection(r.opponent_species, selectedMatchups, setSelectedMatchups)}
+                      >
+                        <td className="profile-table__name" style={{ color: selectedMatchups.includes(r.opponent_species) ? SERIES_COLORS[i % SERIES_COLORS.length] : undefined }}>
+                          <Link to={`/pokemon/${encodeURIComponent(r.opponent_species)}`} className="cell-link" onClick={(e) => e.stopPropagation()}>
+                            {r.opponent_species}
+                          </Link>
+                        </td>
+                        <td className="profile-table__num">{r.matches}</td>
+                        <td style={{ width: 180 }}><WinRateBar value={r.win_rate} /></td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </>
+          );
+        })()}
 
         {tab === "players" && (
           <table className="profile-table">

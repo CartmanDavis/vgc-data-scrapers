@@ -201,6 +201,9 @@
 
 .profile-table tbody tr:hover { background: var(--surface); }
 
+.profile-table tbody tr.profile-table__row--selected { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.profile-table tbody tr.profile-table__row--selected:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+
 .profile-table td {
   padding: 10px 14px;
   font-size: 13.5px;

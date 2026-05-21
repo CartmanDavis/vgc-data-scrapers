@@ -1,0 +1,28 @@
+/* ─── Legend ─────────────────────────────────────────────────────────────────── */
+
+.multi-trend__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+  min-height: 28px;
+}
+
+.multi-trend__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.multi-trend__legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.multi-trend__legend-name {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-2);
+}

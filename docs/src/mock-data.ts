@@ -313,26 +313,45 @@ export const MOCK_MEGA_TEAMMATES: Record<string, unknown[]> = {
   ],
 };
 
+// ─── Row trend helper ─────────────────────────────────────────────────────────
+
+const ROW_DATES = [
+  'Jan 4','Jan 11','Jan 18','Jan 25','Feb 1','Feb 8',
+  'Feb 15','Feb 22','Mar 1','Mar 8','Mar 15','Mar 22','Mar 29','Apr 5',
+];
+
+function rowTrend(u0: number, u1: number, wr0: number, wr1: number): TrendPoint[] {
+  return ROW_DATES.map((date, i) => {
+    const t = i / (ROW_DATES.length - 1);
+    const wave = Math.sin(i * 0.9) * 0.8;
+    return {
+      date,
+      usage_pct: +(u0 + (u1 - u0) * t + wave).toFixed(1),
+      win_rate:  +(wr0 + (wr1 - wr0) * t + wave * 0.5).toFixed(1),
+    };
+  });
+}
+
 // ─── Pokemon moves (Garchomp) ─────────────────────────────────────────────────
 
 export const MOCK_POKEMON_MOVES: Record<string, unknown[]> = {
   Garchomp: [
-    { move_name: 'Earthquake',       teams: 891, win_rate: 55.3 },
-    { move_name: 'Protect',          teams: 876, win_rate: 54.7 },
-    { move_name: 'Rock Slide',       teams: 743, win_rate: 54.1 },
-    { move_name: 'Dragon Claw',      teams: 612, win_rate: 53.8 },
-    { move_name: 'Stomping Tantrum', teams: 408, win_rate: 52.4 },
-    { move_name: 'Fire Fang',        teams: 287, win_rate: 51.9 },
-    { move_name: 'Iron Head',        teams: 231, win_rate: 50.6 },
-    { move_name: 'Scale Shot',       teams: 184, win_rate: 48.7 },
+    { move_name: 'Earthquake',       teams: 891, win_rate: 55.3, trend: rowTrend(87.1, 90.3, 54.0, 55.3) },
+    { move_name: 'Protect',          teams: 876, win_rate: 54.7, trend: rowTrend(85.4, 88.8, 53.5, 54.7) },
+    { move_name: 'Rock Slide',       teams: 743, win_rate: 54.1, trend: rowTrend(71.2, 75.3, 52.8, 54.1) },
+    { move_name: 'Dragon Claw',      teams: 612, win_rate: 53.8, trend: rowTrend(58.9, 62.1, 52.4, 53.8) },
+    { move_name: 'Stomping Tantrum', teams: 408, win_rate: 52.4, trend: rowTrend(39.1, 41.4, 51.2, 52.4) },
+    { move_name: 'Fire Fang',        teams: 287, win_rate: 51.9, trend: rowTrend(27.3, 29.1, 50.8, 51.9) },
+    { move_name: 'Iron Head',        teams: 231, win_rate: 50.6, trend: rowTrend(21.8, 23.4, 49.8, 50.6) },
+    { move_name: 'Scale Shot',       teams: 184, win_rate: 48.7, trend: rowTrend(19.2, 18.6, 49.4, 48.7) },
   ],
   default: [
-    { move_name: 'Protect',      teams: 432, win_rate: 53.1 },
-    { move_name: 'Flamethrower', teams: 389, win_rate: 51.8 },
-    { move_name: 'Ice Beam',     teams: 341, win_rate: 50.3 },
-    { move_name: 'Hyper Voice',  teams: 278, win_rate: 49.7 },
-    { move_name: 'Shadow Ball',  teams: 212, win_rate: 51.2 },
-    { move_name: 'Thunderbolt',  teams: 189, win_rate: 48.9 },
+    { move_name: 'Protect',      teams: 432, win_rate: 53.1, trend: rowTrend(80.1, 83.4, 52.0, 53.1) },
+    { move_name: 'Flamethrower', teams: 389, win_rate: 51.8, trend: rowTrend(71.4, 74.2, 50.9, 51.8) },
+    { move_name: 'Ice Beam',     teams: 341, win_rate: 50.3, trend: rowTrend(62.8, 65.1, 49.5, 50.3) },
+    { move_name: 'Hyper Voice',  teams: 278, win_rate: 49.7, trend: rowTrend(51.3, 53.2, 48.9, 49.7) },
+    { move_name: 'Shadow Ball',  teams: 212, win_rate: 51.2, trend: rowTrend(38.7, 40.8, 50.1, 51.2) },
+    { move_name: 'Thunderbolt',  teams: 189, win_rate: 48.9, trend: rowTrend(34.2, 36.3, 48.1, 48.9) },
   ],
 };
 
@@ -340,19 +359,19 @@ export const MOCK_POKEMON_MOVES: Record<string, unknown[]> = {
 
 export const MOCK_POKEMON_ITEMS: Record<string, unknown[]> = {
   Garchomp: [
-    { item: 'Rocky Helmet', teams: 421, win_rate: 55.9 },
-    { item: 'Choice Scarf', teams: 318, win_rate: 54.2 },
-    { item: 'Life Orb',     teams: 201, win_rate: 52.8 },
-    { item: 'Lum Berry',    teams: 147, win_rate: 51.4 },
-    { item: 'Assault Vest', teams:  89, win_rate: 49.6 },
-    { item: 'Focus Sash',   teams:  62, win_rate: 47.3 },
+    { item: 'Rocky Helmet', teams: 421, win_rate: 55.9, trend: rowTrend(38.4, 42.7, 54.5, 55.9) },
+    { item: 'Choice Scarf', teams: 318, win_rate: 54.2, trend: rowTrend(29.8, 32.3, 53.0, 54.2) },
+    { item: 'Life Orb',     teams: 201, win_rate: 52.8, trend: rowTrend(19.1, 20.4, 51.6, 52.8) },
+    { item: 'Lum Berry',    teams: 147, win_rate: 51.4, trend: rowTrend(13.8, 14.9, 50.3, 51.4) },
+    { item: 'Assault Vest', teams:  89, win_rate: 49.6, trend: rowTrend( 8.2,  9.0, 48.8, 49.6) },
+    { item: 'Focus Sash',   teams:  62, win_rate: 47.3, trend: rowTrend( 6.4,  6.3, 47.9, 47.3) },
   ],
   default: [
-    { item: 'Life Orb',      teams: 298, win_rate: 53.4 },
-    { item: 'Choice Specs',  teams: 241, win_rate: 52.1 },
-    { item: 'Choice Scarf',  teams: 178, win_rate: 51.7 },
-    { item: 'Assault Vest',  teams: 134, win_rate: 49.8 },
-    { item: 'Focus Sash',    teams:  98, win_rate: 48.2 },
+    { item: 'Life Orb',      teams: 298, win_rate: 53.4, trend: rowTrend(52.1, 55.3, 52.2, 53.4) },
+    { item: 'Choice Specs',  teams: 241, win_rate: 52.1, trend: rowTrend(42.4, 44.8, 51.0, 52.1) },
+    { item: 'Choice Scarf',  teams: 178, win_rate: 51.7, trend: rowTrend(31.2, 33.4, 50.6, 51.7) },
+    { item: 'Assault Vest',  teams: 134, win_rate: 49.8, trend: rowTrend(23.5, 25.1, 48.9, 49.8) },
+    { item: 'Focus Sash',    teams:  98, win_rate: 48.2, trend: rowTrend(17.1, 18.3, 47.4, 48.2) },
   ],
 };
 
@@ -360,21 +379,21 @@ export const MOCK_POKEMON_ITEMS: Record<string, unknown[]> = {
 
 export const MOCK_POKEMON_PARTNERS: Record<string, unknown[]> = {
   Garchomp: [
-    { partner_species: 'Mewtwo',    teams: 287, usage_pct: 29.1, win_rate: 56.4 },
-    { partner_species: 'Groudon',   teams: 241, usage_pct: 24.4, win_rate: 53.8 },
-    { partner_species: 'Kyogre',    teams: 218, usage_pct: 22.1, win_rate: 52.1 },
-    { partner_species: 'Rayquaza',  teams: 189, usage_pct: 19.2, win_rate: 57.9 },
-    { partner_species: 'Gengar',    teams: 163, usage_pct: 16.5, win_rate: 52.4 },
-    { partner_species: 'Blaziken',  teams: 141, usage_pct: 14.3, win_rate: 51.7 },
-    { partner_species: 'Charizard', teams: 118, usage_pct: 12.0, win_rate: 54.1 },
-    { partner_species: 'Blastoise', teams:  98, usage_pct:  9.9, win_rate: 48.3 },
+    { partner_species: 'Mewtwo',    teams: 287, usage_pct: 29.1, win_rate: 56.4, trend: rowTrend(26.8, 29.1, 55.0, 56.4) },
+    { partner_species: 'Groudon',   teams: 241, usage_pct: 24.4, win_rate: 53.8, trend: rowTrend(22.1, 24.4, 52.5, 53.8) },
+    { partner_species: 'Kyogre',    teams: 218, usage_pct: 22.1, win_rate: 52.1, trend: rowTrend(20.3, 22.1, 51.0, 52.1) },
+    { partner_species: 'Rayquaza',  teams: 189, usage_pct: 19.2, win_rate: 57.9, trend: rowTrend(16.4, 19.2, 56.1, 57.9) },
+    { partner_species: 'Gengar',    teams: 163, usage_pct: 16.5, win_rate: 52.4, trend: rowTrend(15.1, 16.5, 51.5, 52.4) },
+    { partner_species: 'Blaziken',  teams: 141, usage_pct: 14.3, win_rate: 51.7, trend: rowTrend(13.2, 14.3, 50.9, 51.7) },
+    { partner_species: 'Charizard', teams: 118, usage_pct: 12.0, win_rate: 54.1, trend: rowTrend(10.8, 12.0, 53.0, 54.1) },
+    { partner_species: 'Blastoise', teams:  98, usage_pct:  9.9, win_rate: 48.3, trend: rowTrend( 9.4,  9.9, 49.1, 48.3) },
   ],
   default: [
-    { partner_species: 'Garchomp', teams: 287, usage_pct: 29.1, win_rate: 55.2 },
-    { partner_species: 'Groudon',  teams: 201, usage_pct: 20.4, win_rate: 52.8 },
-    { partner_species: 'Kyogre',   teams: 178, usage_pct: 18.1, win_rate: 51.4 },
-    { partner_species: 'Gengar',   teams: 143, usage_pct: 14.5, win_rate: 50.1 },
-    { partner_species: 'Blaziken', teams: 112, usage_pct: 11.4, win_rate: 49.7 },
+    { partner_species: 'Garchomp', teams: 287, usage_pct: 29.1, win_rate: 55.2, trend: rowTrend(26.0, 29.1, 53.8, 55.2) },
+    { partner_species: 'Groudon',  teams: 201, usage_pct: 20.4, win_rate: 52.8, trend: rowTrend(18.5, 20.4, 51.5, 52.8) },
+    { partner_species: 'Kyogre',   teams: 178, usage_pct: 18.1, win_rate: 51.4, trend: rowTrend(16.6, 18.1, 50.2, 51.4) },
+    { partner_species: 'Gengar',   teams: 143, usage_pct: 14.5, win_rate: 50.1, trend: rowTrend(13.3, 14.5, 49.2, 50.1) },
+    { partner_species: 'Blaziken', teams: 112, usage_pct: 11.4, win_rate: 49.7, trend: rowTrend(10.5, 11.4, 48.9, 49.7) },
   ],
 };
 
@@ -382,22 +401,22 @@ export const MOCK_POKEMON_PARTNERS: Record<string, unknown[]> = {
 
 export const MOCK_POKEMON_MATCHUPS: Record<string, unknown[]> = {
   Garchomp: [
-    { opponent_species: 'Rayquaza',  matches: 412, wins: 241, win_rate: 58.5 },
-    { opponent_species: 'Groudon',   matches: 378, wins: 214, win_rate: 56.6 },
-    { opponent_species: 'Blaziken',  matches: 301, wins: 168, win_rate: 55.8 },
-    { opponent_species: 'Kyogre',    matches: 351, wins: 191, win_rate: 54.4 },
-    { opponent_species: 'Charizard', matches: 289, wins: 154, win_rate: 53.3 },
-    { opponent_species: 'Mewtwo',    matches: 445, wins: 233, win_rate: 52.4 },
-    { opponent_species: 'Gengar',    matches: 312, wins: 156, win_rate: 50.0 },
-    { opponent_species: 'Salamence', matches: 267, wins: 125, win_rate: 46.8 },
-    { opponent_species: 'Venusaur',  matches: 201, wins:  90, win_rate: 44.8 },
+    { opponent_species: 'Rayquaza',  matches: 412, wins: 241, win_rate: 58.5, trend: rowTrend(39.2, 41.4, 56.8, 58.5) },
+    { opponent_species: 'Groudon',   matches: 378, wins: 214, win_rate: 56.6, trend: rowTrend(36.1, 38.4, 55.1, 56.6) },
+    { opponent_species: 'Blaziken',  matches: 301, wins: 168, win_rate: 55.8, trend: rowTrend(28.8, 30.5, 54.3, 55.8) },
+    { opponent_species: 'Kyogre',    matches: 351, wins: 191, win_rate: 54.4, trend: rowTrend(33.5, 35.6, 53.0, 54.4) },
+    { opponent_species: 'Charizard', matches: 289, wins: 154, win_rate: 53.3, trend: rowTrend(27.6, 29.3, 52.1, 53.3) },
+    { opponent_species: 'Mewtwo',    matches: 445, wins: 233, win_rate: 52.4, trend: rowTrend(42.4, 45.1, 51.2, 52.4) },
+    { opponent_species: 'Gengar',    matches: 312, wins: 156, win_rate: 50.0, trend: rowTrend(29.8, 31.7, 50.8, 50.0) },
+    { opponent_species: 'Salamence', matches: 267, wins: 125, win_rate: 46.8, trend: rowTrend(25.5, 27.1, 48.2, 46.8) },
+    { opponent_species: 'Venusaur',  matches: 201, wins:  90, win_rate: 44.8, trend: rowTrend(19.2, 20.4, 46.3, 44.8) },
   ],
   default: [
-    { opponent_species: 'Garchomp', matches: 445, wins: 212, win_rate: 47.6 },
-    { opponent_species: 'Groudon',  matches: 312, wins: 159, win_rate: 51.0 },
-    { opponent_species: 'Kyogre',   matches: 289, wins: 143, win_rate: 49.5 },
-    { opponent_species: 'Rayquaza', matches: 234, wins: 104, win_rate: 44.4 },
-    { opponent_species: 'Mewtwo',   matches: 201, wins: 100, win_rate: 49.8 },
+    { opponent_species: 'Garchomp', matches: 445, wins: 212, win_rate: 47.6, trend: rowTrend(42.4, 45.1, 48.8, 47.6) },
+    { opponent_species: 'Groudon',  matches: 312, wins: 159, win_rate: 51.0, trend: rowTrend(29.8, 31.7, 49.6, 51.0) },
+    { opponent_species: 'Kyogre',   matches: 289, wins: 143, win_rate: 49.5, trend: rowTrend(27.5, 29.3, 48.3, 49.5) },
+    { opponent_species: 'Rayquaza', matches: 234, wins: 104, win_rate: 44.4, trend: rowTrend(22.3, 23.8, 45.8, 44.4) },
+    { opponent_species: 'Mewtwo',   matches: 201, wins: 100, win_rate: 49.8, trend: rowTrend(19.2, 20.4, 48.6, 49.8) },
   ],
 };
 
