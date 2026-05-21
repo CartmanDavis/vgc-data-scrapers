@@ -15,6 +15,7 @@ import type { TrendPoint, PokemonPlayerRow } from "../mock-data";
 import "./ProfilePage.css";
 import "./PokemonPage.css";
 import { PokemonIcon } from "../components/PokemonIcon";
+import { TeamIcons } from "../components/TeamIcons";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -894,16 +895,7 @@ export function PokemonPage() {
                           </span>
                         </td>
                         <td>
-                          <span
-                            style={{
-                              fontFamily: "var(--font-data)",
-                              fontSize: 12,
-                              color: "var(--text-3)",
-                              letterSpacing: "-0.01em",
-                            }}
-                          >
-                            {r.teammates.join(", ")}
-                          </span>
+                          <TeamIcons team={r.teammates} pasteUrl="https://pokepast.es/6dbe083ec3d8afa2" />
                         </td>
                       </tr>
                     ))}

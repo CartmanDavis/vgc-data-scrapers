@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { TeamIcons } from '../components/TeamIcons';
 import './ProfilePage.css';
 
 interface PlayerRow {
@@ -186,14 +187,7 @@ export function PlayerPage() {
                   <span style={{ color: 'var(--red)' }}>{r.losses}</span>
                 </td>
                 <td>
-                  <span style={{
-                    fontFamily: 'var(--font-data)',
-                    fontSize: 12,
-                    color: 'var(--text-3)',
-                    letterSpacing: '-0.01em',
-                  }}>
-                    {r.team.join(', ')}
-                  </span>
+                  <TeamIcons team={r.team} pasteUrl="https://pokepast.es/6dbe083ec3d8afa2" />
                 </td>
               </tr>
             ))

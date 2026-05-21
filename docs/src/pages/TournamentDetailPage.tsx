@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { supabase } from "../supabase";
 import { MOCK_TOURNAMENTS } from "../mock-data";
 import "./ProfilePage.css";
-import { PokemonIcon } from "../components/PokemonIcon";
+import { TeamIcons } from "../components/TeamIcons";
 
 interface StandingRow {
   placing: number;
@@ -208,20 +208,7 @@ export function TournamentDetailPage() {
                     <span style={{ color: "var(--red)" }}>{r.losses}</span>
                   </td>
                   <td>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-data)",
-                        fontSize: 12,
-                        color: "var(--text-3)",
-                        letterSpacing: "-0.01em",
-                      }}
-                    >
-                      {r.team.map((species) => (
-                        <a href={`/pokemon/${species}`} key={species}>
-                          <PokemonIcon species={species} size="small" />
-                        </a>
-                      ))}
-                    </span>
+                    <TeamIcons team={r.team} pasteUrl="https://pokepast.es/6dbe083ec3d8afa2" />
                   </td>
                 </tr>
               ))}
