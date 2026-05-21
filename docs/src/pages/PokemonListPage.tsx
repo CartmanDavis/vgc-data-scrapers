@@ -18,14 +18,9 @@ function wrColor(v: number) {
   return 'var(--red)';
 }
 
-function WinRateBar({ value }: { value: number }) {
-  const color = wrColor(value);
-  return (
-    <div className="wr-bar">
-      <div className="wr-bar__fill" style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: color }} />
-      <span className="wr-bar__label" style={{ color }}>{pct(value)}</span>
-    </div>
-  );
+function spriteUrl(species: string): string {
+  const slug = species.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+  return `https://img.pokemondb.net/sprites/scarlet-violet/normal/${slug}.png`;
 }
 
 const SKEL_WIDTHS = [62, 48, 71, 55, 80, 44, 66, 53, 75, 49, 68, 57, 73, 46, 60];
@@ -76,9 +71,8 @@ export function PokemonListPage() {
           <tr>
             <th style={{ width: 36 }}>#</th>
             <th>Pokémon</th>
-            <th className="right">Teams</th>
             <th className="right">Usage %</th>
-            <th style={{ minWidth: 160 }}>Win Rate</th>
+            <th className="right">Win Rate</th>
           </tr>
         </thead>
         <tbody>
@@ -87,20 +81,21 @@ export function PokemonListPage() {
               <tr key={i} className="profile-skel-row" aria-hidden>
                 <td><div className="skel" style={{ width: 20, height: 13 }} /></td>
                 <td><div className="skel" style={{ width: `${w}%`, height: 15 }} /></td>
-                <td><div className="skel" style={{ width: 38, height: 13, marginLeft: 'auto' }} /></td>
                 <td><div className="skel" style={{ width: 46, height: 13, marginLeft: 'auto' }} /></td>
-                <td><div className="skel" style={{ height: 22 }} /></td>
+                <td><div className="skel" style={{ width: 46, height: 13, marginLeft: 'auto' }} /></td>
               </tr>
             ))
             : filtered.map((r, i) => (
               <tr key={r.species}>
                 <td className="profile-table__num">{i + 1}</td>
                 <td className="profile-table__name">
-                  <Link to={`/pokemon/${encodeURIComponent(r.species)}`} className="cell-link">{r.species}</Link>
+                  <Link to={`/pokemon/${encodeURIComponent(r.species)}`} className="cell-link">
+                    <img src={spriteUrl(r.species)} alt="" width={32} height={32} style={{ imageRendering: 'pixelated', verticalAlign: 'middle', marginRight: 8 }} />
+                    {r.species}
+                  </Link>
                 </td>
-                <td className="profile-table__num">{r.teams.toLocaleString()}</td>
                 <td className="profile-table__num">{pct(r.usage_pct)}</td>
-                <td><WinRateBar value={r.win_rate} /></td>
+                <td className="profile-table__num" style={{ color: wrColor(r.win_rate) }}>{pct(r.win_rate)}</td>
               </tr>
             ))
           }
