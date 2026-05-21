@@ -237,36 +237,14 @@
   color: var(--text-2);
 }
 
-/* ─── Win rate bar ──────────────────────────────────────────────────────────── */
+/* ─── Win rate text ─────────────────────────────────────────────────────────── */
 
-.wr-bar {
-  position: relative;
-  height: 22px;
-  background: var(--surface-2);
-  border-radius: 4px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  min-width: 120px;
-}
-
-.wr-bar__fill {
-  position: absolute;
-  left: 0; top: 0;
-  height: 100%;
-  opacity: 0.28;
-  transition: width 0.4s ease;
-}
-
-.wr-bar__label {
-  position: relative;
-  z-index: 1;
+.wr-text {
   font-family: var(--font-data);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-h);
-  padding: 0 9px;
+  font-size: 13px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
 }
 
 /* ─── Cell link ─────────────────────────────────────────────────────────────── */

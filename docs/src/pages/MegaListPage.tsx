@@ -45,12 +45,8 @@ function wrColor(v: number) {
 }
 
 function WinRateBar({ value }: { value: number }) {
-  const color = wrColor(value);
   return (
-    <div className="wr-bar">
-      <div className="wr-bar__fill" style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: color }} />
-      <span className="wr-bar__label" style={{ color }}>{pct(value)}</span>
-    </div>
+    <span className="wr-text" style={{ color: wrColor(value) }}>{pct(value)}</span>
   );
 }
 
