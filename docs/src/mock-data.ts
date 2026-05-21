@@ -23,6 +23,30 @@ const PLAYER_DEFS = [
 
 // ─── Tournament name templates ────────────────────────────────────────────────
 
+// Slot definitions: null = use next regional city; string = fixed name; attendees override for online
+const SLOT_OVERRIDES: Record<number, { name: string; attendees: number }> = {
+   2: { name: 'Nino Pokebros FF #1',              attendees: 96  },
+   4: { name: 'Victory Road January Challenge #1', attendees: 128 },
+   6: { name: 'Nino Pokebros FF #2',              attendees: 112 },
+   7: { name: 'SpearPillar',                       attendees: 80  },
+  10: { name: 'Victory Road January Challenge #2', attendees: 104 },
+  12: { name: 'Nino Pokebros FF #3',              attendees: 96  },
+  14: { name: 'SpearPillar',                       attendees: 88  },
+  16: { name: 'Victory Road February Challenge #1',attendees: 120 },
+  17: { name: 'Nino Pokebros FF #4',              attendees: 72  },
+  19: { name: 'SpearPillar',                       attendees: 96  },
+  22: { name: 'Victory Road February Challenge #2',attendees: 108 },
+  23: { name: 'Nino Pokebros FF #5',              attendees: 80  },
+  25: { name: 'Victory Road March Challenge #1',   attendees: 136 },
+  27: { name: 'Nino Pokebros FF #6',              attendees: 88  },
+  29: { name: 'Victory Road March Challenge #2',   attendees: 112 },
+  31: { name: 'SpearPillar',                       attendees: 96  },
+  32: { name: 'Nino Pokebros FF #7',              attendees: 104 },
+  37: { name: 'Nino Pokebros FF #8',              attendees: 80  },
+  39: { name: 'Victory Road April Challenge #1',   attendees: 128 },
+  41: { name: 'World Championships 2026',          attendees: 1512 },
+};
+
 const REGIONAL_CITIES = [
   'Milwaukee', 'Hartford', 'Salt Lake City', 'Memphis', 'Portland',
   'Cleveland', 'Indianapolis', 'Charlotte', 'Richmond', 'Phoenix',
@@ -58,16 +82,18 @@ const TEAMS: string[][] = [
 function buildTournaments() {
   const result: Array<{ id: string; name: string; date: string; format: string; attendees: number; winner: string; winner_id: string }> = [];
   let intlIdx = 0;
+  let cityIdx = 0;
   for (let i = 0; i < 42; i++) {
     const date = new Date(2026, 0, 4 + i * 3).toISOString().split('T')[0];
     const winner = PLAYER_DEFS[i % PLAYER_DEFS.length];
-    // Sprinkle 3 internationals at indices 8, 20, 34
     if (i === 8 || i === 20 || i === 34) {
-      const intl = INTL_ENTRIES[intlIdx % INTL_ENTRIES.length];
-      intlIdx++;
+      const intl = INTL_ENTRIES[intlIdx++];
       result.push({ id: `t${i + 1}`, name: intl.name, date, format: 'M-A', attendees: intl.attendees, winner: winner.name, winner_id: winner.id });
+    } else if (SLOT_OVERRIDES[i]) {
+      const ov = SLOT_OVERRIDES[i];
+      result.push({ id: `t${i + 1}`, name: ov.name, date, format: 'M-A', attendees: ov.attendees, winner: winner.name, winner_id: winner.id });
     } else {
-      const city = REGIONAL_CITIES[(i < 8 ? i : i < 20 ? i - 1 : i < 34 ? i - 2 : i - 3) % REGIONAL_CITIES.length];
+      const city = REGIONAL_CITIES[cityIdx++ % REGIONAL_CITIES.length];
       const attendees = 200 + ((i * 37 + 13) % 320);
       result.push({ id: `t${i + 1}`, name: `Regional Championships — ${city}`, date, format: 'M-A', attendees, winner: winner.name, winner_id: winner.id });
     }
