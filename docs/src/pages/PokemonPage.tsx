@@ -602,13 +602,13 @@ export function PokemonPage() {
         setMatchups(d.matchups);
         setTrend(d.trend);
         setPlayers(d.players);
-        setSelectedMoves(d.moves.slice(0, 3).map((r) => r.move_name));
-        setSelectedItems(d.items.slice(0, 3).map((r) => r.item));
+        setSelectedMoves(d.moves.slice(0, 5).map((r) => r.move_name));
+        setSelectedItems(d.items.slice(0, 5).map((r) => r.item));
         setSelectedPartners(
-          d.partners.slice(0, 3).map((r) => r.partner_species),
+          d.partners.slice(0, 5).map((r) => r.partner_species),
         );
         setSelectedMatchups(
-          d.matchups.slice(0, 3).map((r) => r.opponent_species),
+          d.matchups.slice(0, 5).map((r) => r.opponent_species),
         );
       })
       .catch((e) => setError((e as Error).message))
@@ -763,9 +763,19 @@ export function PokemonPage() {
       <div className="profile-body">
         {tab === "overview" && (
           <>
-            <h3 className="profile-section-heading" style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}>Usage trend</h3>
+            <h3
+              className="profile-section-heading"
+              style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}
+            >
+              Usage trend
+            </h3>
             {trend.length > 0 ? (
-              <TrendChart data={trend} defaultMetric="both" height={280} showToggle={false} />
+              <TrendChart
+                data={trend}
+                defaultMetric="both"
+                height={280}
+                showToggle={false}
+              />
             ) : (
               <p className="profile-no-data" style={{ padding: "32px 0" }}>
                 No trend data available.
@@ -776,7 +786,12 @@ export function PokemonPage() {
               insights={computeInsights(decoded, trend, matchups, allUsage)}
             />
 
-            <h3 className="profile-section-heading" style={{ borderTop: "none", paddingTop: 0 }}>Players</h3>
+            <h3
+              className="profile-section-heading"
+              style={{ borderTop: "none", paddingTop: 0 }}
+            >
+              Players
+            </h3>
             <table className="profile-table">
               <thead>
                 <tr>
