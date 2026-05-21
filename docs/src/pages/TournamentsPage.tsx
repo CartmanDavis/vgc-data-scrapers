@@ -76,7 +76,7 @@ export function TournamentsPage() {
             : rows.map(r => (
               <tr key={r.id}>
                 <td style={{ whiteSpace: 'nowrap' }}>
-                  <span style={{ fontFamily: 'var(--font-data)', fontSize: 12, color: 'var(--text-4)', fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontFamily: 'var(--font-data)', fontSize: 12, color: 'var(--text-2)', fontVariantNumeric: 'tabular-nums' }}>
                     {formatDate(r.date)}
                   </span>
                 </td>
