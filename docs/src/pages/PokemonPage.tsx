@@ -70,6 +70,14 @@ function spriteUrl(species: string): string {
   return `https://img.pokemondb.net/sprites/scarlet-violet/normal/${slug}.png`;
 }
 
+function itemSpriteUrl(item: string): string {
+  const slug = item
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-");
+  return `https://img.pokemondb.net/sprites/items/${slug}.png`;
+}
+
 function pct(v: number | undefined): string {
   if (v == null || isNaN(v)) return "—";
   return `${v.toFixed(1)}%`;
@@ -891,6 +899,15 @@ export function PokemonPage() {
                                 : undefined,
                             }}
                           >
+                            <img
+                              src={itemSpriteUrl(r.item)}
+                              alt=""
+                              aria-hidden
+                              width={24}
+                              height={24}
+                              style={{ marginRight: 6, verticalAlign: "middle", imageRendering: "pixelated" }}
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                            />
                             {r.item}
                           </td>
                           <td className="profile-table__num">{r.teams}</td>
