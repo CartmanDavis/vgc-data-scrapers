@@ -922,7 +922,7 @@ export function PokemonPage() {
                       <th>Move</th>
                       <th>Type</th>
                       <th>Cat.</th>
-                      <th>Win Rate</th>
+                      <th className="right">Win Rate</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1005,7 +1005,7 @@ export function PokemonPage() {
                     <tr>
                       <th>Item</th>
                       <th className="right">Teams</th>
-                      <th>Win Rate</th>
+                      <th className="right">Win Rate</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1101,7 +1101,7 @@ export function PokemonPage() {
                       <th>Pokémon</th>
                       <th className="right">Teams</th>
                       <th className="right">Usage</th>
-                      <th>Win Rate</th>
+                      <th className="right">Win Rate</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1190,14 +1190,13 @@ export function PokemonPage() {
                   <thead>
                     <tr>
                       <th>Opponent</th>
-                      <th className="right">Matches</th>
-                      <th>Win Rate</th>
+                      <th className="right">Win Rate</th>
                     </tr>
                   </thead>
                   <tbody>
                     {matchups.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="profile-no-data">
+                        <td colSpan={2} className="profile-no-data">
                           No data available.
                         </td>
                       </tr>
@@ -1237,7 +1236,6 @@ export function PokemonPage() {
                               {r.opponent_species}
                             </Link>
                           </td>
-                          <td className="profile-table__num">{r.matches}</td>
                           <td className="profile-table__num">
                             <WinRateBar value={r.win_rate} />
                           </td>
