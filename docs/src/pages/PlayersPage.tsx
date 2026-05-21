@@ -54,7 +54,7 @@ export function PlayersPage() {
 
       {error && <p className="list-page__error">{error}</p>}
 
-      <table className="profile-table">
+      <table className="profile-table profile-table--players">
         <thead>
           <tr>
             <th style={{ width: 36 }}>Rank</th>

@@ -463,6 +463,56 @@
     grid-column: 1 / -1;
   }
 
+  /* Player results: card layout */
+  .profile-table--player-results thead { display: none; }
+
+  .profile-table--player-results,
+  .profile-table--player-results tbody { display: block; }
+
+  .profile-table--player-results tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .profile-table--player-results tbody tr:last-child { border-bottom: none; }
+
+  .profile-table--player-results tbody td { padding: 0; }
+
+  /* Date — hidden */
+  .profile-table--player-results tbody td:nth-child(1) { display: none; }
+
+  /* Tournament — row 1, col 1 */
+  .profile-table--player-results tbody td:nth-child(2) {
+    grid-row: 1;
+    grid-column: 1;
+    align-self: center;
+  }
+
+  /* Placing — row 1, col 2 */
+  .profile-table--player-results tbody td:nth-child(3) {
+    grid-row: 1;
+    grid-column: 2;
+    align-self: center;
+    text-align: right;
+  }
+
+  /* Record — row 2, col 2 */
+  .profile-table--player-results tbody td:nth-child(4) {
+    grid-row: 2;
+    grid-column: 2;
+    align-self: center;
+    text-align: right;
+  }
+
+  /* Team icons — row 3, full width */
+  .profile-table--player-results tbody td:nth-child(5) {
+    grid-row: 3;
+    grid-column: 1 / -1;
+  }
+
   .profile-table--player-results .profile-table__num,
   .profile-table--pokemon-teams .profile-table__num {
     padding-left: 6px;
@@ -473,5 +523,16 @@
 
   .profile-table__name { min-width: 0; }
 
+  .profile-table thead th:first-child,
+  .profile-table tbody td:first-child { padding-left: 0; }
+
   .col-win-rate { width: 90px !important; }
+
+  /* Players list: hide Events, Wins, Best columns (4, 5, 7) */
+  .profile-table--players th:nth-child(4),
+  .profile-table--players td:nth-child(4),
+  .profile-table--players th:nth-child(5),
+  .profile-table--players td:nth-child(5),
+  .profile-table--players th:nth-child(7),
+  .profile-table--players td:nth-child(7) { display: none; }
 }
