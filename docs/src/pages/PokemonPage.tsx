@@ -21,6 +21,8 @@ interface MoveRow {
   move_name: string;
   teams: number;
   win_rate: number;
+  type?: string;
+  category?: "physical" | "special" | "status";
   trend?: TrendPoint[];
 }
 interface ItemRow {
@@ -76,6 +78,29 @@ function itemSpriteUrl(item: string): string {
     .replace(/[^a-z0-9-]/g, "-")
     .replace(/-+/g, "-");
   return `https://img.pokemondb.net/sprites/items/${slug}.png`;
+}
+
+function TypeBadge({ type }: { type: string }) {
+  const slug = type.toLowerCase();
+  return (
+    <img
+      src={`/types/${slug}.png`}
+      alt={type}
+      style={{ verticalAlign: "middle", height: 18, width: "auto" }}
+      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+    />
+  );
+}
+
+function CategoryIcon({ category }: { category: "physical" | "special" | "status" }) {
+  return (
+    <img
+      src={`https://img.pokemondb.net/images/icons/move-${category}.png`}
+      alt={category}
+      style={{ marginRight: 6, verticalAlign: "middle", height: 20, width: "auto" }}
+      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+    />
+  );
 }
 
 function pct(v: number | undefined): string {
@@ -784,6 +809,8 @@ export function PokemonPage() {
                   <thead>
                     <tr>
                       <th>Move</th>
+                      <th>Type</th>
+                      <th>Cat.</th>
                       <th className="right">Teams</th>
                       <th>Win Rate</th>
                     </tr>
@@ -791,7 +818,7 @@ export function PokemonPage() {
                   <tbody>
                     {moves.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="profile-no-data">
+                        <td colSpan={5} className="profile-no-data">
                           No data available.
                         </td>
                       </tr>
@@ -823,6 +850,8 @@ export function PokemonPage() {
                           >
                             {r.move_name}
                           </td>
+                          <td>{r.type && <TypeBadge type={r.type} />}</td>
+                          <td>{r.category && <CategoryIcon category={r.category} />}</td>
                           <td className="profile-table__num">{r.teams}</td>
                           <td style={{ width: 180 }}>
                             <WinRateBar value={r.win_rate} />

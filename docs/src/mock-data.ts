@@ -336,22 +336,22 @@ function rowTrend(u0: number, u1: number, wr0: number, wr1: number): TrendPoint[
 
 export const MOCK_POKEMON_MOVES: Record<string, unknown[]> = {
   Garchomp: [
-    { move_name: 'Earthquake',       teams: 891, win_rate: 55.3, trend: rowTrend(87.1, 90.3, 54.0, 55.3) },
-    { move_name: 'Protect',          teams: 876, win_rate: 54.7, trend: rowTrend(85.4, 88.8, 53.5, 54.7) },
-    { move_name: 'Rock Slide',       teams: 743, win_rate: 54.1, trend: rowTrend(71.2, 75.3, 52.8, 54.1) },
-    { move_name: 'Dragon Claw',      teams: 612, win_rate: 53.8, trend: rowTrend(58.9, 62.1, 52.4, 53.8) },
-    { move_name: 'Stomping Tantrum', teams: 408, win_rate: 52.4, trend: rowTrend(39.1, 41.4, 51.2, 52.4) },
-    { move_name: 'Fire Fang',        teams: 287, win_rate: 51.9, trend: rowTrend(27.3, 29.1, 50.8, 51.9) },
-    { move_name: 'Iron Head',        teams: 231, win_rate: 50.6, trend: rowTrend(21.8, 23.4, 49.8, 50.6) },
-    { move_name: 'Scale Shot',       teams: 184, win_rate: 48.7, trend: rowTrend(19.2, 18.6, 49.4, 48.7) },
+    { move_name: 'Earthquake',       type: 'Ground',   category: 'physical', teams: 891, win_rate: 55.3, trend: rowTrend(87.1, 90.3, 54.0, 55.3) },
+    { move_name: 'Protect',          type: 'Normal',   category: 'status',   teams: 876, win_rate: 54.7, trend: rowTrend(85.4, 88.8, 53.5, 54.7) },
+    { move_name: 'Rock Slide',       type: 'Rock',     category: 'physical', teams: 743, win_rate: 54.1, trend: rowTrend(71.2, 75.3, 52.8, 54.1) },
+    { move_name: 'Dragon Claw',      type: 'Dragon',   category: 'physical', teams: 612, win_rate: 53.8, trend: rowTrend(58.9, 62.1, 52.4, 53.8) },
+    { move_name: 'Stomping Tantrum', type: 'Ground',   category: 'physical', teams: 408, win_rate: 52.4, trend: rowTrend(39.1, 41.4, 51.2, 52.4) },
+    { move_name: 'Fire Fang',        type: 'Fire',     category: 'physical', teams: 287, win_rate: 51.9, trend: rowTrend(27.3, 29.1, 50.8, 51.9) },
+    { move_name: 'Iron Head',        type: 'Steel',    category: 'physical', teams: 231, win_rate: 50.6, trend: rowTrend(21.8, 23.4, 49.8, 50.6) },
+    { move_name: 'Scale Shot',       type: 'Dragon',   category: 'physical', teams: 184, win_rate: 48.7, trend: rowTrend(19.2, 18.6, 49.4, 48.7) },
   ],
   default: [
-    { move_name: 'Protect',      teams: 432, win_rate: 53.1, trend: rowTrend(80.1, 83.4, 52.0, 53.1) },
-    { move_name: 'Flamethrower', teams: 389, win_rate: 51.8, trend: rowTrend(71.4, 74.2, 50.9, 51.8) },
-    { move_name: 'Ice Beam',     teams: 341, win_rate: 50.3, trend: rowTrend(62.8, 65.1, 49.5, 50.3) },
-    { move_name: 'Hyper Voice',  teams: 278, win_rate: 49.7, trend: rowTrend(51.3, 53.2, 48.9, 49.7) },
-    { move_name: 'Shadow Ball',  teams: 212, win_rate: 51.2, trend: rowTrend(38.7, 40.8, 50.1, 51.2) },
-    { move_name: 'Thunderbolt',  teams: 189, win_rate: 48.9, trend: rowTrend(34.2, 36.3, 48.1, 48.9) },
+    { move_name: 'Protect',      type: 'Normal',   category: 'status',   teams: 432, win_rate: 53.1, trend: rowTrend(80.1, 83.4, 52.0, 53.1) },
+    { move_name: 'Flamethrower', type: 'Fire',     category: 'special',  teams: 389, win_rate: 51.8, trend: rowTrend(71.4, 74.2, 50.9, 51.8) },
+    { move_name: 'Ice Beam',     type: 'Ice',      category: 'special',  teams: 341, win_rate: 50.3, trend: rowTrend(62.8, 65.1, 49.5, 50.3) },
+    { move_name: 'Hyper Voice',  type: 'Normal',   category: 'special',  teams: 278, win_rate: 49.7, trend: rowTrend(51.3, 53.2, 48.9, 49.7) },
+    { move_name: 'Shadow Ball',  type: 'Ghost',    category: 'special',  teams: 212, win_rate: 51.2, trend: rowTrend(38.7, 40.8, 50.1, 51.2) },
+    { move_name: 'Thunderbolt',  type: 'Electric', category: 'special',  teams: 189, win_rate: 48.9, trend: rowTrend(34.2, 36.3, 48.1, 48.9) },
   ],
 };
 
