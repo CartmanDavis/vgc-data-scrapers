@@ -49,12 +49,201 @@ async function fetchAll(species: string) {
   const allUsage = (usageRes.data ?? []) as { species: string; usage_pct: number; win_rate: number; teams: number }[];
   return {
     stats:    allUsage.find((r) => r.species.toLowerCase() === species.toLowerCase()) ?? null,
+    allUsage,
     moves:    (movesRes.data    ?? []) as MoveRow[],
     items:    (itemsRes.data    ?? []) as ItemRow[],
     partners: (partnersRes.data ?? []) as PartnerRow[],
     matchups: (matchupsRes.data ?? []) as MatchupRow[],
     trend:    (trendRes.data    ?? []) as TrendPoint[],
   };
+}
+
+// ─── Insights ─────────────────────────────────────────────────────────────────
+
+interface Insight {
+  type: "positive" | "negative" | "neutral";
+  icon: string;
+  text: string;
+}
+
+type UsageRow = { species: string; usage_pct: number; win_rate: number; teams: number; unique_players?: number; top_cut_players?: number; top_cut_usage?: number; top_cut_wr?: number };
+
+function avg(arr: number[]): number {
+  return arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0;
+}
+
+function computeInsights(
+  species: string,
+  trend: TrendPoint[],
+  matchups: MatchupRow[],
+  allUsage: UsageRow[],
+): Insight[] {
+  const out: Insight[] = [];
+  const self = allUsage.find((u) => u.species.toLowerCase() === species.toLowerCase());
+
+  // ── Meta rank ──────────────────────────────────────────────────────────────
+  if (self && allUsage.length > 1) {
+    const sorted = [...allUsage].sort((a, b) => b.usage_pct - a.usage_pct);
+    const rank = sorted.findIndex((u) => u.species.toLowerCase() === species.toLowerCase()) + 1;
+    const total = sorted.length;
+    const tier = rank <= 3 ? "one of the most dominant threats in the format"
+               : rank <= 8 ? "a consistent meta staple"
+               : rank <= Math.ceil(total * 0.33) ? "a solid mid-tier presence"
+               : "a niche or fringe pick";
+    out.push({
+      type: rank <= 8 ? "positive" : "neutral",
+      icon: "bi-bar-chart-fill",
+      text: `Ranked #${rank} of ${total} by usage (${self.usage_pct.toFixed(1)}%) — ${tier}`,
+    });
+  }
+
+  // ── Unique player depth ────────────────────────────────────────────────────
+  if (self?.unique_players != null) {
+    const u = self.unique_players;
+    const teamsPerPlayer = self.teams / u;
+
+    if (u < 20 && self.win_rate >= 53) {
+      // Small cohort driving a strong win rate — flag as potentially skewed
+      out.push({
+        type: "neutral",
+        icon: "bi-person-exclamation",
+        text: `Only ${u} unique players used this — ${self.win_rate.toFixed(1)}% win rate may reflect a small pool of specialists rather than broad viability`,
+      });
+    } else if (teamsPerPlayer >= 2.5) {
+      // A few players entering it into many tournaments
+      out.push({
+        type: "neutral",
+        icon: "bi-person-lines-fill",
+        text: `${u} unique players, averaging ${teamsPerPlayer.toFixed(1)} tournament entries each — a dedicated core driving its presence`,
+      });
+    } else if (self.top_cut_players != null) {
+      const successRate = Math.round((self.top_cut_players / u) * 100);
+      out.push({
+        type: successRate >= 30 ? "positive" : "neutral",
+        icon: "bi-people-fill",
+        text: `${u.toLocaleString()} unique players — ${self.top_cut_players} (${successRate}%) reached top cut`,
+      });
+    }
+  }
+
+  // ── Lowkey threat ──────────────────────────────────────────────────────────
+  if (self && self.usage_pct < 20 && self.win_rate >= 53) {
+    out.push({
+      type: "positive",
+      icon: "bi-eye-slash-fill",
+      text: `Lowkey threat — only ${self.usage_pct.toFixed(1)}% usage but ${self.win_rate.toFixed(1)}% win rate suggests it's flying under the radar`,
+    });
+  }
+
+  // ── Skill split ────────────────────────────────────────────────────────────
+  if (self && self.top_cut_wr != null && self.top_cut_usage != null) {
+    const wrDiff     = self.top_cut_wr - self.win_rate;
+    const usageDiff  = self.top_cut_usage - self.usage_pct;
+
+    if (wrDiff >= 3) {
+      out.push({
+        type: "positive",
+        icon: "bi-mortarboard-fill",
+        text: `High skill ceiling — win rate climbs from ${self.win_rate.toFixed(1)}% overall to ${self.top_cut_wr.toFixed(1)}% among top-placing players (+${wrDiff.toFixed(1)}%)`,
+      });
+    } else if (wrDiff <= -3) {
+      out.push({
+        type: "negative",
+        icon: "bi-mortarboard-fill",
+        text: `Loses favor at high level — win rate drops from ${self.win_rate.toFixed(1)}% overall to ${self.top_cut_wr.toFixed(1)}% among top-placing players`,
+      });
+    } else {
+      out.push({
+        type: "neutral",
+        icon: "bi-mortarboard-fill",
+        text: `Consistent across skill levels — ${self.win_rate.toFixed(1)}% overall vs ${self.top_cut_wr.toFixed(1)}% among top-placing players`,
+      });
+    }
+
+    if (usageDiff >= 5) {
+      out.push({
+        type: "positive",
+        icon: "bi-stars",
+        text: `Overrepresented in top cut — ${self.top_cut_usage.toFixed(1)}% usage among top-placing players vs ${self.usage_pct.toFixed(1)}% overall`,
+      });
+    } else if (usageDiff <= -5) {
+      out.push({
+        type: "negative",
+        icon: "bi-stars",
+        text: `Underrepresented in top cut — only ${self.top_cut_usage.toFixed(1)}% usage among top-placing players vs ${self.usage_pct.toFixed(1)}% overall`,
+      });
+    }
+  }
+
+  // ── Usage & win-rate trend ──────────────────────────────────────────────────
+  if (trend.length >= 4) {
+    const mid = Math.floor(trend.length / 2);
+    const recentUsage = avg(trend.slice(mid).map((d) => d.usage_pct));
+    const olderUsage  = avg(trend.slice(0, mid).map((d) => d.usage_pct));
+    const uDelta = recentUsage - olderUsage;
+
+    if (uDelta >= 2) {
+      out.push({ type: "positive", icon: "bi-graph-up-arrow",   text: `Trending up — usage has risen ${uDelta.toFixed(1)}% over the past month` });
+    } else if (uDelta <= -2) {
+      out.push({ type: "negative", icon: "bi-graph-down-arrow", text: `Falling off — usage has dropped ${Math.abs(uDelta).toFixed(1)}% over the past month` });
+    } else {
+      out.push({ type: "neutral",  icon: "bi-activity",         text: "Holding steady — usage is consistent over the past month" });
+    }
+
+    const recentWR = avg(trend.slice(mid).map((d) => d.win_rate));
+    const olderWR  = avg(trend.slice(0, mid).map((d) => d.win_rate));
+    const wDelta = recentWR - olderWR;
+    if (wDelta >= 2) {
+      out.push({ type: "positive", icon: "bi-shield-fill-check", text: `Win rate improving — up ${wDelta.toFixed(1)}% in recent weeks` });
+    } else if (wDelta <= -2) {
+      out.push({ type: "negative", icon: "bi-shield-fill-x",     text: `Win rate declining — down ${Math.abs(wDelta).toFixed(1)}% in recent weeks` });
+    }
+  }
+
+  // ── Matchup meta-relevance ──────────────────────────────────────────────────
+  const usageMap = new Map(allUsage.map((u) => [u.species.toLowerCase(), u.usage_pct]));
+  const POPULAR = 15; // usage % threshold to be considered "meta-relevant"
+
+  const withMeta = matchups
+    .map((m) => ({ ...m, metaUsage: usageMap.get(m.opponent_species.toLowerCase()) ?? 0 }))
+    .filter((m) => m.metaUsage >= POPULAR);
+
+  const goodVs = withMeta.filter((m) => m.win_rate >= 55).sort((a, b) => b.win_rate - a.win_rate).slice(0, 2);
+  const badVs  = withMeta.filter((m) => m.win_rate <= 45).sort((a, b) => a.win_rate - b.win_rate).slice(0, 2);
+
+  for (const m of goodVs) {
+    out.push({
+      type: "positive",
+      icon: "bi-lightning-fill",
+      text: `Favorable vs ${m.opponent_species} — ${m.win_rate.toFixed(1)}% win rate (${m.metaUsage.toFixed(1)}% meta usage)`,
+    });
+  }
+  for (const m of badVs) {
+    out.push({
+      type: "negative",
+      icon: "bi-exclamation-triangle-fill",
+      text: `Struggles vs ${m.opponent_species} — ${m.win_rate.toFixed(1)}% win rate (${m.metaUsage.toFixed(1)}% meta usage)`,
+    });
+  }
+
+  return out;
+}
+
+function InsightsPanel({ insights }: { insights: Insight[] }) {
+  if (!insights.length) return null;
+  return (
+    <div className="insights-panel">
+      <p className="insights-panel__label">Meta Insights</p>
+      <div className="insights-list">
+        {insights.map((ins, i) => (
+          <div key={i} className={`insight-item insight-item--${ins.type}`}>
+            <i className={`bi ${ins.icon} insight-item__icon`} aria-hidden />
+            <span className="insight-item__text">{ins.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function WinRateBar({ value }: { value: number }) {
@@ -100,6 +289,7 @@ export function PokemonPage() {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState<string | null>(null);
   const [stats,    setStats]    = useState<PokemonStats | null>(null);
+  const [allUsage, setAllUsage] = useState<UsageRow[]>([]);
   const [moves,    setMoves]    = useState<MoveRow[]>([]);
   const [items,    setItems]    = useState<ItemRow[]>([]);
   const [partners, setPartners] = useState<PartnerRow[]>([]);
@@ -114,6 +304,7 @@ export function PokemonPage() {
     fetchAll(decoded)
       .then((d) => {
         setStats(d.stats);
+        setAllUsage(d.allUsage);
         setMoves(d.moves);
         setItems(d.items);
         setPartners(d.partners);
@@ -217,9 +408,13 @@ export function PokemonPage() {
       <div className="profile-body">
 
         {tab === "overview" && (
-          trend.length > 0
-            ? <TrendChart data={trend} name={decoded} defaultMetric="both" height={320} />
-            : <p className="profile-no-data" style={{ padding: "32px 0" }}>No trend data available.</p>
+          <>
+            <InsightsPanel insights={computeInsights(decoded, trend, matchups, allUsage)} />
+            {trend.length > 0
+              ? <TrendChart data={trend} name={decoded} defaultMetric="both" height={280} />
+              : <p className="profile-no-data" style={{ padding: "32px 0" }}>No trend data available.</p>
+            }
+          </>
         )}
 
         {tab === "moves" && (

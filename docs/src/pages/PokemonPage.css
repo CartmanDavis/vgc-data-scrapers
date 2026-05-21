@@ -61,6 +61,54 @@
   padding-bottom: 20px;
 }
 
+/* ─── Meta Insights panel ────────────────────────────────────────────────────── */
+
+.insights-panel {
+  padding: 20px 0 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.insights-panel__label {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 14px;
+}
+
+.insights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.insight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.45;
+}
+
+.insight-item__icon {
+  font-size: 13px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.insight-item__text {
+  flex: 1;
+}
+
+.insight-item--positive .insight-item__icon { color: var(--green); }
+.insight-item--negative .insight-item__icon { color: var(--red); }
+.insight-item--neutral  .insight-item__icon { color: var(--text-4); }
+
 /* ─── Section skeletons ──────────────────────────────────────────────────────── */
 
 .pokemon-section__title-skel {

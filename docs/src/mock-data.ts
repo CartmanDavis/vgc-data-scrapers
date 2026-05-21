@@ -240,21 +240,21 @@ export const MOCK_PLAYER_RESULTS: Record<string, PlayerResult[]> = {
 // ─── Pokemon usage ────────────────────────────────────────────────────────────
 
 export const MOCK_POKEMON_USAGE = [
-  { species: 'Garchomp',    usage_pct: 42.3, win_rate: 54.8, teams: 987,  top_cut_teams: 312, top_cut_usage: 51.1, top_cut_wr: 57.2 },
-  { species: 'Mewtwo',      usage_pct: 38.1, win_rate: 53.5, teams: 890,  top_cut_teams: 289, top_cut_usage: 47.3, top_cut_wr: 55.0 },
-  { species: 'Groudon',     usage_pct: 35.6, win_rate: 51.2, teams: 831,  top_cut_teams: 244, top_cut_usage: 40.0, top_cut_wr: 52.1 },
-  { species: 'Kyogre',      usage_pct: 33.4, win_rate: 50.9, teams: 779,  top_cut_teams: 210, top_cut_usage: 34.4, top_cut_wr: 51.7 },
-  { species: 'Rayquaza',    usage_pct: 29.7, win_rate: 56.1, teams: 693,  top_cut_teams: 248, top_cut_usage: 40.7, top_cut_wr: 58.4 },
-  { species: 'Salamence',   usage_pct: 27.2, win_rate: 49.4, teams: 635,  top_cut_teams: 178, top_cut_usage: 29.2, top_cut_wr: 50.3 },
-  { species: 'Gengar',      usage_pct: 24.8, win_rate: 48.7, teams: 579,  top_cut_teams: 143, top_cut_usage: 23.4, top_cut_wr: 49.1 },
-  { species: 'Charizard',   usage_pct: 22.1, win_rate: 51.6, teams: 516,  top_cut_teams: 162, top_cut_usage: 26.6, top_cut_wr: 53.2 },
-  { species: 'Blaziken',    usage_pct: 19.4, win_rate: 50.1, teams: 453,  top_cut_teams: 130, top_cut_usage: 21.3, top_cut_wr: 51.8 },
-  { species: 'Blastoise',   usage_pct: 17.3, win_rate: 47.9, teams: 404,  top_cut_teams: 98,  top_cut_usage: 16.1, top_cut_wr: 48.6 },
-  { species: 'Venusaur',    usage_pct: 15.8, win_rate: 49.3, teams: 369,  top_cut_teams: 88,  top_cut_usage: 14.4, top_cut_wr: 50.0 },
-  { species: 'Swampert',    usage_pct: 14.2, win_rate: 47.1, teams: 331,  top_cut_teams: 74,  top_cut_usage: 12.1, top_cut_wr: 47.9 },
-  { species: 'Sceptile',    usage_pct: 11.7, win_rate: 46.8, teams: 273,  top_cut_teams: 51,  top_cut_usage:  8.4, top_cut_wr: 47.2 },
-  { species: 'Lucario',     usage_pct:  9.9, win_rate: 50.4, teams: 231,  top_cut_teams: 62,  top_cut_usage: 10.2, top_cut_wr: 51.0 },
-  { species: 'Medicham',    usage_pct:  8.3, win_rate: 45.5, teams: 194,  top_cut_teams: 38,  top_cut_usage:  6.2, top_cut_wr: 44.8 },
+  { species: 'Garchomp',    usage_pct: 42.3, win_rate: 54.8, teams: 987,  unique_players: 614, top_cut_players: 201, top_cut_teams: 312, top_cut_usage: 51.1, top_cut_wr: 57.2 },
+  { species: 'Mewtwo',      usage_pct: 38.1, win_rate: 53.5, teams: 890,  unique_players: 571, top_cut_players: 183, top_cut_teams: 289, top_cut_usage: 47.3, top_cut_wr: 55.0 },
+  { species: 'Groudon',     usage_pct: 35.6, win_rate: 51.2, teams: 831,  unique_players: 534, top_cut_players: 158, top_cut_teams: 244, top_cut_usage: 40.0, top_cut_wr: 52.1 },
+  { species: 'Kyogre',      usage_pct: 33.4, win_rate: 50.9, teams: 779,  unique_players: 502, top_cut_players: 141, top_cut_teams: 210, top_cut_usage: 34.4, top_cut_wr: 51.7 },
+  { species: 'Rayquaza',    usage_pct: 29.7, win_rate: 56.1, teams: 693,  unique_players: 421, top_cut_players: 162, top_cut_teams: 248, top_cut_usage: 40.7, top_cut_wr: 58.4 },
+  { species: 'Salamence',   usage_pct: 27.2, win_rate: 49.4, teams: 635,  unique_players: 398, top_cut_players: 109, top_cut_teams: 178, top_cut_usage: 29.2, top_cut_wr: 50.3 },
+  { species: 'Gengar',      usage_pct: 24.8, win_rate: 48.7, teams: 579,  unique_players: 361, top_cut_players: 91,  top_cut_teams: 143, top_cut_usage: 23.4, top_cut_wr: 49.1 },
+  { species: 'Charizard',   usage_pct: 22.1, win_rate: 51.6, teams: 516,  unique_players: 334, top_cut_players: 104, top_cut_teams: 162, top_cut_usage: 26.6, top_cut_wr: 53.2 },
+  { species: 'Blaziken',    usage_pct: 19.4, win_rate: 50.1, teams: 453,  unique_players: 287, top_cut_players: 83,  top_cut_teams: 130, top_cut_usage: 21.3, top_cut_wr: 51.8 },
+  { species: 'Blastoise',   usage_pct: 17.3, win_rate: 47.9, teams: 404,  unique_players: 251, top_cut_players: 61,  top_cut_teams: 98,  top_cut_usage: 16.1, top_cut_wr: 48.6 },
+  { species: 'Venusaur',    usage_pct: 15.8, win_rate: 49.3, teams: 369,  unique_players: 231, top_cut_players: 54,  top_cut_teams: 88,  top_cut_usage: 14.4, top_cut_wr: 50.0 },
+  { species: 'Swampert',    usage_pct: 14.2, win_rate: 47.1, teams: 331,  unique_players: 204, top_cut_players: 44,  top_cut_teams: 74,  top_cut_usage: 12.1, top_cut_wr: 47.9 },
+  { species: 'Sceptile',    usage_pct: 11.7, win_rate: 46.8, teams: 273,  unique_players: 168, top_cut_players: 31,  top_cut_teams: 51,  top_cut_usage:  8.4, top_cut_wr: 47.2 },
+  { species: 'Lucario',     usage_pct:  9.9, win_rate: 57.4, teams: 231,  unique_players:  12, top_cut_players: 8,   top_cut_teams: 62,  top_cut_usage: 10.2, top_cut_wr: 51.0 },
+  { species: 'Medicham',    usage_pct:  8.3, win_rate: 45.5, teams: 194,  unique_players: 118, top_cut_players: 22,  top_cut_teams: 38,  top_cut_usage:  6.2, top_cut_wr: 44.8 },
 ];
 
 // ─── Mega usage ───────────────────────────────────────────────────────────────
