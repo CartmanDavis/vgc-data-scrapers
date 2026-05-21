@@ -765,7 +765,7 @@ export function PokemonPage() {
           <>
             <h3 className="profile-section-heading" style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}>Usage trend</h3>
             {trend.length > 0 ? (
-              <TrendChart data={trend} defaultMetric="both" height={280} />
+              <TrendChart data={trend} defaultMetric="both" height={280} showToggle={false} />
             ) : (
               <p className="profile-no-data" style={{ padding: "32px 0" }}>
                 No trend data available.
