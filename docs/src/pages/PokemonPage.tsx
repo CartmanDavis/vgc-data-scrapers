@@ -10,8 +10,21 @@ import {
   MOCK_POKEMON_MATCHUPS,
   MOCK_POKEMON_TREND,
   MOCK_POKEMON_PLAYERS,
+  MOCK_POKEMON_SPREADS,
+  MOCK_NATURE_TRENDS,
 } from "../mock-data";
-import type { TrendPoint, PokemonPlayerRow } from "../mock-data";
+import type { TrendPoint, PokemonPlayerRow, SpreadRow } from "../mock-data";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import { Dex } from "@pkmn/dex";
+import { Generations } from "@pkmn/data";
 import "./ProfilePage.css";
 import "./PokemonPage.css";
 import { PokemonIcon } from "../components/PokemonIcon";
@@ -190,6 +203,8 @@ function fetchAll(species: string) {
       MOCK_POKEMON_TREND.default) as TrendPoint[],
     players: (MOCK_POKEMON_PLAYERS[species] ??
       MOCK_POKEMON_PLAYERS.default) as PokemonPlayerRow[],
+    spreads: (MOCK_POKEMON_SPREADS[species] ??
+      MOCK_POKEMON_SPREADS.default) as SpreadRow[],
   });
 }
 
@@ -479,7 +494,55 @@ function SectionSkeleton({ cols = 3 }: { cols?: number }) {
   );
 }
 
-type Tab = "overview" | "moves" | "items" | "partners" | "matchups";
+type Tab = "overview" | "moves" | "items" | "partners" | "matchups" | "stats";
+
+// ─── Stat distribution via @pkmn ─────────────────────────────────────────────
+
+const _gens = new Generations(Dex);
+const _gen9 = _gens.get(9);
+
+type StatKey = "hp" | "atk" | "def" | "spa" | "spd" | "spe";
+const STAT_KEYS: StatKey[] = ["hp", "atk", "def", "spa", "spd", "spe"];
+const STAT_LABELS: Record<StatKey, string> = { hp: "HP", atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe" };
+const STAT_COLORS: Record<StatKey, string> = {
+  hp:  "var(--green)",
+  atk: "#f87171",
+  def: "#60a5fa",
+  spa: "var(--accent)",
+  spd: "#34d399",
+  spe: "#f59e0b",
+};
+
+function spForStat(row: SpreadRow, stat: StatKey): number {
+  return { hp: row.hp, atk: row.atk, def: row.def, spa: row.spa, spd: row.spd, spe: row.spe }[stat];
+}
+
+function buildStatDistribution(
+  species: string,
+  spreads: SpreadRow[],
+  mode: "investment" | "effective",
+): { value: number; [stat: string]: number }[] {
+  // Use Dex.species (not gen-restricted) so mega formes resolve correctly
+  const mon = Dex.species.get(species);
+  const buckets = new Map<number, Partial<Record<StatKey, number>>>();
+
+  for (const row of spreads) {
+    const nature = mon?.exists ? _gen9.natures.get(row.nature) : null;
+    for (const stat of STAT_KEYS) {
+      const sp = spForStat(row, stat);
+      const value = mode === "effective" && mon?.exists && nature
+        ? _gen9.stats.calc(stat, mon.baseStats[stat], 31, sp, 50, nature)
+        : sp;
+      const bucket = buckets.get(value) ?? {};
+      bucket[stat] = (bucket[stat] ?? 0) + row.usage_pct;
+      buckets.set(value, bucket);
+    }
+  }
+
+  return [...buckets.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([value, stats]) => ({ value, ...stats }));
+}
 
 // ─── Mock teams data ──────────────────────────────────────────────────────────
 
@@ -614,6 +677,8 @@ export function PokemonPage() {
   const [trend, setTrend] = useState<TrendPoint[]>([]);
   const [players, setPlayers] = useState<PokemonPlayerRow[]>([]);
   const [tab, setTab] = useState<Tab>("overview");
+  const [spreads, setSpreads] = useState<SpreadRow[]>([]);
+  const [natureTrends, setNatureTrends] = useState<Record<string, TrendPoint[]>>({});
   const [selectedMoves, setSelectedMoves] = useState<string[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
@@ -625,6 +690,9 @@ export function PokemonPage() {
   const [itemSort, setItemSort] = useState<SortState<"win_rate">>(null);
   const [partnerSort, setPartnerSort] = useState<SortState<"usage_pct" | "win_rate">>(null);
   const [matchupSort, setMatchupSort] = useState<SortState<"win_rate" | "opp_usage">>(null);
+  const [spreadSort, setSpreadSort] = useState<SortState<"usage_pct">>({ col: "usage_pct", dir: "desc" });
+  const [statViewMode, setStatViewMode] = useState<"investment" | "effective">("investment");
+  const [visibleStats, setVisibleStats] = useState<StatKey[]>([...STAT_KEYS]);
 
   useEffect(() => {
     if (!decoded) return;
@@ -645,6 +713,8 @@ export function PokemonPage() {
         setSelectedPartners(
           d.partners.slice(0, 5).map((r) => r.partner_species),
         );
+        setSpreads(d.spreads);
+        setNatureTrends(MOCK_NATURE_TRENDS[decoded] ?? MOCK_NATURE_TRENDS.default ?? {});
         setSelectedMatchups(
           d.matchups.slice(0, 5).map((r) => r.opponent_species),
         );
@@ -771,7 +841,7 @@ export function PokemonPage() {
 
       {/* ── Tabs ── */}
       <div className="profile-tabs">
-        {(["overview", "moves", "items", "partners", "matchups"] as Tab[]).map(
+        {(["overview", "moves", "items", "partners", "matchups", "stats"] as Tab[]).map(
           (t) => (
             <button
               key={t}
@@ -1358,6 +1428,158 @@ export function PokemonPage() {
               </>
             );
           })()}
+
+        {tab === "stats" && (() => {
+          const sorted = applySort(spreads, spreadSort?.col ?? null, spreadSort?.dir ?? "desc");
+
+
+          return (
+            <>
+              <h3 className="profile-section-heading" style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}>
+                Nature distribution
+              </h3>
+              <MultiTrendChart
+                series={Object.entries(natureTrends).map(([name, points], i) => ({
+                  name,
+                  color: SERIES_COLORS[i % SERIES_COLORS.length],
+                  points,
+                }))}
+                defaultMetric="usage"
+                showToggle={false}
+                height={220}
+              />
+
+              <h3 className="profile-section-heading">Stats</h3>
+
+              {/* Distribution chart */}
+              <div className="trend-chart" style={{ paddingTop: 0 }}>
+                <div className="trend-chart__header">
+                  <div className="trend-chart__title">
+                    <span className="trend-chart__name">Stats</span>
+                    <span className="trend-chart__period">Jan – Apr 2026 · weekly</span>
+                  </div>
+                  <div className="trend-chart__right" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {STAT_KEYS.map((stat) => {
+                        const active = visibleStats.includes(stat);
+                        return (
+                          <button
+                            key={stat}
+                            onClick={() =>
+                              setVisibleStats(
+                                active && visibleStats.length > 1
+                                  ? visibleStats.filter((s) => s !== stat)
+                                  : active ? visibleStats : [...visibleStats, stat],
+                              )
+                            }
+                            style={{
+                              display: "flex", alignItems: "center", gap: 5,
+                              padding: "3px 10px", borderRadius: 99,
+                              border: `1px solid ${active ? STAT_COLORS[stat] : "var(--border)"}`,
+                              background: active ? `${STAT_COLORS[stat]}22` : "transparent",
+                              color: active ? STAT_COLORS[stat] : "var(--text-4)",
+                              fontSize: 11, fontFamily: "var(--font-ui)", fontWeight: 600,
+                              cursor: "pointer", transition: "all 0.15s",
+                            }}
+                          >
+                            {STAT_LABELS[stat]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="trend-chart__toggle">
+                      <button
+                        className={`trend-toggle-btn${statViewMode === "investment" ? " active" : ""}`}
+                        onClick={() => setStatViewMode("investment")}
+                      >
+                        Investment
+                      </button>
+                      <button
+                        className={`trend-toggle-btn${statViewMode === "effective" ? " active" : ""}`}
+                        onClick={() => setStatViewMode("effective")}
+                      >
+                        Effective
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                {(() => {
+                const distData = buildStatDistribution(decoded, spreads, statViewMode);
+                return (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={distData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="1 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                      <XAxis
+                        dataKey="value"
+                        tick={{ fontSize: 11, fill: "var(--text-4)", fontFamily: "JetBrains Mono, monospace" }}
+                        axisLine={{ stroke: "var(--border)" }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11, fill: "var(--text-4)", fontFamily: "JetBrains Mono, monospace" }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(v) => `${v.toFixed(0)}%`}
+                      />
+                      <Tooltip
+                        contentStyle={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--radius)", fontSize: 12, fontFamily: "var(--font-ui)" }}
+                        formatter={(v: number, name: string) => [`${v.toFixed(1)}%`, STAT_LABELS[name as StatKey] ?? name]}
+                        labelFormatter={(v) => statViewMode === "investment" ? `${v} SP` : `Stat: ${v}`}
+                        cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                      />
+                      {STAT_KEYS.filter((s) => visibleStats.includes(s)).map((stat) => (
+                        <Bar
+                          key={stat}
+                          dataKey={stat}
+                          name={stat}
+                          fill={STAT_COLORS[stat]}
+                          maxBarSize={20}
+                          radius={[2, 2, 0, 0]}
+                        />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                );
+              })()}
+              </div>
+
+              <table className="profile-table" style={{ marginTop: 16 }}>
+                <thead>
+                  <tr>
+                    <th>Stat Points</th>
+                    <th className="right">Nature</th>
+                    <SortTh
+                      label="Usage"
+                      active={spreadSort?.col === "usage_pct"}
+                      dir={spreadSort?.dir ?? "desc"}
+                      onClick={() => toggleSort("usage_pct", spreadSort, setSpreadSort)}
+                      className="col-win-rate"
+                    />
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="profile-no-data">No data available.</td>
+                    </tr>
+                  ) : (
+                    sorted.map((r, i) => (
+                        <tr key={i}>
+                          <td style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 12 }}>
+                            {r.hp}/{r.atk}/{r.def}/{r.spa}/{r.spd}/{r.spe}
+                          </td>
+                          <td className="profile-table__num" style={{ color: "var(--text-2)" }}>{r.nature}</td>
+                          <td className="col-win-rate" style={{ width: 180 }}>
+                            <span style={{ color: "var(--accent)" }}>{pct(r.usage_pct)}</span>
+                          </td>
+                        </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </>
+          );
+        })()}
       </div>
     </div>
   );

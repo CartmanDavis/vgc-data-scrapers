@@ -25,6 +25,7 @@ interface Props {
   series: TrendSeries[];
   defaultMetric?: MultiTrendMetric;
   height?: number;
+  showToggle?: boolean;
 }
 
 function CustomTooltip({
@@ -57,7 +58,7 @@ function CustomTooltip({
   );
 }
 
-export function MultiTrendChart({ series, defaultMetric = "usage", height = 200 }: Props) {
+export function MultiTrendChart({ series, defaultMetric = "usage", height = 200, showToggle = true }: Props) {
   const [metric, setMetric] = useState<MultiTrendMetric>(defaultMetric);
 
   const dataKey = metric === "usage" ? "usage_pct" : "win_rate";
@@ -87,20 +88,22 @@ export function MultiTrendChart({ series, defaultMetric = "usage", height = 200 
             </span>
           ))}
         </div>
-        <div className="trend-chart__toggle">
-          <button
-            className={`trend-toggle-btn${metric === "usage" ? " active" : ""}`}
-            onClick={() => setMetric("usage")}
-          >
-            Usage %
-          </button>
-          <button
-            className={`trend-toggle-btn${metric === "winrate" ? " active" : ""}`}
-            onClick={() => setMetric("winrate")}
-          >
-            Win Rate
-          </button>
-        </div>
+        {showToggle && (
+          <div className="trend-chart__toggle">
+            <button
+              className={`trend-toggle-btn${metric === "usage" ? " active" : ""}`}
+              onClick={() => setMetric("usage")}
+            >
+              Usage %
+            </button>
+            <button
+              className={`trend-toggle-btn${metric === "winrate" ? " active" : ""}`}
+              onClick={() => setMetric("winrate")}
+            >
+              Win Rate
+            </button>
+          </div>
+        )}
       </div>
 
       <ResponsiveContainer width="100%" height={height}>

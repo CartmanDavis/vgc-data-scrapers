@@ -538,6 +538,96 @@ export const MOCK_POKEMON_PLAYERS: Record<string, PokemonPlayerRow[]> = {
   ],
 };
 
+// ─── Showdown spreads — real data from Smogon moveset stats ──────────────────
+// Source: https://www.smogon.com/stats/2026-04/moveset/gen9championsvgc2026regma-0.txt
+// SP values are 0–32 (Stat Points, the M-A format equivalent of EVs).
+
+export interface SpreadRow {
+  nature: string;
+  hp: number;
+  atk: number;
+  def: number;
+  spa: number;
+  spd: number;
+  spe: number;
+  usage_pct: number;
+}
+
+export const MOCK_POKEMON_SPREADS: Record<string, SpreadRow[]> = {
+  Incineroar: [
+    { nature: 'Adamant', hp: 32, atk: 32, def:  0, spa:  0, spd:  0, spe:  2, usage_pct:  3.475 },
+    { nature: 'Careful', hp: 32, atk:  0, def:  2, spa:  0, spd: 32, spe:  0, usage_pct:  2.100 },
+    { nature: 'Adamant', hp: 32, atk: 32, def:  0, spa:  0, spd:  2, spe:  0, usage_pct:  1.867 },
+    { nature: 'Adamant', hp: 32, atk: 32, def:  2, spa:  0, spd:  0, spe:  0, usage_pct:  1.577 },
+    { nature: 'Careful', hp: 32, atk:  0, def: 14, spa:  0, spd: 20, spe:  0, usage_pct:  1.507 },
+    { nature: 'Careful', hp: 32, atk:  2, def:  0, spa:  0, spd: 32, spe:  0, usage_pct:  1.216 },
+  ],
+  Sneasler: [
+    { nature: 'Jolly',   hp:  2, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct: 28.371 },
+    { nature: 'Adamant', hp:  2, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct: 20.749 },
+    { nature: 'Jolly',   hp:  0, atk: 32, def:  2, spa:  0, spd:  0, spe: 32, usage_pct:  6.594 },
+    { nature: 'Adamant', hp:  0, atk: 32, def:  2, spa:  0, spd:  0, spe: 32, usage_pct:  4.417 },
+    { nature: 'Adamant', hp:  0, atk: 32, def:  0, spa:  0, spd:  2, spe: 32, usage_pct:  3.605 },
+    { nature: 'Jolly',   hp:  0, atk: 32, def:  0, spa:  0, spd:  2, spe: 32, usage_pct:  3.384 },
+  ],
+  Sinistcha: [
+    { nature: 'Bold',    hp: 32, atk:  0, def: 32, spa:  0, spd:  2, spe:  0, usage_pct:  3.457 },
+    { nature: 'Bold',    hp: 32, atk:  0, def:  2, spa:  0, spd: 32, spe:  0, usage_pct:  2.805 },
+    { nature: 'Calm',    hp: 32, atk:  0, def:  2, spa:  0, spd: 32, spe:  0, usage_pct:  2.651 },
+    { nature: 'Bold',    hp: 32, atk:  0, def: 14, spa:  0, spd: 20, spe:  0, usage_pct:  2.397 },
+    { nature: 'Bold',    hp: 32, atk:  0, def:  4, spa:  0, spd: 30, spe:  0, usage_pct:  2.232 },
+    { nature: 'Calm',    hp: 32, atk:  0, def: 14, spa:  0, spd: 20, spe:  0, usage_pct:  2.007 },
+  ],
+  Garchomp: [
+    { nature: 'Jolly',   hp:  2, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct: 27.474 },
+    { nature: 'Adamant', hp:  2, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct: 11.147 },
+    { nature: 'Jolly',   hp:  0, atk: 32, def:  0, spa:  0, spd:  2, spe: 32, usage_pct:  5.229 },
+    { nature: 'Jolly',   hp:  0, atk: 32, def:  2, spa:  0, spd:  0, spe: 32, usage_pct:  3.442 },
+    { nature: 'Jolly',   hp:  0, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct:  2.308 },
+    { nature: 'Jolly',   hp:  1, atk: 32, def:  1, spa:  0, spd:  0, spe: 32, usage_pct:  1.811 },
+  ],
+  Kingambit: [
+    { nature: 'Adamant', hp: 32, atk: 32, def:  0, spa:  0, spd:  2, spe:  0, usage_pct: 12.011 },
+    { nature: 'Adamant', hp: 32, atk: 32, def:  2, spa:  0, spd:  0, spe:  0, usage_pct:  7.331 },
+    { nature: 'Brave',   hp: 32, atk: 32, def:  0, spa:  0, spd:  2, spe:  0, usage_pct:  5.517 },
+    { nature: 'Adamant', hp: 32, atk: 32, def:  0, spa:  0, spd:  0, spe:  2, usage_pct:  5.282 },
+    { nature: 'Brave',   hp: 32, atk: 32, def:  2, spa:  0, spd:  0, spe:  0, usage_pct:  3.487 },
+    { nature: 'Adamant', hp:  2, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct:  2.637 },
+  ],
+  Basculegion: [
+    { nature: 'Jolly',   hp:  2, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct: 21.965 },
+    { nature: 'Adamant', hp:  2, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct: 21.163 },
+    { nature: 'Jolly',   hp:  0, atk: 32, def:  2, spa:  0, spd:  0, spe: 32, usage_pct:  9.593 },
+    { nature: 'Adamant', hp:  0, atk: 32, def:  2, spa:  0, spd:  0, spe: 32, usage_pct:  4.911 },
+    { nature: 'Jolly',   hp:  0, atk: 32, def:  0, spa:  0, spd:  2, spe: 32, usage_pct:  2.914 },
+    { nature: 'Jolly',   hp:  0, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct:  2.435 },
+  ],
+  Pelipper: [
+    { nature: 'Timid',   hp:  2, atk:  0, def:  0, spa: 32, spd:  0, spe: 32, usage_pct: 13.358 },
+    { nature: 'Modest',  hp:  2, atk:  0, def:  0, spa: 32, spd:  0, spe: 32, usage_pct: 12.216 },
+    { nature: 'Timid',   hp:  0, atk:  0, def:  0, spa: 32, spd:  2, spe: 32, usage_pct:  2.200 },
+    { nature: 'Modest',  hp: 32, atk:  0, def:  0, spa: 32, spd:  2, spe:  0, usage_pct:  1.667 },
+    { nature: 'Bold',    hp: 32, atk:  0, def: 32, spa:  2, spd:  0, spe:  0, usage_pct:  1.608 },
+    { nature: 'Modest',  hp: 32, atk:  0, def:  0, spa: 32, spd:  0, spe:  2, usage_pct:  1.583 },
+  ],
+  Aerodactyl: [
+    { nature: 'Jolly',   hp:  2, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct: 53.085 },
+    { nature: 'Jolly',   hp:  0, atk: 32, def:  2, spa:  0, spd:  0, spe: 32, usage_pct: 10.738 },
+    { nature: 'Jolly',   hp:  0, atk: 32, def:  0, spa:  0, spd:  2, spe: 32, usage_pct:  5.388 },
+    { nature: 'Jolly',   hp:  0, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct:  5.116 },
+    { nature: 'Adamant', hp:  2, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct:  3.201 },
+    { nature: 'Jolly',   hp:  1, atk: 32, def:  1, spa:  0, spd:  0, spe: 32, usage_pct:  2.908 },
+  ],
+  default: [
+    { nature: 'Jolly',   hp:  2, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct: 27.474 },
+    { nature: 'Adamant', hp:  2, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct: 11.147 },
+    { nature: 'Jolly',   hp:  0, atk: 32, def:  0, spa:  0, spd:  2, spe: 32, usage_pct:  5.229 },
+    { nature: 'Jolly',   hp:  0, atk: 32, def:  2, spa:  0, spd:  0, spe: 32, usage_pct:  3.442 },
+    { nature: 'Jolly',   hp:  0, atk: 32, def:  0, spa:  0, spd:  0, spe: 32, usage_pct:  2.308 },
+    { nature: 'Jolly',   hp:  1, atk: 32, def:  1, spa:  0, spd:  0, spe: 32, usage_pct:  1.811 },
+  ],
+};
+
 export const MOCK_MEGA_TREND: Record<string, TrendPoint[]> = {
   Garchompite: trend([
     ['Jan 4',  30.1, 52.4], ['Jan 11', 32.4, 53.1], ['Jan 18', 34.2, 53.9],
@@ -567,5 +657,46 @@ export const MOCK_MEGA_TREND: Record<string, TrendPoint[]> = {
     ['Mar 8',  17.5, 49.3], ['Mar 15', 17.7, 49.6], ['Mar 22', 17.9, 49.4],
     ['Mar 29', 18.0, 49.5], ['Apr 5',  17.8, 49.4],
   ]),
+};
+
+// ─── Nature trends — weekly usage % per nature per species ───────────────────
+// win_rate field reused as a dummy (0) since MultiTrendChart only uses usage_pct here.
+function natureTrend(points: [string, number][]): TrendPoint[] {
+  return points.map(([date, usage_pct]) => ({ date, usage_pct, win_rate: 0 }));
+}
+
+export const MOCK_NATURE_TRENDS: Record<string, Record<string, TrendPoint[]>> = {
+  Garchomp: {
+    Jolly:   natureTrend([['Jan 4',38.1],['Jan 11',40.2],['Jan 18',41.5],['Jan 25',43.0],['Feb 1',44.8],['Feb 8',46.1],['Feb 15',45.3],['Feb 22',47.0],['Mar 1',46.4],['Mar 8',45.0],['Mar 15',44.6],['Mar 22',45.2],['Mar 29',45.6],['Apr 5',46.9]]),
+    Adamant: natureTrend([['Jan 4',29.4],['Jan 11',28.0],['Jan 18',27.2],['Jan 25',26.5],['Feb 1',25.8],['Feb 8',24.3],['Feb 15',24.9],['Feb 22',23.4],['Mar 1',24.1],['Mar 8',25.6],['Mar 15',26.0],['Mar 22',25.1],['Mar 29',24.8],['Apr 5',23.6]]),
+    Timid:   natureTrend([['Jan 4', 8.2],['Jan 11', 7.9],['Jan 18', 8.5],['Jan 25', 8.1],['Feb 1', 7.6],['Feb 8', 7.0],['Feb 15', 7.4],['Feb 22', 6.9],['Mar 1', 7.2],['Mar 8', 7.5],['Mar 15', 7.8],['Mar 22', 7.3],['Mar 29', 7.1],['Apr 5', 6.8]]),
+    Modest:  natureTrend([['Jan 4', 5.1],['Jan 11', 5.4],['Jan 18', 4.9],['Jan 25', 5.2],['Feb 1', 5.5],['Feb 8', 5.9],['Feb 15', 5.7],['Feb 22', 6.1],['Mar 1', 5.8],['Mar 8', 5.4],['Mar 15', 5.2],['Mar 22', 5.6],['Mar 29', 5.9],['Apr 5', 6.2]]),
+  },
+  Sneasler: {
+    Jolly:   natureTrend([['Jan 4',52.3],['Jan 11',54.0],['Jan 18',53.5],['Jan 25',55.2],['Feb 1',56.1],['Feb 8',57.4],['Feb 15',56.8],['Feb 22',58.3],['Mar 1',57.6],['Mar 8',56.4],['Mar 15',56.9],['Mar 22',57.5],['Mar 29',58.0],['Apr 5',58.9]]),
+    Adamant: natureTrend([['Jan 4',34.7],['Jan 11',33.1],['Jan 18',33.8],['Jan 25',32.4],['Feb 1',31.6],['Feb 8',30.5],['Feb 15',31.2],['Feb 22',29.7],['Mar 1',30.4],['Mar 8',31.9],['Mar 15',31.5],['Mar 22',30.8],['Mar 29',30.2],['Apr 5',29.4]]),
+    Hasty:   natureTrend([['Jan 4', 6.1],['Jan 11', 6.4],['Jan 18', 6.0],['Jan 25', 6.3],['Feb 1', 6.6],['Feb 8', 6.9],['Feb 15', 6.7],['Feb 22', 7.1],['Mar 1', 6.8],['Mar 8', 6.5],['Mar 15', 6.3],['Mar 22', 6.6],['Mar 29', 6.9],['Apr 5', 7.2]]),
+  },
+  Incineroar: {
+    Adamant: natureTrend([['Jan 4',31.2],['Jan 11',32.8],['Jan 18',33.5],['Jan 25',34.1],['Feb 1',33.8],['Feb 8',34.6],['Feb 15',35.0],['Feb 22',35.4],['Mar 1',34.9],['Mar 8',34.2],['Mar 15',33.8],['Mar 22',34.5],['Mar 29',35.1],['Apr 5',35.6]]),
+    Careful: natureTrend([['Jan 4',42.5],['Jan 11',41.0],['Jan 18',40.3],['Jan 25',39.6],['Feb 1',40.1],['Feb 8',39.2],['Feb 15',38.8],['Feb 22',38.4],['Mar 1',39.0],['Mar 8',39.8],['Mar 15',40.2],['Mar 22',39.5],['Mar 29',38.9],['Apr 5',38.3]]),
+    Impish:  natureTrend([['Jan 4',12.1],['Jan 11',12.8],['Jan 18',13.2],['Jan 25',13.6],['Feb 1',13.0],['Feb 8',12.5],['Feb 15',13.4],['Feb 22',14.0],['Mar 1',13.7],['Mar 8',13.2],['Mar 15',13.5],['Mar 22',13.9],['Mar 29',14.2],['Apr 5',14.5]]),
+    Bold:    natureTrend([['Jan 4', 5.8],['Jan 11', 6.1],['Jan 18', 5.7],['Jan 25', 5.4],['Feb 1', 5.9],['Feb 8', 6.3],['Feb 15', 6.0],['Feb 22', 5.7],['Mar 1', 6.1],['Mar 8', 6.4],['Mar 15', 6.2],['Mar 22', 5.9],['Mar 29', 5.6],['Apr 5', 5.4]]),
+  },
+  Sinistcha: {
+    Calm:    natureTrend([['Jan 4',45.2],['Jan 11',46.8],['Jan 18',47.3],['Jan 25',48.1],['Feb 1',48.6],['Feb 8',47.9],['Feb 15',49.2],['Feb 22',49.8],['Mar 1',49.3],['Mar 8',48.7],['Mar 15',48.2],['Mar 22',49.0],['Mar 29',49.5],['Apr 5',50.1]]),
+    Bold:    natureTrend([['Jan 4',28.3],['Jan 11',27.6],['Jan 18',27.0],['Jan 25',26.4],['Feb 1',26.9],['Feb 8',27.5],['Feb 15',26.8],['Feb 22',26.2],['Mar 1',26.7],['Mar 8',27.3],['Mar 15',27.8],['Mar 22',27.0],['Mar 29',26.5],['Apr 5',26.0]]),
+    Sassy:   natureTrend([['Jan 4',12.4],['Jan 11',12.9],['Jan 18',13.4],['Jan 25',13.0],['Feb 1',12.6],['Feb 8',12.1],['Feb 15',12.8],['Feb 22',13.3],['Mar 1',13.7],['Mar 8',13.2],['Mar 15',12.7],['Mar 22',13.1],['Mar 29',13.5],['Apr 5',13.9]]),
+  },
+  Kingambit: {
+    Adamant: natureTrend([['Jan 4',68.4],['Jan 11',69.2],['Jan 18',70.1],['Jan 25',71.0],['Feb 1',70.5],['Feb 8',71.8],['Feb 15',72.3],['Feb 22',71.6],['Mar 1',72.8],['Mar 8',73.1],['Mar 15',72.5],['Mar 22',73.4],['Mar 29',72.9],['Apr 5',74.0]]),
+    Brave:   natureTrend([['Jan 4',15.3],['Jan 11',14.8],['Jan 18',14.2],['Jan 25',13.7],['Feb 1',14.1],['Feb 8',13.5],['Feb 15',13.0],['Feb 22',13.7],['Mar 1',13.2],['Mar 8',12.8],['Mar 15',13.3],['Mar 22',12.7],['Mar 29',13.0],['Apr 5',12.4]]),
+    Careful: natureTrend([['Jan 4', 8.2],['Jan 11', 8.7],['Jan 18', 8.3],['Jan 25', 7.9],['Feb 1', 8.4],['Feb 8', 8.9],['Feb 15', 8.5],['Feb 22', 8.0],['Mar 1', 7.6],['Mar 8', 7.2],['Mar 15', 7.8],['Mar 22', 8.3],['Mar 29', 7.9],['Apr 5', 7.5]]),
+  },
+  default: {
+    Jolly:   natureTrend([['Jan 4',38.1],['Jan 11',40.2],['Jan 18',41.5],['Jan 25',43.0],['Feb 1',44.8],['Feb 8',46.1],['Feb 15',45.3],['Feb 22',47.0],['Mar 1',46.4],['Mar 8',45.0],['Mar 15',44.6],['Mar 22',45.2],['Mar 29',45.6],['Apr 5',46.9]]),
+    Adamant: natureTrend([['Jan 4',29.4],['Jan 11',28.0],['Jan 18',27.2],['Jan 25',26.5],['Feb 1',25.8],['Feb 8',24.3],['Feb 15',24.9],['Feb 22',23.4],['Mar 1',24.1],['Mar 8',25.6],['Mar 15',26.0],['Mar 22',25.1],['Mar 29',24.8],['Apr 5',23.6]]),
+    Timid:   natureTrend([['Jan 4', 8.2],['Jan 11', 7.9],['Jan 18', 8.5],['Jan 25', 8.1],['Feb 1', 7.6],['Feb 8', 7.0],['Feb 15', 7.4],['Feb 22', 6.9],['Mar 1', 7.2],['Mar 8', 7.5],['Mar 15', 7.8],['Mar 22', 7.3],['Mar 29', 7.1],['Apr 5', 6.8]]),
+  },
 };
 
