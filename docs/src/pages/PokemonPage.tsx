@@ -719,12 +719,6 @@ export function PokemonPage() {
                 </span>
                 <span className="profile-stat__label">Win Rate</span>
               </div>
-              <div className="profile-stat">
-                <span className="profile-stat__value">
-                  {stats.teams.toLocaleString()}
-                </span>
-                <span className="profile-stat__label">Teams</span>
-              </div>
             </div>
           )}
         </div>
