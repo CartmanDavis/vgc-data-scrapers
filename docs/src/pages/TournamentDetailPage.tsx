@@ -117,7 +117,7 @@ export function TournamentDetailPage() {
 
       {error && <p className="list-page__error">{error}</p>}
 
-      <table className="profile-table">
+      <table className="profile-table profile-table--tournament-detail">
         <thead>
           <tr>
             <th style={{ width: 44 }}>Place</th>

@@ -528,6 +528,114 @@
 
   .col-win-rate { width: 90px !important; }
 
+  /* Tournament detail: card layout */
+  .profile-table--tournament-detail thead { display: none; }
+
+  .profile-table--tournament-detail,
+  .profile-table--tournament-detail tbody { display: block; }
+
+  .profile-table--tournament-detail tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .profile-table--tournament-detail tbody tr:last-child { border-bottom: none; }
+
+  .profile-table--tournament-detail tbody td { padding: 0; }
+
+  /* Place — row 1, col 2 */
+  .profile-table--tournament-detail tbody td:nth-child(1) {
+    grid-row: 1;
+    grid-column: 2;
+    align-self: center;
+    text-align: right;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* Player — row 1, col 1 */
+  .profile-table--tournament-detail tbody td:nth-child(2) {
+    grid-row: 1;
+    grid-column: 1;
+    align-self: center;
+  }
+
+  /* Country — hidden */
+  .profile-table--tournament-detail tbody td:nth-child(3) { display: none; }
+
+  /* Record — row 2, col 2 */
+  .profile-table--tournament-detail tbody td:nth-child(4) {
+    grid-row: 2;
+    grid-column: 2;
+    align-self: center;
+    text-align: right;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* Team icons — row 3, full width */
+  .profile-table--tournament-detail tbody td:nth-child(5) {
+    grid-row: 3;
+    grid-column: 1 / -1;
+  }
+
+  .profile-table--tournament-detail .profile-table__num {
+    padding-left: 6px;
+    padding-right: 6px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* Tournaments list: card layout */
+  .profile-table--tournaments thead { display: none; }
+
+  .profile-table--tournaments,
+  .profile-table--tournaments tbody { display: block; }
+
+  .profile-table--tournaments tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .profile-table--tournaments tbody tr:last-child { border-bottom: none; }
+
+  .profile-table--tournaments tbody td { padding: 0; }
+
+  /* Date — hidden */
+  .profile-table--tournaments tbody td:nth-child(1) { display: none; }
+
+  /* Tournament name — row 1, col 1 */
+  .profile-table--tournaments tbody td:nth-child(2) {
+    grid-row: 1;
+    grid-column: 1;
+    align-self: center;
+  }
+
+  /* Attendees — row 1, col 2 */
+  .profile-table--tournaments tbody td:nth-child(3) {
+    grid-row: 1;
+    grid-column: 2;
+    align-self: center;
+    text-align: right;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* Winner — row 2, col 1 */
+  .profile-table--tournaments tbody td:nth-child(4) {
+    grid-row: 2;
+    grid-column: 1;
+    align-self: center;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
   /* Players list: hide Events, Wins, Best columns (4, 5, 7) */
   .profile-table--players th:nth-child(4),
   .profile-table--players td:nth-child(4),

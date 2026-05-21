@@ -13,7 +13,8 @@
   }
 
   .profile-table--pokemon-teams .team-icons,
-  .profile-table--player-results .team-icons {
+  .profile-table--player-results .team-icons,
+  .profile-table--tournament-detail .team-icons {
     max-width: none;
     flex-wrap: nowrap;
   }

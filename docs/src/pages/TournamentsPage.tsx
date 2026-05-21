@@ -110,7 +110,7 @@ export function TournamentsPage() {
 
       {error && <p className="list-page__error">{error}</p>}
 
-      <table className="profile-table">
+      <table className="profile-table profile-table--tournaments">
         <thead>
           <tr>
             <th>Date</th>
