@@ -1,0 +1,19 @@
+.team-icons {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .team-icons {
+    flex-wrap: wrap;
+    /* 2 icons × 50px + 1 gap × 2px = 102px; constraining to this forces 2-per-row (3 rows) */
+    max-width: 102px;
+    align-items: flex-start;
+  }
+
+  .profile-table--pokemon-teams .team-icons {
+    max-width: none;
+    flex-wrap: nowrap;
+  }
+}

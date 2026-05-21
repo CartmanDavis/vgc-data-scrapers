@@ -767,7 +767,7 @@ export function PokemonPage() {
                   <th>Player</th>
                   <th className="right">Entries</th>
                   <th className="right">Best</th>
-                  <th>Win Rate</th>
+                  <th className="col-win-rate">Win Rate</th>
                 </tr>
               </thead>
               <tbody>
@@ -802,7 +802,7 @@ export function PokemonPage() {
                           {placingLabel(r.best_placing)}
                         </span>
                       </td>
-                      <td style={{ width: 180 }}>
+                      <td className="col-win-rate" style={{ width: 180 }}>
                         <WinRateBar value={r.win_rate} />
                       </td>
                     </tr>
@@ -815,7 +815,7 @@ export function PokemonPage() {
             {(() => {
               const rows = mockTeams(decoded);
               return (
-                <table className="profile-table">
+                <table className="profile-table profile-table--pokemon-teams">
                   <thead>
                     <tr>
                       <th>Date</th>

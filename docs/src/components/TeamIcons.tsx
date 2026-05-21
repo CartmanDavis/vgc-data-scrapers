@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { PokemonIcon } from "./PokemonIcon";
+import "./TeamIcons.css";
 
 interface TeamIconsProps {
   team: string[];
@@ -8,7 +9,7 @@ interface TeamIconsProps {
 
 export function TeamIcons({ team, pasteUrl }: TeamIconsProps) {
   return (
-    <span style={{ display: "inline-flex", gap: 2, alignItems: "center" }}>
+    <span className="team-icons">
       {team.map((species) => (
         <Link
           key={species}

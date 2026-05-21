@@ -143,7 +143,7 @@ export function PlayerPage() {
       {/* ─── Results table ─────────────────────────────────────────────────── */}
       <div className="profile-section-label" style={{ marginBottom: 14 }}>Tournament Results</div>
 
-      <table className="profile-table">
+      <table className="profile-table profile-table--player-results">
         <thead>
           <tr>
             <th>Date</th>

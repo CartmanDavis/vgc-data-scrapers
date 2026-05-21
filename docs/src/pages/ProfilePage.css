@@ -398,4 +398,78 @@
   .profile-body { padding: 20px 16px 80px; }
 
   .list-page { padding: 24px 16px 48px; }
+
+  .profile-table--player-results th:first-child,
+  .profile-table--player-results td:first-child,
+  .col-country { display: none; }
+
+  /* Pokemon teams: card layout — 2-col grid per row */
+  .profile-table--pokemon-teams thead { display: none; }
+
+  .profile-table--pokemon-teams,
+  .profile-table--pokemon-teams tbody { display: block; }
+
+  .profile-table--pokemon-teams tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .profile-table--pokemon-teams tbody tr:last-child { border-bottom: none; }
+
+  .profile-table--pokemon-teams tbody td { padding: 0; }
+
+  /* Date — hidden */
+  .profile-table--pokemon-teams tbody td:nth-child(1) { display: none; }
+
+  /* Tournament — row 1, col 1 */
+  .profile-table--pokemon-teams tbody td:nth-child(2) {
+    grid-row: 1;
+    grid-column: 1;
+    align-self: center;
+  }
+
+  /* Player — row 2, col 1 */
+  .profile-table--pokemon-teams tbody td:nth-child(3) {
+    grid-row: 2;
+    grid-column: 1;
+    align-self: center;
+    font-size: 12px;
+  }
+
+  /* Place — row 1, col 2 */
+  .profile-table--pokemon-teams tbody td:nth-child(4) {
+    grid-row: 1;
+    grid-column: 2;
+    align-self: center;
+    text-align: right;
+  }
+
+  /* Record — row 2, col 2 */
+  .profile-table--pokemon-teams tbody td:nth-child(5) {
+    grid-row: 2;
+    grid-column: 2;
+    align-self: center;
+    text-align: right;
+  }
+
+  /* Team icons — row 3, full width */
+  .profile-table--pokemon-teams tbody td:nth-child(6) {
+    grid-row: 3;
+    grid-column: 1 / -1;
+  }
+
+  .profile-table--player-results .profile-table__num,
+  .profile-table--pokemon-teams .profile-table__num {
+    padding-left: 6px;
+    padding-right: 6px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .profile-table__name { min-width: 0; }
+
+  .col-win-rate { width: 90px !important; }
 }

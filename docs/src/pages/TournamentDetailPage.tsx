@@ -122,7 +122,7 @@ export function TournamentDetailPage() {
           <tr>
             <th style={{ width: 44 }}>Place</th>
             <th>Player</th>
-            <th>Country</th>
+            <th className="col-country">Country</th>
             <th className="right">Record</th>
             <th>Team</th>
           </tr>
@@ -186,7 +186,7 @@ export function TournamentDetailPage() {
                       {r.player_name}
                     </Link>
                   </td>
-                  <td>
+                  <td className="col-country">
                     <span
                       style={{
                         display: "flex",
