@@ -4,12 +4,12 @@
   position: absolute;
   right: 32px;
   bottom: 0;
-  width: 148px;
-  height: 148px;
+  width: 200px;
+  height: 200px;
   object-fit: contain;
   image-rendering: auto;
   /* subtle drop shadow to anchor the sprite */
-  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.6));
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.6));
   z-index: 1;
   pointer-events: none;
 }
@@ -21,18 +21,22 @@
   bottom: 0;
   width: 220px;
   height: 220px;
-  background: radial-gradient(circle, rgba(124,111,247,0.12) 0%, transparent 65%);
+  background: radial-gradient(
+    circle,
+    rgba(124, 111, 247, 0.12) 0%,
+    transparent 65%
+  );
   z-index: 0;
   pointer-events: none;
 }
 
 @media (max-width: 640px) {
   .pokemon-art {
-    width: 120px;
-    height: 120px;
+    width: 150px;
+    height: 150px;
     right: 12px;
     bottom: unset;
-    top: 16px;
+    top: 0px;
   }
   .pokemon-art-glow {
     width: 170px;
@@ -115,9 +119,15 @@
   flex: 1;
 }
 
-.insight-item--positive .insight-item__icon { color: var(--green); }
-.insight-item--negative .insight-item__icon { color: var(--red); }
-.insight-item--neutral  .insight-item__icon { color: var(--text-4); }
+.insight-item--positive .insight-item__icon {
+  color: var(--green);
+}
+.insight-item--negative .insight-item__icon {
+  color: var(--red);
+}
+.insight-item--neutral .insight-item__icon {
+  color: var(--text-4);
+}
 
 /* ─── Section skeletons ──────────────────────────────────────────────────────── */
 
