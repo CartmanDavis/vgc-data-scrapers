@@ -966,7 +966,7 @@ export function PokemonPage() {
                               <CategoryIcon category={r.category} />
                             )}
                           </td>
-                          <td style={{ width: 180 }}>
+                          <td className="profile-table__num">
                             <WinRateBar value={r.win_rate} />
                           </td>
                         </tr>
@@ -1060,7 +1060,7 @@ export function PokemonPage() {
                             {r.item}
                           </td>
                           <td className="profile-table__num">{r.teams}</td>
-                          <td style={{ width: 180 }}>
+                          <td className="profile-table__num">
                             <WinRateBar value={r.win_rate} />
                           </td>
                         </tr>
@@ -1151,7 +1151,7 @@ export function PokemonPage() {
                           <td className="profile-table__num">
                             {pct(r.usage_pct)}
                           </td>
-                          <td style={{ width: 180 }}>
+                          <td className="profile-table__num">
                             <WinRateBar value={r.win_rate} />
                           </td>
                         </tr>
@@ -1238,7 +1238,7 @@ export function PokemonPage() {
                             </Link>
                           </td>
                           <td className="profile-table__num">{r.matches}</td>
-                          <td style={{ width: 180 }}>
+                          <td className="profile-table__num">
                             <WinRateBar value={r.win_rate} />
                           </td>
                         </tr>
