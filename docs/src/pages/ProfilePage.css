@@ -395,9 +395,9 @@
 
   .profile-stat__value { font-size: 18px; }
 
-  .profile-body { padding: 20px 16px 80px; }
+  .profile-body { padding: 20px 16px 0; }
 
-  .list-page { padding: 24px 16px 48px; }
+  .list-page { padding: 24px 16px 0; }
 
   .profile-table--player-results th:first-child,
   .profile-table--player-results td:first-child,
