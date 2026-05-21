@@ -60,6 +60,7 @@ interface TeamRow {
   wins: number;
   losses: number;
   teammates: string[];
+  team_id: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -114,6 +115,11 @@ function CategoryIcon({
       }}
     />
   );
+}
+
+function pokepasteUrl(_teamId: string): string {
+  // TODO: generate real pokepaste URL from team_id
+  return "#";
 }
 
 function pct(v: number | undefined): string {
@@ -534,6 +540,7 @@ function mockTeams(species: string): TeamRow[] {
       wins: records[i][0],
       losses: records[i][1],
       teammates: [species, ...mates],
+      team_id: `team-${i}`,
     };
   });
 }
@@ -922,7 +929,34 @@ export function PokemonPage() {
                               letterSpacing: "-0.01em",
                             }}
                           >
-                            {r.teammates.join(", ")}
+                            {r.teammates.map((species) => (
+                              <a href={`/pokemon/${species}`} key={species}>
+                                <img
+                                  src={spriteUrl(species)}
+                                  alt={""}
+                                  width={"50px"}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display =
+                                      "none";
+                                  }}
+                                />
+                              </a>
+                            ))}
+                            <a
+                              href={pokepasteUrl(r.team_id)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="View pokepaste"
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                marginLeft: 4,
+                                color: "var(--text-4)",
+                                verticalAlign: "middle",
+                              }}
+                            >
+                              <i className="bi bi-paperclip" style={{ fontSize: 13 }} />
+                            </a>
                           </span>
                         </td>
                       </tr>
