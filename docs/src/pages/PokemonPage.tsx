@@ -121,6 +121,55 @@ function wrColor(v: number): string {
   return "var(--red)";
 }
 
+function applySort<T>(rows: T[], col: keyof T | null, dir: "asc" | "desc"): T[] {
+  if (!col) return rows;
+  return [...rows].sort((a, b) => {
+    const av = a[col] as number;
+    const bv = b[col] as number;
+    return dir === "desc" ? bv - av : av - bv;
+  });
+}
+
+function SortTh({
+  label,
+  active,
+  dir,
+  onClick,
+  className,
+}: {
+  label: string;
+  active: boolean;
+  dir: "asc" | "desc";
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <th
+      className={className}
+      style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+      onClick={onClick}
+    >
+      {label}{" "}
+      <i
+        className={`bi ${active ? (dir === "desc" ? "bi-caret-down-fill" : "bi-caret-up-fill") : "bi-caret-down"}`}
+        style={{ fontSize: 10, opacity: active ? 1 : 0.35 }}
+      />
+    </th>
+  );
+}
+
+function toggleSort<T extends string>(
+  col: T,
+  sort: { col: T; dir: "asc" | "desc" } | null,
+  setSort: (s: { col: T; dir: "asc" | "desc" } | null) => void,
+) {
+  if (sort?.col === col) {
+    setSort({ col, dir: sort.dir === "desc" ? "asc" : "desc" });
+  } else {
+    setSort({ col, dir: "desc" });
+  }
+}
+
 function fetchAll(species: string) {
   const allUsage = MOCK_POKEMON_USAGE;
   const stats =
@@ -570,6 +619,13 @@ export function PokemonPage() {
   const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
   const [selectedMatchups, setSelectedMatchups] = useState<string[]>([]);
 
+  type SortDir = "asc" | "desc";
+  type SortState<T extends string> = { col: T; dir: SortDir } | null;
+  const [moveSort, setMoveSort] = useState<SortState<"win_rate">>(null);
+  const [itemSort, setItemSort] = useState<SortState<"win_rate">>(null);
+  const [partnerSort, setPartnerSort] = useState<SortState<"usage_pct" | "win_rate">>(null);
+  const [matchupSort, setMatchupSort] = useState<SortState<"win_rate" | "opp_usage">>(null);
+
   useEffect(() => {
     if (!decoded) return;
     setLoading(true);
@@ -896,6 +952,7 @@ export function PokemonPage() {
 
         {tab === "moves" &&
           (() => {
+            const sorted = applySort(moves, moveSort?.col ?? null, moveSort?.dir ?? "desc");
             const series = moves
               .filter((r) => selectedMoves.includes(r.move_name))
               .map((r) => ({
@@ -922,20 +979,28 @@ export function PokemonPage() {
                       <th>Move</th>
                       <th>Type</th>
                       <th>Cat.</th>
-                      <th className="right">Win Rate</th>
+                      <SortTh
+                        label="Win Rate"
+                        active={moveSort?.col === "win_rate"}
+                        dir={moveSort?.dir ?? "desc"}
+                        onClick={() => toggleSort("win_rate", moveSort, setMoveSort)}
+                        className="right"
+                      />
                     </tr>
                   </thead>
                   <tbody>
-                    {moves.length === 0 ? (
+                    {sorted.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="profile-no-data">
+                        <td colSpan={4} className="profile-no-data">
                           No data available.
                         </td>
                       </tr>
                     ) : (
-                      moves.map((r, i) => (
+                      sorted.map((r) => {
+                        const origIdx = moves.findIndex((m) => m.move_name === r.move_name);
+                        return (
                         <tr
-                          key={i}
+                          key={r.move_name}
                           className={
                             selectedMoves.includes(r.move_name)
                               ? "profile-table__row--selected"
@@ -954,7 +1019,7 @@ export function PokemonPage() {
                             className="profile-table__name"
                             style={{
                               color: selectedMoves.includes(r.move_name)
-                                ? SERIES_COLORS[i % SERIES_COLORS.length]
+                                ? SERIES_COLORS[origIdx % SERIES_COLORS.length]
                                 : undefined,
                             }}
                           >
@@ -970,7 +1035,8 @@ export function PokemonPage() {
                             <WinRateBar value={r.win_rate} />
                           </td>
                         </tr>
-                      ))
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -980,6 +1046,7 @@ export function PokemonPage() {
 
         {tab === "items" &&
           (() => {
+            const sorted = applySort(items, itemSort?.col ?? null, itemSort?.dir ?? "desc");
             const series = items
               .filter((r) => selectedItems.includes(r.item))
               .map((r) => ({
@@ -1004,21 +1071,28 @@ export function PokemonPage() {
                   <thead>
                     <tr>
                       <th>Item</th>
-                      <th className="right">Teams</th>
-                      <th className="right">Win Rate</th>
+                      <SortTh
+                        label="Win Rate"
+                        active={itemSort?.col === "win_rate"}
+                        dir={itemSort?.dir ?? "desc"}
+                        onClick={() => toggleSort("win_rate", itemSort, setItemSort)}
+                        className="right"
+                      />
                     </tr>
                   </thead>
                   <tbody>
-                    {items.length === 0 ? (
+                    {sorted.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="profile-no-data">
+                        <td colSpan={2} className="profile-no-data">
                           No data available.
                         </td>
                       </tr>
                     ) : (
-                      items.map((r, i) => (
+                      sorted.map((r) => {
+                        const origIdx = items.findIndex((m) => m.item === r.item);
+                        return (
                         <tr
-                          key={i}
+                          key={r.item}
                           className={
                             selectedItems.includes(r.item)
                               ? "profile-table__row--selected"
@@ -1037,7 +1111,7 @@ export function PokemonPage() {
                             className="profile-table__name"
                             style={{
                               color: selectedItems.includes(r.item)
-                                ? SERIES_COLORS[i % SERIES_COLORS.length]
+                                ? SERIES_COLORS[origIdx % SERIES_COLORS.length]
                                 : undefined,
                             }}
                           >
@@ -1059,12 +1133,12 @@ export function PokemonPage() {
                             />
                             {r.item}
                           </td>
-                          <td className="profile-table__num">{r.teams}</td>
                           <td className="profile-table__num">
                             <WinRateBar value={r.win_rate} />
                           </td>
                         </tr>
-                      ))
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -1074,6 +1148,7 @@ export function PokemonPage() {
 
         {tab === "partners" &&
           (() => {
+            const sorted = applySort(partners, partnerSort?.col ?? null, partnerSort?.dir ?? "desc");
             const series = partners
               .filter((r) => selectedPartners.includes(r.partner_species))
               .map((r) => ({
@@ -1099,22 +1174,35 @@ export function PokemonPage() {
                   <thead>
                     <tr>
                       <th>Pokémon</th>
-                      <th className="right">Teams</th>
-                      <th className="right">Usage</th>
-                      <th className="right">Win Rate</th>
+                      <SortTh
+                        label="Usage"
+                        active={partnerSort?.col === "usage_pct"}
+                        dir={partnerSort?.dir ?? "desc"}
+                        onClick={() => toggleSort("usage_pct", partnerSort, setPartnerSort)}
+                        className="right"
+                      />
+                      <SortTh
+                        label="Win Rate"
+                        active={partnerSort?.col === "win_rate"}
+                        dir={partnerSort?.dir ?? "desc"}
+                        onClick={() => toggleSort("win_rate", partnerSort, setPartnerSort)}
+                        className="right"
+                      />
                     </tr>
                   </thead>
                   <tbody>
-                    {partners.length === 0 ? (
+                    {sorted.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="profile-no-data">
+                        <td colSpan={3} className="profile-no-data">
                           No data available.
                         </td>
                       </tr>
                     ) : (
-                      partners.map((r, i) => (
+                      sorted.map((r) => {
+                        const origIdx = partners.findIndex((m) => m.partner_species === r.partner_species);
+                        return (
                         <tr
-                          key={i}
+                          key={r.partner_species}
                           className={
                             selectedPartners.includes(r.partner_species)
                               ? "profile-table__row--selected"
@@ -1135,7 +1223,7 @@ export function PokemonPage() {
                               color: selectedPartners.includes(
                                 r.partner_species,
                               )
-                                ? SERIES_COLORS[i % SERIES_COLORS.length]
+                                ? SERIES_COLORS[origIdx % SERIES_COLORS.length]
                                 : undefined,
                             }}
                           >
@@ -1147,7 +1235,6 @@ export function PokemonPage() {
                               {r.partner_species}
                             </Link>
                           </td>
-                          <td className="profile-table__num">{r.teams}</td>
                           <td className="profile-table__num">
                             {pct(r.usage_pct)}
                           </td>
@@ -1155,7 +1242,8 @@ export function PokemonPage() {
                             <WinRateBar value={r.win_rate} />
                           </td>
                         </tr>
-                      ))
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -1165,6 +1253,12 @@ export function PokemonPage() {
 
         {tab === "matchups" &&
           (() => {
+            const usageMap = new Map(allUsage.map((u) => [u.species.toLowerCase(), u.usage_pct]));
+            const enriched = matchups.map((r) => ({
+              ...r,
+              opp_usage: usageMap.get(r.opponent_species.toLowerCase()) ?? 0,
+            }));
+            const sorted = applySort(enriched, matchupSort?.col ?? null, matchupSort?.dir ?? "desc");
             const series = matchups
               .filter((r) => selectedMatchups.includes(r.opponent_species))
               .map((r) => ({
@@ -1190,20 +1284,35 @@ export function PokemonPage() {
                   <thead>
                     <tr>
                       <th>Opponent</th>
-                      <th className="right">Win Rate</th>
+                      <SortTh
+                        label="Usage"
+                        active={matchupSort?.col === "opp_usage"}
+                        dir={matchupSort?.dir ?? "desc"}
+                        onClick={() => toggleSort("opp_usage", matchupSort, setMatchupSort)}
+                        className="right"
+                      />
+                      <SortTh
+                        label="Win Rate"
+                        active={matchupSort?.col === "win_rate"}
+                        dir={matchupSort?.dir ?? "desc"}
+                        onClick={() => toggleSort("win_rate", matchupSort, setMatchupSort)}
+                        className="right"
+                      />
                     </tr>
                   </thead>
                   <tbody>
-                    {matchups.length === 0 ? (
+                    {sorted.length === 0 ? (
                       <tr>
-                        <td colSpan={2} className="profile-no-data">
+                        <td colSpan={3} className="profile-no-data">
                           No data available.
                         </td>
                       </tr>
                     ) : (
-                      matchups.map((r, i) => (
+                      sorted.map((r) => {
+                        const origIdx = matchups.findIndex((m) => m.opponent_species === r.opponent_species);
+                        return (
                         <tr
-                          key={i}
+                          key={r.opponent_species}
                           className={
                             selectedMatchups.includes(r.opponent_species)
                               ? "profile-table__row--selected"
@@ -1224,7 +1333,7 @@ export function PokemonPage() {
                               color: selectedMatchups.includes(
                                 r.opponent_species,
                               )
-                                ? SERIES_COLORS[i % SERIES_COLORS.length]
+                                ? SERIES_COLORS[origIdx % SERIES_COLORS.length]
                                 : undefined,
                             }}
                           >
@@ -1236,11 +1345,13 @@ export function PokemonPage() {
                               {r.opponent_species}
                             </Link>
                           </td>
+                          <td className="profile-table__num">{pct(r.opp_usage)}</td>
                           <td className="profile-table__num">
                             <WinRateBar value={r.win_rate} />
                           </td>
                         </tr>
-                      ))
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
