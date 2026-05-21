@@ -4,22 +4,19 @@ import './StatCards.css';
 
 interface Stats {
   tournaments: number;
-  players: number;
-  dateRange: string;
-  format: string;
+  players:     number;
+  dateRange:   string;
+  format:      string;
 }
 
 async function fetchStats(): Promise<Stats> {
   const [tournamentsResult, playersResult] = await Promise.all([
-    supabase
-      .from('tournaments')
-      .select('id, date', { count: 'exact' })
-      .eq('format', 'M-A'),
+    supabase.from('tournaments').select('id, date', { count: 'exact' }).eq('format', 'M-A'),
     supabase.rpc('get_metagame_summary'),
   ]);
 
   const tournaments = tournamentsResult.data ?? [];
-  const count = tournamentsResult.count ?? tournaments.length;
+  const count       = tournamentsResult.count ?? tournaments.length;
 
   const dates = tournaments
     .map((t: { date: string }) => t.date)
@@ -29,8 +26,8 @@ async function fetchStats(): Promise<Stats> {
   let dateRange = 'N/A';
   if (dates.length >= 2) {
     const fmt = (d: string) =>
-      new Date(d).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    dateRange = `${fmt(dates[0])} – ${fmt(dates[dates.length - 1])}`;
+      new Date(d).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    dateRange = `${fmt(dates[0])}–${fmt(dates[dates.length - 1])}`;
   } else if (dates.length === 1) {
     dateRange = new Date(dates[0]).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   }
@@ -41,8 +38,26 @@ async function fetchStats(): Promise<Stats> {
   return { tournaments: count, players, dateRange, format: 'M-A (Mega)' };
 }
 
+interface CardDef {
+  key:   keyof Stats;
+  label: string;
+  meta:  string;
+}
+
+const CARD_DEFS: CardDef[] = [
+  { key: 'tournaments', label: 'Tournaments', meta: 'events'         },
+  { key: 'players',     label: 'Players',     meta: 'unique entrants' },
+  { key: 'dateRange',   label: 'Date Range',  meta: 'data window'    },
+  { key: 'format',      label: 'Format',      meta: 'active ruleset' },
+];
+
+function formatValue(key: keyof Stats, stats: Stats): string {
+  if (key === 'players') return stats.players > 0 ? stats.players.toLocaleString() : '—';
+  return String(stats[key]);
+}
+
 export function StatCards() {
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats,   setStats]   = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,15 +66,6 @@ export function StatCards() {
       .catch(() => setStats(null))
       .finally(() => setLoading(false));
   }, []);
-
-  const cards: { label: string; value: string; icon: string }[] = stats
-    ? [
-        { label: 'Tournaments', value: String(stats.tournaments), icon: 'bi-trophy' },
-        { label: 'Players',     value: stats.players > 0 ? stats.players.toLocaleString() : '—', icon: 'bi-people-fill' },
-        { label: 'Date Range',  value: stats.dateRange,            icon: 'bi-calendar3' },
-        { label: 'Format',      value: stats.format,               icon: 'bi-tag-fill' },
-      ]
-    : [];
 
   if (loading) {
     return (
@@ -75,11 +81,11 @@ export function StatCards() {
 
   return (
     <section className="stat-cards" aria-label="Metagame summary">
-      {cards.map(({ label, value, icon }) => (
-        <div key={label} className="stat-card">
-          <i className={`bi ${icon} stat-card__icon`} aria-hidden="true" />
-          <span className="stat-card__value">{value}</span>
+      {CARD_DEFS.map(({ key, label, meta }) => (
+        <div key={key} className="stat-card">
           <span className="stat-card__label">{label}</span>
+          <span className="stat-card__value">{formatValue(key, stats)}</span>
+          <span className="stat-card__meta">{meta}</span>
         </div>
       ))}
     </section>

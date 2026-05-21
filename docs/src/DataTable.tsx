@@ -97,17 +97,21 @@ function linkCol(
     filter: true,
     cellRenderer: (params: ICellRendererParams) => {
       const val = String(params.value ?? '');
-      const el = document.createElement('a');
-      el.textContent = val;
-      el.href = makeHref(val);
-      el.className = 'cell-link';
-      el.addEventListener('click', e => {
-        e.preventDefault();
-        // Navigation handled by the navigate callback injected via context
-        const event = new CustomEvent('cell-navigate', { detail: { href: makeHref(val) }, bubbles: true });
-        el.dispatchEvent(event);
-      });
-      return el;
+      const href = makeHref(val);
+      return (
+        <a
+          href={href}
+          className="cell-link"
+          onClick={(e) => {
+            e.preventDefault();
+            e.currentTarget.dispatchEvent(
+              new CustomEvent('cell-navigate', { detail: { href }, bubbles: true })
+            );
+          }}
+        >
+          {val}
+        </a>
+      );
     },
   };
 }
@@ -404,41 +408,26 @@ export function DataTable() {
   return (
     <div className="tables-container" ref={containerRef}>
 
-      {/* Date filter */}
-      <div className="date-filter">
-        {DATE_PRESETS.map(({ label, days }) => (
-          <button
-            key={label}
-            className={sinceDays === days ? 'active' : ''}
-            onClick={() => setSinceDays(days)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      <div className="table-header-row">
-        {/* Dataset tabs */}
-        <div className="dataset-toggle">
+      {/* ── Single toolbar row: tabs left, controls right ── */}
+      <div className="toolbar">
+        <div className="toolbar__tabs">
           {DATASETS.map(({ value, label }) => (
             <button
               key={value}
-              className={dataset === value ? 'active' : ''}
+              className={`toolbar__tab${dataset === value ? ' active' : ''}`}
               onClick={() => { setDataset(value); setSortParam(null); setFilterParam(null); }}
             >
               {label}
             </button>
           ))}
         </div>
-
-        {/* Secondary controls */}
-        <div className="controls-row">
+        <div className="toolbar__controls">
           {showModeToggle && (
-            <div className="mode-toggle">
+            <div className="ctrl-group">
               {MODES.map(({ value, label }) => (
                 <button
                   key={value}
-                  className={mode === value ? 'active' : ''}
+                  className={`ctrl-btn${mode === value ? ' active' : ''}`}
                   onClick={() => { setMode(value); setSortParam(null); setFilterParam(null); }}
                 >
                   {label}
@@ -446,73 +435,93 @@ export function DataTable() {
               ))}
             </div>
           )}
-
-          {canChart && (
-            <div className="view-toggle" role="group" aria-label="View mode">
+          <div className="ctrl-group">
+            {DATE_PRESETS.map(({ label, days }) => (
               <button
-                className={viewMode === 'table' ? 'active' : ''}
+                key={label}
+                className={`ctrl-btn${sinceDays === days ? ' active' : ''}`}
+                onClick={() => setSinceDays(days)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {canChart && (
+            <div className="ctrl-group" role="group" aria-label="View mode">
+              <button
+                className={`ctrl-btn ctrl-btn--icon${viewMode === 'table' ? ' active' : ''}`}
                 onClick={() => handleViewMode('table')}
                 aria-pressed={viewMode === 'table'}
+                title="Table view"
               >
-                <i className="bi bi-table" /> Table
+                <i className="bi bi-table" />
               </button>
               <button
-                className={viewMode === 'chart' ? 'active' : ''}
+                className={`ctrl-btn ctrl-btn--icon${viewMode === 'chart' ? ' active' : ''}`}
                 onClick={() => handleViewMode('chart')}
                 aria-pressed={viewMode === 'chart'}
+                title="Chart view"
               >
-                <i className="bi bi-bar-chart-horizontal-fill" /> Chart
+                <i className="bi bi-bar-chart-horizontal-fill" />
               </button>
             </div>
           )}
         </div>
-
-        {showMegaSelect && (
-          <select className="mega-select" value={selectedMega} onChange={e => setSelectedMega(e.target.value)}>
-            <option value="">Select a mega...</option>
-            {megaList.map(item => <option key={item} value={item}>{item}</option>)}
-          </select>
-        )}
-
-        {showSpeciesInput && (
-          <div className="detail-controls">
-            <input
-              className="species-input"
-              list="species-list"
-              placeholder="Search Pokemon..."
-              value={selectedSpecies}
-              onChange={e => setSelectedSpecies(e.target.value)}
-            />
-            <datalist id="species-list">
-              {speciesList.map(s => <option key={s} value={s} />)}
-            </datalist>
-            <div className="mode-toggle">
-              {DETAIL_TABS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  className={detailTab === value ? 'active' : ''}
-                  onClick={() => { setDetailTab(value); setSortParam(null); setFilterParam(null); }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {loading && <div className="table-status">Loading...</div>}
-      {error   && <div className="table-status table-error">{error}</div>}
-      {!loading && !error && showPlaceholder && (
-        <div className="table-status">
-          {showMegaSelect ? 'Select a mega item above.' : 'Search for a Pokemon above.'}
+      {/* ── Context row: mega select or species search ── */}
+      {showMegaSelect && (
+        <div className="context-row">
+          <i className="bi bi-search context-row__icon" aria-hidden="true" />
+          <select className="context-select" value={selectedMega} onChange={e => setSelectedMega(e.target.value)}>
+            <option value="">Select a mega item…</option>
+            {megaList.map(item => <option key={item} value={item}>{item}</option>)}
+          </select>
         </div>
       )}
 
+      {showSpeciesInput && (
+        <div className="context-row">
+          <i className="bi bi-search context-row__icon" aria-hidden="true" />
+          <input
+            className="context-input"
+            list="species-list"
+            placeholder="Search Pokémon…"
+            value={selectedSpecies}
+            onChange={e => setSelectedSpecies(e.target.value)}
+          />
+          <datalist id="species-list">
+            {speciesList.map(s => <option key={s} value={s} />)}
+          </datalist>
+          <div className="ctrl-group" style={{ marginLeft: 'auto' }}>
+            {DETAIL_TABS.map(({ value, label }) => (
+              <button
+                key={value}
+                className={`ctrl-btn${detailTab === value ? ' active' : ''}`}
+                onClick={() => { setDetailTab(value); setSortParam(null); setFilterParam(null); }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Status ── */}
+      {loading && <div className="table-status">Loading…</div>}
+      {error   && <div className="table-status table-status--error">{error}</div>}
+      {!loading && !error && showPlaceholder && (
+        <div className="table-status">
+          {showMegaSelect ? 'Select a mega item to see teammate data.' : 'Search for a Pokémon to see detailed stats.'}
+        </div>
+      )}
+
+      {/* ── Chart ── */}
       {!loading && !error && !showPlaceholder && showChart && (
         <UsageChart data={chartData} />
       )}
 
+      {/* ── Grid ── */}
       <div
         className="ag-theme-alpine table-grid"
         style={{ display: loading || showPlaceholder || showChart ? 'none' : undefined }}

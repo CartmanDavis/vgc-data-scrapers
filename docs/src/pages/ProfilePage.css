@@ -1,44 +1,400 @@
+/* ─── Profile shell ─────────────────────────────────────────────────────────── */
+
 .profile-page {
-  padding: 32px 24px;
-  max-width: 900px;
-  margin: 0 auto;
-  text-align: left;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
+
+/* ─── Back link ─────────────────────────────────────────────────────────────── */
 
 .back-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: var(--accent);
-  text-decoration: none;
-  font-size: 14px;
+  gap: 5px;
+  color: var(--text-3);
+  font-size: 12px;
   font-weight: 500;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+  transition: color 0.1s;
   margin-bottom: 20px;
-  padding: 6px 0;
+  font-family: var(--font-data);
 }
+
+.back-link i { font-size: 10px; }
 
 .back-link:hover {
-  text-decoration: underline;
+  color: var(--text);
+  text-decoration: none;
 }
 
-.profile-title {
-  font-size: 28px;
+/* ─── Hero — full-width banner ──────────────────────────────────────────────── */
+
+.profile-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 32px 36px 28px;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--surface);
+  min-height: 180px;
+}
+
+/* Atmospheric glow behind the art */
+.profile-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 100% at 80% 50%, rgba(124,111,247,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.profile-hero__content {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  max-width: 520px;
+}
+
+/* ─── Profile name ──────────────────────────────────────────────────────────── */
+
+.profile-name {
+  font-family: var(--font-brand);
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--text-h);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-transform: capitalize;
+  margin-bottom: 16px;
+}
+
+/* ─── Inline stat row ───────────────────────────────────────────────────────── */
+
+.profile-stats {
+  display: flex;
+  gap: 0;
+}
+
+.profile-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-right: 24px;
+  margin-right: 24px;
+  border-right: 1px solid var(--border-2);
+}
+
+.profile-stat:last-child {
+  padding-right: 0;
+  margin-right: 0;
+  border-right: none;
+}
+
+.profile-stat__value {
+  font-family: var(--font-data);
+  font-size: 22px;
   font-weight: 600;
   color: var(--text-h);
-  margin: 0 0 8px;
-  text-transform: capitalize;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
+
+.profile-stat__label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: var(--font-ui);
+}
+
+/* ─── Tab bar ───────────────────────────────────────────────────────────────── */
+
+.profile-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.profile-tabs::-webkit-scrollbar { display: none; }
+
+.profile-tab {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  height: var(--toolbar-h);
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color 0.12s, border-color 0.12s;
+  letter-spacing: -0.01em;
+}
+
+.profile-tab:hover { color: var(--text); }
+
+.profile-tab.active {
+  color: var(--accent-2);
+  border-bottom-color: var(--accent);
+}
+
+/* ─── Body ──────────────────────────────────────────────────────────────────── */
+
+.profile-body {
+  padding: 28px 36px;
+  flex: 1;
+}
+
+.profile-section-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 14px;
+  font-family: var(--font-ui);
+}
+
+/* ─── Data table ────────────────────────────────────────────────────────────── */
+
+.profile-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.profile-table thead th {
+  padding: 0 14px 10px;
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-ui);
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-table thead th.right { text-align: right; }
+
+.profile-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.08s;
+}
+
+.profile-table tbody tr:last-child { border-bottom: none; }
+
+.profile-table tbody tr:hover { background: var(--surface); }
+
+.profile-table td {
+  padding: 10px 14px;
+  font-size: 13.5px;
+  color: var(--text-h);
+  vertical-align: middle;
+}
+
+.profile-table__name {
+  font-weight: 600;
+  min-width: 130px;
+}
+
+.profile-table__num {
+  text-align: right;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+/* ─── Win rate bar ──────────────────────────────────────────────────────────── */
+
+.wr-bar {
+  position: relative;
+  height: 22px;
+  background: var(--surface-2);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  min-width: 120px;
+}
+
+.wr-bar__fill {
+  position: absolute;
+  left: 0; top: 0;
+  height: 100%;
+  opacity: 0.28;
+  transition: width 0.4s ease;
+}
+
+.wr-bar__label {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-data);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-h);
+  padding: 0 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Cell link ─────────────────────────────────────────────────────────────── */
+
+.cell-link {
+  color: var(--text-h);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.1s;
+}
+
+.cell-link:hover {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+
+/* ─── Empty / loading states ────────────────────────────────────────────────── */
 
 .profile-empty,
-.profile-placeholder {
-  color: var(--text);
-  font-size: 15px;
-  margin-top: 16px;
-  line-height: 1.6;
+.profile-loading {
+  padding: 64px 36px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 13.5px;
 }
 
+.profile-loading--error { color: var(--red); }
+
+.profile-no-data {
+  padding: 24px 0;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+/* ─── Skeleton atoms ────────────────────────────────────────────────────────── */
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skel {
+  background: var(--surface-2);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+.skel--back   { width: 110px; height: 13px; margin-bottom: 20px; }
+.skel--name   { width: 220px; height: 36px; margin-bottom: 16px; }
+.skel--stat   { width: 70px;  height: 44px; }
+.skel--heading { width: 130px; height: 12px; margin-bottom: 14px; }
+
+.profile-skel-row td { padding: 11px 14px; border-bottom: 1px solid var(--border); }
+.profile-skel-row:last-child td { border-bottom: none; }
+
+/* ─── List-page layout ──────────────────────────────────────────────────────── */
+
+.list-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 32px 36px 48px;
+}
+
+.list-page__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  gap: 16px;
+}
+
+.list-page__title {
+  font-family: var(--font-brand);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-h);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.list-page__subtitle {
+  font-size: 12.5px;
+  color: var(--text-3);
+  font-family: var(--font-ui);
+}
+
+.list-page__search {
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  color: var(--text-h);
+  font-size: 13px;
+  font-family: var(--font-ui);
+  padding: 7px 12px;
+  outline: none;
+  width: 200px;
+  transition: border-color 0.12s;
+}
+
+.list-page__search::placeholder { color: var(--text-4); }
+
+.list-page__search:focus { border-color: var(--accent-border); }
+
+.list-page__error {
+  padding: 16px 0;
+  color: var(--red);
+  font-size: 13px;
+  font-family: var(--font-ui);
+}
+
+/* ─── Mobile ────────────────────────────────────────────────────────────────── */
+
 @media (max-width: 768px) {
-  .profile-page {
-    padding: 24px 16px 80px;
+  .profile-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 24px 20px 20px;
+    min-height: auto;
   }
+
+  .profile-name { font-size: 26px; margin-bottom: 12px; }
+
+  .profile-stats { flex-wrap: wrap; gap: 16px; }
+
+  .profile-stat {
+    border-right: none;
+    margin-right: 0;
+    padding-right: 0;
+  }
+
+  .profile-stat__value { font-size: 18px; }
+
+  .profile-body { padding: 20px 16px 80px; }
 }

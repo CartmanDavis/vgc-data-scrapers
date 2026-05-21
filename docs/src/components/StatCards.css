@@ -1,48 +1,79 @@
+/* ─── KPI strip ─────────────────────────────────────────────────────────────── */
+
 .stat-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  padding: 24px 24px 0;
+  /* hairline separators via gap + background on the section */
+  gap: 0 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
 }
+
+/* ── Individual KPI ── */
 
 .stat-card {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 20px;
+  background: var(--bg);
+  padding: 28px 28px 24px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  text-align: center;
+  gap: 0;
+  position: relative;
+  cursor: default;
 }
 
-.stat-card__icon {
-  font-size: 22px;
-  color: var(--accent);
-  margin-bottom: 4px;
-}
-
-.stat-card__value {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-h);
-  line-height: 1.1;
-}
-
+/* Label sits ABOVE the number */
 .stat-card__label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text);
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-ui);
+  color: var(--text-4);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
 }
+
+/* The number is the hero */
+.stat-card__value {
+  font-family: var(--font-data);
+  font-size: 40px;
+  font-weight: 600;
+  color: var(--text-h);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 6px;
+}
+
+/* Subtext below the number */
+.stat-card__meta {
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-3);
+  letter-spacing: 0;
+}
+
+/* ── Skeleton state ── */
 
 .stat-card--skeleton {
-  height: 96px;
-  background: linear-gradient(90deg, #1e293b 25%, #263347 50%, #1e293b 75%);
+  height: 120px;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card--skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent        0%,
+    rgba(255,255,255,0.025) 50%,
+    transparent        100%
+  );
   background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
+  animation: shimmer 1.6s linear infinite;
 }
 
 @keyframes shimmer {
@@ -50,18 +81,18 @@
   100% { background-position: -200% 0; }
 }
 
-@media (max-width: 768px) {
+/* ─── Responsive ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .stat-card__value { font-size: 32px; }
+  .stat-card { padding: 22px 20px 18px; }
+}
+
+@media (max-width: 640px) {
   .stat-cards {
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    padding: 16px 16px 0;
+    gap: 1px;
   }
 
-  .stat-card {
-    padding: 16px;
-  }
-
-  .stat-card__value {
-    font-size: 18px;
-  }
+  .stat-card__value { font-size: 28px; }
 }

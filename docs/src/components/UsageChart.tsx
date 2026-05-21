@@ -5,76 +5,94 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
   ResponsiveContainer,
   Cell,
 } from 'recharts';
 import './UsageChart.css';
 
 interface UsageRow {
-  name: string;
-  usage: number;
+  name:     string;
+  usage:    number;
   winRate?: number;
 }
 
 interface Props {
-  data: UsageRow[];
+  data:     UsageRow[];
   nameKey?: string;
 }
 
-const ACCENT = '#c084fc';
-const ACCENT_DIM = 'rgba(192,132,252,0.45)';
+function barFill(winRate?: number): string {
+  if (winRate == null) return 'rgba(124,111,247,0.55)';
+  if (winRate >= 55)   return 'rgba(34,211,160,0.65)';
+  if (winRate >= 50)   return 'rgba(124,111,247,0.65)';
+  return 'rgba(242,102,120,0.65)';
+}
 
 function CustomTooltip({ active, payload, label }: {
-  active?: boolean;
+  active?:  boolean;
   payload?: { value: number; name: string }[];
-  label?: string;
+  label?:   string;
 }) {
   if (!active || !payload?.length) return null;
+  const usage   = payload.find(p => p.name === 'usage');
+  const winRate = payload.find(p => p.name === 'winRate');
+  const wr      = winRate?.value;
+  const wrColor = wr == null ? 'var(--text-2)' : wr >= 55 ? 'var(--green)' : wr >= 50 ? 'var(--accent-2)' : 'var(--red)';
   return (
     <div className="chart-tooltip">
-      <p className="chart-tooltip__name">{label}</p>
-      {payload.map(p => (
-        <p key={p.name} className="chart-tooltip__row">
-          <span>{p.name === 'usage' ? 'Usage' : 'Win Rate'}</span>
-          <span>{p.value.toFixed(1)}%</span>
-        </p>
-      ))}
+      <p className="chart-tooltip__label">{label}</p>
+      {usage && (
+        <div className="chart-tooltip__row">
+          <span>Usage</span>
+          <span className="chart-tooltip__num">{usage.value.toFixed(1)}%</span>
+        </div>
+      )}
+      {winRate && (
+        <div className="chart-tooltip__row">
+          <span>Win Rate</span>
+          <span className="chart-tooltip__num" style={{ color: wrColor }}>{winRate.value.toFixed(1)}%</span>
+        </div>
+      )}
     </div>
   );
 }
 
 export function UsageChart({ data, nameKey = 'name' }: Props) {
-  const top20 = data.slice(0, 20);
+  const items = data.slice(0, 20);
+  const chartH = Math.max(340, items.length * 38 + 40);
 
   return (
     <div className="usage-chart" data-testid="usage-chart">
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart
-          data={top20}
-          layout="vertical"
-          margin={{ top: 4, right: 40, left: 0, bottom: 4 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
+      <div className="chart-legend">
+        <span className="chart-legend__item --green"><span />≥ 55% WR</span>
+        <span className="chart-legend__item --purple"><span />50–55%</span>
+        <span className="chart-legend__item --red"><span />&lt; 50%</span>
+      </div>
+      <ResponsiveContainer width="100%" height={chartH}>
+        <BarChart data={items} layout="vertical" margin={{ top: 0, right: 52, left: 0, bottom: 0 }} barCategoryGap="30%">
+          <CartesianGrid strokeDasharray="1 4" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+          <ReferenceLine x={50} stroke="rgba(255,255,255,0.06)" strokeDasharray="4 4" />
           <XAxis
             type="number"
             domain={[0, 100]}
             tickFormatter={v => `${v}%`}
-            tick={{ fill: '#94a3b8', fontSize: 12 }}
-            axisLine={{ stroke: '#334155' }}
+            tick={{ fill: 'var(--text-4)', fontSize: 11, fontFamily: 'JetBrains Mono, monospace' }}
+            axisLine={{ stroke: 'var(--border)' }}
             tickLine={false}
           />
           <YAxis
             dataKey={nameKey}
             type="category"
-            width={130}
-            tick={{ fill: '#f1f5f9', fontSize: 13 }}
+            width={148}
+            tick={{ fill: 'var(--text)', fontSize: 13, fontWeight: 500, fontFamily: 'Figtree, system-ui, sans-serif' }}
             axisLine={false}
             tickLine={false}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: '#1e293b' }} />
-          <Bar dataKey="usage" radius={[0, 4, 4, 0]} maxBarSize={22}>
-            {top20.map((_, idx) => (
-              <Cell key={idx} fill={idx === 0 ? ACCENT : ACCENT_DIM} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
+          <Bar dataKey="usage" radius={[0, 4, 4, 0]} maxBarSize={20}>
+            {items.map((row, i) => (
+              <Cell key={i} fill={barFill(row.winRate)} />
             ))}
           </Bar>
         </BarChart>

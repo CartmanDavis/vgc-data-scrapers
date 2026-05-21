@@ -1,0 +1,129 @@
+/* ─── Demo controls — floating bottom-right ─────────────────────────────────── */
+
+.demo-controls {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.demo-controls > * {
+  pointer-events: auto;
+}
+
+/* ── Toggle pill ── */
+
+.demo-controls__toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-2);
+  background: var(--surface-3);
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  backdrop-filter: blur(8px);
+}
+
+.demo-controls__toggle:hover {
+  background: var(--surface-3);
+  color: var(--text-h);
+}
+
+/* ── Panel ── */
+
+.demo-controls__body {
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-lg, 11px);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 200px;
+  backdrop-filter: blur(12px);
+}
+
+.demo-controls__label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: var(--font-ui);
+}
+
+.demo-controls__btns {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── State buttons ── */
+
+.demo-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.demo-btn i {
+  font-size: 13px;
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.demo-btn:hover {
+  background: var(--surface-3);
+  color: var(--text-h);
+}
+
+/* State-specific active colors */
+
+.demo-btn--loading.active {
+  background: rgba(251, 184, 78, 0.1);
+  color: var(--yellow);
+  border-color: rgba(251, 184, 78, 0.25);
+}
+
+.demo-btn--loaded.active {
+  background: rgba(34, 211, 160, 0.08);
+  color: var(--green);
+  border-color: rgba(34, 211, 160, 0.2);
+}
+
+.demo-btn--error.active {
+  background: rgba(242, 102, 120, 0.08);
+  color: var(--red);
+  border-color: rgba(242, 102, 120, 0.2);
+}
+
+/* ── Mobile: move above the bottom nav ── */
+
+@media (max-width: 768px) {
+  .demo-controls {
+    bottom: 80px;
+    right: 12px;
+  }
+}

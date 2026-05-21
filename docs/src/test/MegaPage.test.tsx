@@ -43,10 +43,10 @@ describe('MegaPage', () => {
     });
   });
 
-  it('renders back link', () => {
+  it('renders back link to mega list', async () => {
     renderPage('Charizardite X');
-    const back = screen.getByRole('link', { name: /back to metagame/i });
-    expect(back).toHaveAttribute('href', '/');
+    const back = await screen.findByRole('link', { name: /all mega items/i });
+    expect(back).toHaveAttribute('href', '/mega');
   });
 
   it('shows stat badges after loading', async () => {
