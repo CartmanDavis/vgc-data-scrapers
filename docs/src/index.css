@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* ─── Design tokens ─────────────────────────────────────────────────────────── */
 
@@ -35,7 +35,7 @@
   --yellow:    #f8b84e;
 
   /* Fonts */
-  --font-brand:  'Syne', system-ui, sans-serif;
+  --font-brand:  'Space Grotesk', system-ui, sans-serif;
   --font-ui:     'Figtree', system-ui, sans-serif;
   --font-data:   'JetBrains Mono', ui-monospace, monospace;
 
