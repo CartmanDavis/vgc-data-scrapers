@@ -16,15 +16,6 @@
   padding: 32px 36px 56px;
 }
 
-/* ─── Two-column layout ──────────────────────────────────────────────────────── */
-
-.mg-two-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px;
-  align-items: start;
-}
-
 /* ─── Section header ─────────────────────────────────────────────────────────── */
 
 .mg-section__header {
@@ -75,19 +66,19 @@
   padding: 8px 0;
 }
 
-/* ─── Pokemon grid (3-column) ────────────────────────────────────────────────── */
+/* ─── Insights grid ──────────────────────────────────────────────────────────── */
 
-.mg-pokemon-grid {
+.mg-insights-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 
-.mg-pokemon-card {
+.mg-insight-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 16px 18px;
+  gap: 8px;
+  padding: 18px 20px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -95,119 +86,48 @@
   transition: border-color 0.12s, background 0.12s;
 }
 
-.mg-pokemon-card:hover {
-  border-color: var(--accent-border);
+.mg-insight-card:hover {
+  border-color: var(--border-2);
   background: var(--surface-2);
   text-decoration: none;
 }
 
-.mg-pokemon-card--skel {
+.mg-insight-card--skel {
   pointer-events: none;
+  min-height: 86px;
 }
 
-.mg-pokemon-card__name {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-h);
-  font-family: var(--font-ui);
-  letter-spacing: -0.01em;
-}
-
-.mg-pokemon-card__usage {
-  font-family: var(--font-data);
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-h);
-  letter-spacing: -0.04em;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ─── Win rate chip ──────────────────────────────────────────────────────────── */
-
-.mg-wr-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border: 1px solid;
-  border-radius: 999px;
-  font-family: var(--font-data);
-  font-size: 11.5px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  width: fit-content;
-}
-
-/* ─── Mega meta rank list ────────────────────────────────────────────────────── */
-
-.mg-mega-list {
+.mg-insight-card__cat {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.mg-mega-row {
-  display: grid;
-  grid-template-columns: 22px 1fr 80px auto 80px;
   align-items: center;
-  gap: 10px;
-  padding: 9px 4px;
-  border-bottom: 1px solid var(--border);
-  text-decoration: none;
-  transition: background 0.08s;
-  border-radius: var(--radius);
-}
-
-.mg-mega-row:last-child { border-bottom: none; }
-
-.mg-mega-row:hover { background: var(--surface); text-decoration: none; }
-
-.mg-mega-row--skel { pointer-events: none; }
-
-.mg-mega-row__rank {
-  font-family: var(--font-data);
-  font-size: 12px;
-  color: var(--text-4);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.mg-mega-row__name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-h);
+  gap: 5px;
   font-family: var(--font-ui);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
 }
 
-.mg-mega-row__bar {
-  height: 6px;
-  background: var(--surface-2);
-  border-radius: 99px;
-  overflow: hidden;
+.mg-insight-card__cat i {
+  font-size: 10px;
 }
 
-.mg-mega-row__bar-fill {
-  height: 100%;
-  border-radius: 99px;
-  opacity: 0.6;
-  transition: width 0.4s ease;
+.mg-insight-card__subject {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-h);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
-.mg-mega-row__bar-skel {
-  flex: 1;
-}
-
-.mg-mega-row__tc {
+.mg-insight-card__stat {
   font-family: var(--font-data);
   font-size: 11px;
-  color: var(--text-4);
+  color: var(--text-3);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  text-align: right;
+  line-height: 1.3;
 }
 
 /* ─── Recent events list ─────────────────────────────────────────────────────── */
@@ -269,8 +189,8 @@
 /* ─── Mobile ─────────────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
-  .mg-two-col {
-    grid-template-columns: 1fr;
+  .mg-insights-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -278,19 +198,6 @@
   .mg-body {
     padding: 20px 16px 80px;
     gap: 32px;
-  }
-
-  .mg-pokemon-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-
-  .mg-pokemon-card {
-    padding: 12px 14px;
-  }
-
-  .mg-pokemon-card__usage {
-    font-size: 22px;
   }
 
   .mg-event-row {
@@ -301,7 +208,7 @@
 }
 
 @media (max-width: 480px) {
-  .mg-pokemon-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .mg-insights-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
