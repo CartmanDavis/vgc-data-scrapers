@@ -29,7 +29,7 @@ function pct(v: number) { return `${v.toFixed(1)}%`; }
 
 function wrColor(v: number) {
   if (v >= 55) return 'var(--green)';
-  if (v >= 50) return 'var(--accent-2)';
+  if (v >= 50) return 'var(--text-h)';
   return 'var(--red)';
 }
 

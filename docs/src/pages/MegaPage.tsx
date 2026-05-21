@@ -41,7 +41,7 @@ function pct(v: number | undefined): string {
 
 function wrColor(v: number): string {
   if (v >= 55) return 'var(--green)';
-  if (v >= 50) return 'var(--accent-2)';
+  if (v >= 50) return 'var(--text-h)';
   return 'var(--red)';
 }
 

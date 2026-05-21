@@ -20,12 +20,12 @@
   --text:      #adb5d0;
   --text-h:    #e6e9f8;
 
-  /* Accent — indigo-shifted purple, authoritative */
-  --accent:        #7c6ff7;
-  --accent-2:      #a99df9;
-  --accent-3:      #c8bffb;
-  --accent-bg:     rgba(124, 111, 247, 0.09);
-  --accent-border: rgba(124, 111, 247, 0.28);
+  /* Accent — cyan */
+  --accent:        #06b6d4;
+  --accent-2:      #67e8f9;
+  --accent-3:      #a5f3fc;
+  --accent-bg:     rgba(6, 182, 212, 0.09);
+  --accent-border: rgba(6, 182, 212, 0.28);
 
   /* Win rate status */
   --green:     #22d3a0;

@@ -1,8 +1,16 @@
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { supabase } from "../supabase";
 import { TrendChart } from "../components/TrendChart";
-import type { TrendPoint } from "../mock-data";
+import {
+  MOCK_POKEMON_USAGE,
+  MOCK_POKEMON_MOVES,
+  MOCK_POKEMON_ITEMS,
+  MOCK_POKEMON_PARTNERS,
+  MOCK_POKEMON_MATCHUPS,
+  MOCK_POKEMON_TREND,
+  MOCK_POKEMON_PLAYERS,
+} from "../mock-data";
+import type { TrendPoint, PokemonPlayerRow } from "../mock-data";
 import "./ProfilePage.css";
 import "./PokemonPage.css";
 
@@ -13,6 +21,17 @@ interface ItemRow    { item: string;      teams: number; win_rate: number }
 interface PartnerRow { partner_species: string; teams: number; usage_pct: number; win_rate: number }
 interface MatchupRow { opponent_species: string; matches: number; wins: number; win_rate: number }
 interface PokemonStats { usage_pct: number; win_rate: number; teams: number }
+interface TeamRow {
+  player_id:       string;
+  player_name:     string;
+  tournament_id:   string;
+  tournament_name: string;
+  date:            string;
+  placing:         number;
+  wins:            number;
+  losses:          number;
+  teammates:       string[];
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -28,34 +47,23 @@ function pct(v: number | undefined): string {
 
 function wrColor(v: number): string {
   if (v >= 55) return "var(--green)";
-  if (v >= 50) return "var(--accent-2)";
+  if (v >= 50) return "var(--text-h)";
   return "var(--red)";
 }
 
-async function fetchAll(species: string) {
-  const p = { p_species: species };
-  const [usageRes, movesRes, itemsRes, partnersRes, matchupsRes, trendRes] =
-    await Promise.all([
-      supabase.rpc("get_pokemon_usage", {}),
-      supabase.rpc("get_pokemon_moves",    { ...p, p_mode: "all" }),
-      supabase.rpc("get_pokemon_items",    { ...p, p_mode: "all" }),
-      supabase.rpc("get_pokemon_partners", { ...p, p_mode: "all" }),
-      supabase.rpc("get_pokemon_matchups", { ...p, p_mode: "all" }),
-      supabase.rpc("get_pokemon_trend",    p),
-    ]);
-  const firstError = [usageRes, movesRes, itemsRes, partnersRes, matchupsRes, trendRes]
-    .find((r) => r.error)?.error;
-  if (firstError) throw new Error(firstError.message);
-  const allUsage = (usageRes.data ?? []) as { species: string; usage_pct: number; win_rate: number; teams: number }[];
-  return {
-    stats:    allUsage.find((r) => r.species.toLowerCase() === species.toLowerCase()) ?? null,
+function fetchAll(species: string) {
+  const allUsage = MOCK_POKEMON_USAGE;
+  const stats = allUsage.find((r) => r.species.toLowerCase() === species.toLowerCase()) ?? null;
+  return Promise.resolve({
+    stats,
     allUsage,
-    moves:    (movesRes.data    ?? []) as MoveRow[],
-    items:    (itemsRes.data    ?? []) as ItemRow[],
-    partners: (partnersRes.data ?? []) as PartnerRow[],
-    matchups: (matchupsRes.data ?? []) as MatchupRow[],
-    trend:    (trendRes.data    ?? []) as TrendPoint[],
-  };
+    moves:    (MOCK_POKEMON_MOVES[species]    ?? MOCK_POKEMON_MOVES.default)    as MoveRow[],
+    items:    (MOCK_POKEMON_ITEMS[species]    ?? MOCK_POKEMON_ITEMS.default)    as ItemRow[],
+    partners: (MOCK_POKEMON_PARTNERS[species] ?? MOCK_POKEMON_PARTNERS.default) as PartnerRow[],
+    matchups: (MOCK_POKEMON_MATCHUPS[species] ?? MOCK_POKEMON_MATCHUPS.default) as MatchupRow[],
+    trend:    (MOCK_POKEMON_TREND[species]    ?? MOCK_POKEMON_TREND.default)    as TrendPoint[],
+    players:  (MOCK_POKEMON_PLAYERS[species]  ?? MOCK_POKEMON_PLAYERS.default)  as PokemonPlayerRow[],
+  });
 }
 
 // ─── Insights ─────────────────────────────────────────────────────────────────
@@ -278,7 +286,71 @@ function SectionSkeleton({ cols = 3 }: { cols?: number }) {
   );
 }
 
-type Tab = "overview" | "moves" | "items" | "partners" | "matchups";
+type Tab = "overview" | "moves" | "items" | "partners" | "matchups" | "players" | "teams";
+
+// ─── Mock teams data ──────────────────────────────────────────────────────────
+
+function mockTeams(species: string): TeamRow[] {
+  const pool = [
+    ["Garchomp", "Incineroar", "Tornadus", "Landorus-Therian", "Rillaboom"],
+    ["Urshifu", "Regieleki", "Landorus-Therian", "Incineroar", "Grimmsnarl"],
+    ["Flutter Mane", "Iron Hands", "Palafin", "Tornadus", "Incineroar"],
+    ["Chien-Pao", "Amoonguss", "Urshifu", "Incineroar", "Rillaboom"],
+    ["Iron Bundle", "Annihilape", "Landorus-Therian", "Tornadus", "Incineroar"],
+    ["Calyrex-Shadow", "Zacian", "Incineroar", "Rillaboom", "Grimmsnarl"],
+  ];
+  const tournaments = [
+    { id: "t1", name: "Toronto Regional Championship 2026", date: "2026-04-12" },
+    { id: "t2", name: "Charlotte Regional Championship 2026", date: "2026-03-22" },
+    { id: "t3", name: "Stuttgart Regional Championship 2026", date: "2026-03-08" },
+    { id: "t4", name: "San Diego Regional Championship 2026", date: "2026-02-15" },
+    { id: "t5", name: "Bochum Regional Championship 2026", date: "2026-01-25" },
+    { id: "t6", name: "Liverpool Regional Championship 2026", date: "2026-01-11" },
+    { id: "t7", name: "Vancouver Regional Championship 2026", date: "2025-12-07" },
+    { id: "t8", name: "Sydney Regional Championship 2025", date: "2025-11-23" },
+  ];
+  const players = [
+    { id: "p1", name: "Wolfe Glick" },
+    { id: "p2", name: "Sejun Park" },
+    { id: "p3", name: "Aaron Traylor" },
+    { id: "p4", name: "Eduardo Cunha" },
+    { id: "p5", name: "Nico Davide Cognetta" },
+    { id: "p6", name: "Raghav Malaviya" },
+    { id: "p7", name: "James Baek" },
+    { id: "p8", name: "Ashton Cox" },
+    { id: "p9", name: "Justin Burns" },
+    { id: "p10", name: "Sam Pandelis" },
+  ];
+  const placings = [1, 4, 2, 8, 16, 6, 3, 12, 7, 5];
+  const records  = [[8,1],[7,2],[6,2],[6,3],[5,3],[7,1],[8,0],[5,4],[6,2],[7,2]];
+  return Array.from({ length: 10 }, (_, i) => {
+    const t = tournaments[i % tournaments.length];
+    const p = players[i % players.length];
+    const mates = pool[i % pool.length].slice(0, 5);
+    return {
+      player_id:       p.id,
+      player_name:     p.name,
+      tournament_id:   t.id,
+      tournament_name: t.name,
+      date:            t.date,
+      placing:         placings[i],
+      wins:            records[i][0],
+      losses:          records[i][1],
+      teammates:       [species, ...mates],
+    };
+  });
+}
+
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+}
+
+function placingLabel(p: number): string {
+  if (p === 1) return "1st";
+  if (p === 2) return "2nd";
+  if (p === 3) return "3rd";
+  return `${p}th`;
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -295,6 +367,7 @@ export function PokemonPage() {
   const [partners, setPartners] = useState<PartnerRow[]>([]);
   const [matchups, setMatchups] = useState<MatchupRow[]>([]);
   const [trend,    setTrend]    = useState<TrendPoint[]>([]);
+  const [players,  setPlayers]  = useState<PokemonPlayerRow[]>([]);
   const [tab,      setTab]      = useState<Tab>("overview");
 
   useEffect(() => {
@@ -310,6 +383,7 @@ export function PokemonPage() {
         setPartners(d.partners);
         setMatchups(d.matchups);
         setTrend(d.trend);
+        setPlayers(d.players);
       })
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
@@ -332,7 +406,7 @@ export function PokemonPage() {
           </div>
         </div>
         <div className="profile-tabs">
-          {["Overview", "Moves", "Items", "Partners", "Matchups"].map((t) => (
+          {["Overview", "Moves", "Items", "Partners", "Matchups", "Players", "Teams"].map((t) => (
             <button key={t} className="profile-tab" disabled>{t}</button>
           ))}
         </div>
@@ -393,7 +467,7 @@ export function PokemonPage() {
 
       {/* ── Tabs ── */}
       <div className="profile-tabs">
-        {(["overview", "moves", "items", "partners", "matchups"] as Tab[]).map((t) => (
+        {(["overview", "moves", "items", "partners", "matchups", "players", "teams"] as Tab[]).map((t) => (
           <button
             key={t}
             className={`profile-tab${tab === t ? " active" : ""}`}
@@ -522,6 +596,89 @@ export function PokemonPage() {
             </table>
           </>
         )}
+
+        {tab === "players" && (
+          <table className="profile-table">
+            <thead><tr>
+              <th>Player</th>
+              <th className="right">Entries</th>
+              <th className="right">Best</th>
+              <th>Win Rate</th>
+            </tr></thead>
+            <tbody>
+              {players.length === 0
+                ? <tr><td colSpan={4} className="profile-no-data">No data available.</td></tr>
+                : players.map((r, i) => (
+                  <tr key={i}>
+                    <td className="profile-table__name">
+                      <Link to={`/players/${r.player_id}`} className="cell-link">
+                        <span style={{ marginRight: 6 }}>{r.flag}</span>{r.player_name}
+                      </Link>
+                    </td>
+                    <td className="profile-table__num">{r.teams}</td>
+                    <td className="profile-table__num">
+                      <span style={{ color: r.best_placing <= 3 ? "var(--accent-2)" : "var(--text-2)" }}>
+                        {placingLabel(r.best_placing)}
+                      </span>
+                    </td>
+                    <td style={{ width: 180 }}><WinRateBar value={r.win_rate} /></td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        )}
+
+        {tab === "teams" && (() => {
+          const rows = mockTeams(decoded);
+          return (
+            <table className="profile-table">
+              <thead><tr>
+                <th>Date</th>
+                <th>Tournament</th>
+                <th>Player</th>
+                <th className="right">Place</th>
+                <th className="right">Record</th>
+                <th>Team</th>
+              </tr></thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      <span style={{ fontFamily: "var(--font-data)", fontSize: 12, color: "var(--text-4)", fontVariantNumeric: "tabular-nums" }}>
+                        {formatDate(r.date)}
+                      </span>
+                    </td>
+                    <td className="profile-table__name">
+                      <Link to={`/tournaments/${r.tournament_id}`} className="cell-link">
+                        {r.tournament_name}
+                      </Link>
+                    </td>
+                    <td className="profile-table__name">
+                      <Link to={`/players/${r.player_id}`} className="cell-link">
+                        {r.player_name}
+                      </Link>
+                    </td>
+                    <td className="profile-table__num">
+                      <span style={{ color: r.placing <= 3 ? "var(--accent-2)" : "var(--text-2)" }}>
+                        {placingLabel(r.placing)}
+                      </span>
+                    </td>
+                    <td className="profile-table__num">
+                      <span style={{ color: "var(--green)" }}>{r.wins}</span>
+                      <span style={{ color: "var(--text-4)", margin: "0 2px" }}>–</span>
+                      <span style={{ color: "var(--red)" }}>{r.losses}</span>
+                    </td>
+                    <td>
+                      <span style={{ fontFamily: "var(--font-data)", fontSize: 12, color: "var(--text-3)", letterSpacing: "-0.01em" }}>
+                        {r.teammates.join(", ")}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          );
+        })()}
 
       </div>
     </div>

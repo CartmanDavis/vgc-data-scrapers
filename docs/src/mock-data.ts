@@ -444,6 +444,55 @@ export const MOCK_POKEMON_TREND: Record<string, TrendPoint[]> = {
   ]),
 };
 
+// ─── Pokemon players ──────────────────────────────────────────────────────────
+
+export interface PokemonPlayerRow {
+  player_id: string;
+  player_name: string;
+  country: string;
+  flag: string;
+  teams: number;
+  win_rate: number;
+  best_placing: number;
+}
+
+export const MOCK_POKEMON_PLAYERS: Record<string, PokemonPlayerRow[]> = {
+  Garchomp: [
+    { player_id: 'p1',  player_name: 'Aaron Traylor',   country: 'United States',  flag: '🇺🇸', teams: 9,  win_rate: 61.4, best_placing: 1 },
+    { player_id: 'p2',  player_name: 'Wolfe Glick',     country: 'United States',  flag: '🇺🇸', teams: 10, win_rate: 59.8, best_placing: 1 },
+    { player_id: 'p4',  player_name: 'Markus Stadter',  country: 'Germany',        flag: '🇩🇪', teams: 8,  win_rate: 58.2, best_placing: 1 },
+    { player_id: 'p5',  player_name: 'Toler Webb',      country: 'United States',  flag: '🇺🇸', teams: 7,  win_rate: 57.3, best_placing: 1 },
+    { player_id: 'p7',  player_name: 'Edu Folgueras',   country: 'Spain',          flag: '🇪🇸', teams: 6,  win_rate: 54.2, best_placing: 2 },
+    { player_id: 'p8',  player_name: 'Barry Anderson',  country: 'United Kingdom', flag: '🇬🇧', teams: 5,  win_rate: 53.7, best_placing: 2 },
+    { player_id: 'p10', player_name: 'Aaron Park',      country: 'South Korea',    flag: '🇰🇷', teams: 7,  win_rate: 56.1, best_placing: 2 },
+    { player_id: 'p11', player_name: 'Gabby Snyder',    country: 'United States',  flag: '🇺🇸', teams: 4,  win_rate: 51.9, best_placing: 3 },
+    { player_id: 'p13', player_name: 'Hirofumi Kimura', country: 'Japan',          flag: '🇯🇵', teams: 3,  win_rate: 49.8, best_placing: 4 },
+    { player_id: 'p16', player_name: 'Lee Provost',     country: 'Australia',      flag: '🇦🇺', teams: 2,  win_rate: 48.1, best_placing: 6 },
+  ],
+  Mewtwo: [
+    { player_id: 'p3',  player_name: 'Sejun Park',      country: 'South Korea',    flag: '🇰🇷', teams: 8,  win_rate: 58.7, best_placing: 1 },
+    { player_id: 'p1',  player_name: 'Aaron Traylor',   country: 'United States',  flag: '🇺🇸', teams: 9,  win_rate: 61.4, best_placing: 1 },
+    { player_id: 'p6',  player_name: 'Paul Chua',       country: 'Singapore',      flag: '🇸🇬', teams: 5,  win_rate: 55.8, best_placing: 1 },
+    { player_id: 'p4',  player_name: 'Markus Stadter',  country: 'Germany',        flag: '🇩🇪', teams: 6,  win_rate: 59.1, best_placing: 1 },
+    { player_id: 'p14', player_name: 'Ryota Otsubo',    country: 'Japan',          flag: '🇯🇵', teams: 4,  win_rate: 50.3, best_placing: 3 },
+    { player_id: 'p9',  player_name: 'James Baek',      country: 'Canada',         flag: '🇨🇦', teams: 3,  win_rate: 49.6, best_placing: 4 },
+  ],
+  Rayquaza: [
+    { player_id: 'p2',  player_name: 'Wolfe Glick',     country: 'United States',  flag: '🇺🇸', teams: 10, win_rate: 63.2, best_placing: 1 },
+    { player_id: 'p5',  player_name: 'Toler Webb',      country: 'United States',  flag: '🇺🇸', teams: 7,  win_rate: 57.3, best_placing: 1 },
+    { player_id: 'p4',  player_name: 'Markus Stadter',  country: 'Germany',        flag: '🇩🇪', teams: 5,  win_rate: 57.9, best_placing: 1 },
+    { player_id: 'p10', player_name: 'Aaron Park',      country: 'South Korea',    flag: '🇰🇷', teams: 4,  win_rate: 55.4, best_placing: 2 },
+    { player_id: 'p7',  player_name: 'Edu Folgueras',   country: 'Spain',          flag: '🇪🇸', teams: 3,  win_rate: 53.1, best_placing: 2 },
+  ],
+  default: [
+    { player_id: 'p2',  player_name: 'Wolfe Glick',     country: 'United States',  flag: '🇺🇸', teams: 6,  win_rate: 58.4, best_placing: 1 },
+    { player_id: 'p1',  player_name: 'Aaron Traylor',   country: 'United States',  flag: '🇺🇸', teams: 5,  win_rate: 55.1, best_placing: 1 },
+    { player_id: 'p3',  player_name: 'Sejun Park',      country: 'South Korea',    flag: '🇰🇷', teams: 4,  win_rate: 53.8, best_placing: 2 },
+    { player_id: 'p4',  player_name: 'Markus Stadter',  country: 'Germany',        flag: '🇩🇪', teams: 3,  win_rate: 51.2, best_placing: 3 },
+    { player_id: 'p9',  player_name: 'James Baek',      country: 'Canada',         flag: '🇨🇦', teams: 2,  win_rate: 49.7, best_placing: 4 },
+  ],
+};
+
 export const MOCK_MEGA_TREND: Record<string, TrendPoint[]> = {
   Garchompite: trend([
     ['Jan 4',  30.1, 52.4], ['Jan 11', 32.4, 53.1], ['Jan 18', 34.2, 53.9],

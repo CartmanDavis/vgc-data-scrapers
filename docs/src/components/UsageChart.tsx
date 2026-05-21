@@ -23,9 +23,9 @@ interface Props {
 }
 
 function barFill(winRate?: number): string {
-  if (winRate == null) return 'rgba(124,111,247,0.55)';
+  if (winRate == null) return 'rgba(148,163,184,0.45)';
   if (winRate >= 55)   return 'rgba(34,211,160,0.65)';
-  if (winRate >= 50)   return 'rgba(124,111,247,0.65)';
+  if (winRate >= 50)   return 'rgba(148,163,184,0.55)';
   return 'rgba(242,102,120,0.65)';
 }
 
@@ -38,7 +38,7 @@ function CustomTooltip({ active, payload, label }: {
   const usage   = payload.find(p => p.name === 'usage');
   const winRate = payload.find(p => p.name === 'winRate');
   const wr      = winRate?.value;
-  const wrColor = wr == null ? 'var(--text-2)' : wr >= 55 ? 'var(--green)' : wr >= 50 ? 'var(--accent-2)' : 'var(--red)';
+  const wrColor = wr == null ? 'var(--text-2)' : wr >= 55 ? 'var(--green)' : wr >= 50 ? 'var(--text-h)' : 'var(--red)';
   return (
     <div className="chart-tooltip">
       <p className="chart-tooltip__label">{label}</p>
