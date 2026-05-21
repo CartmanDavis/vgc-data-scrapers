@@ -17,27 +17,56 @@ import "./PokemonPage.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface MoveRow    { move_name: string; teams: number; win_rate: number; trend?: TrendPoint[] }
-interface ItemRow    { item: string;      teams: number; win_rate: number; trend?: TrendPoint[] }
-interface PartnerRow { partner_species: string; teams: number; usage_pct: number; win_rate: number; trend?: TrendPoint[] }
-interface MatchupRow { opponent_species: string; matches: number; wins: number; win_rate: number; trend?: TrendPoint[] }
-interface PokemonStats { usage_pct: number; win_rate: number; teams: number }
+interface MoveRow {
+  move_name: string;
+  teams: number;
+  win_rate: number;
+  trend?: TrendPoint[];
+}
+interface ItemRow {
+  item: string;
+  teams: number;
+  win_rate: number;
+  trend?: TrendPoint[];
+}
+interface PartnerRow {
+  partner_species: string;
+  teams: number;
+  usage_pct: number;
+  win_rate: number;
+  trend?: TrendPoint[];
+}
+interface MatchupRow {
+  opponent_species: string;
+  matches: number;
+  wins: number;
+  win_rate: number;
+  trend?: TrendPoint[];
+}
+interface PokemonStats {
+  usage_pct: number;
+  win_rate: number;
+  teams: number;
+}
 interface TeamRow {
-  player_id:       string;
-  player_name:     string;
-  tournament_id:   string;
+  player_id: string;
+  player_name: string;
+  tournament_id: string;
   tournament_name: string;
-  date:            string;
-  placing:         number;
-  wins:            number;
-  losses:          number;
-  teammates:       string[];
+  date: string;
+  placing: number;
+  wins: number;
+  losses: number;
+  teammates: string[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function spriteUrl(species: string): string {
-  const slug = species.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-");
+  const slug = species
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-");
   return `https://img.pokemondb.net/sprites/scarlet-violet/normal/${slug}.png`;
 }
 
@@ -54,16 +83,24 @@ function wrColor(v: number): string {
 
 function fetchAll(species: string) {
   const allUsage = MOCK_POKEMON_USAGE;
-  const stats = allUsage.find((r) => r.species.toLowerCase() === species.toLowerCase()) ?? null;
+  const stats =
+    allUsage.find((r) => r.species.toLowerCase() === species.toLowerCase()) ??
+    null;
   return Promise.resolve({
     stats,
     allUsage,
-    moves:    (MOCK_POKEMON_MOVES[species]    ?? MOCK_POKEMON_MOVES.default)    as MoveRow[],
-    items:    (MOCK_POKEMON_ITEMS[species]    ?? MOCK_POKEMON_ITEMS.default)    as ItemRow[],
-    partners: (MOCK_POKEMON_PARTNERS[species] ?? MOCK_POKEMON_PARTNERS.default) as PartnerRow[],
-    matchups: (MOCK_POKEMON_MATCHUPS[species] ?? MOCK_POKEMON_MATCHUPS.default) as MatchupRow[],
-    trend:    (MOCK_POKEMON_TREND[species]    ?? MOCK_POKEMON_TREND.default)    as TrendPoint[],
-    players:  (MOCK_POKEMON_PLAYERS[species]  ?? MOCK_POKEMON_PLAYERS.default)  as PokemonPlayerRow[],
+    moves: (MOCK_POKEMON_MOVES[species] ??
+      MOCK_POKEMON_MOVES.default) as MoveRow[],
+    items: (MOCK_POKEMON_ITEMS[species] ??
+      MOCK_POKEMON_ITEMS.default) as ItemRow[],
+    partners: (MOCK_POKEMON_PARTNERS[species] ??
+      MOCK_POKEMON_PARTNERS.default) as PartnerRow[],
+    matchups: (MOCK_POKEMON_MATCHUPS[species] ??
+      MOCK_POKEMON_MATCHUPS.default) as MatchupRow[],
+    trend: (MOCK_POKEMON_TREND[species] ??
+      MOCK_POKEMON_TREND.default) as TrendPoint[],
+    players: (MOCK_POKEMON_PLAYERS[species] ??
+      MOCK_POKEMON_PLAYERS.default) as PokemonPlayerRow[],
   });
 }
 
@@ -75,7 +112,16 @@ interface Insight {
   text: string;
 }
 
-type UsageRow = { species: string; usage_pct: number; win_rate: number; teams: number; unique_players?: number; top_cut_players?: number; top_cut_usage?: number; top_cut_wr?: number };
+type UsageRow = {
+  species: string;
+  usage_pct: number;
+  win_rate: number;
+  teams: number;
+  unique_players?: number;
+  top_cut_players?: number;
+  top_cut_usage?: number;
+  top_cut_wr?: number;
+};
 
 function avg(arr: number[]): number {
   return arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0;
@@ -88,17 +134,26 @@ function computeInsights(
   allUsage: UsageRow[],
 ): Insight[] {
   const out: Insight[] = [];
-  const self = allUsage.find((u) => u.species.toLowerCase() === species.toLowerCase());
+  const self = allUsage.find(
+    (u) => u.species.toLowerCase() === species.toLowerCase(),
+  );
 
   // ── Meta rank ──────────────────────────────────────────────────────────────
   if (self && allUsage.length > 1) {
     const sorted = [...allUsage].sort((a, b) => b.usage_pct - a.usage_pct);
-    const rank = sorted.findIndex((u) => u.species.toLowerCase() === species.toLowerCase()) + 1;
+    const rank =
+      sorted.findIndex(
+        (u) => u.species.toLowerCase() === species.toLowerCase(),
+      ) + 1;
     const total = sorted.length;
-    const tier = rank <= 3 ? "one of the most dominant threats in the format"
-               : rank <= 8 ? "a consistent meta staple"
-               : rank <= Math.ceil(total * 0.33) ? "a solid mid-tier presence"
-               : "a niche or fringe pick";
+    const tier =
+      rank <= 3
+        ? "one of the most dominant threats in the format"
+        : rank <= 8
+          ? "a consistent meta staple"
+          : rank <= Math.ceil(total * 0.33)
+            ? "a solid mid-tier presence"
+            : "a niche or fringe pick";
     out.push({
       type: rank <= 8 ? "positive" : "neutral",
       icon: "bi-bar-chart-fill",
@@ -146,8 +201,8 @@ function computeInsights(
 
   // ── Skill split ────────────────────────────────────────────────────────────
   if (self && self.top_cut_wr != null && self.top_cut_usage != null) {
-    const wrDiff     = self.top_cut_wr - self.win_rate;
-    const usageDiff  = self.top_cut_usage - self.usage_pct;
+    const wrDiff = self.top_cut_wr - self.win_rate;
+    const usageDiff = self.top_cut_usage - self.usage_pct;
 
     if (wrDiff >= 3) {
       out.push({
@@ -173,7 +228,7 @@ function computeInsights(
       out.push({
         type: "positive",
         icon: "bi-stars",
-        text: `Overrepresented in top cut — ${self.top_cut_usage.toFixed(1)}% usage among top-placing players vs ${self.usage_pct.toFixed(1)}% overall`,
+        text: `High conversion to top cut — ${self.top_cut_usage.toFixed(1)}% usage among top-placing players vs ${self.usage_pct.toFixed(1)}% overall`,
       });
     } else if (usageDiff <= -5) {
       out.push({
@@ -188,37 +243,68 @@ function computeInsights(
   if (trend.length >= 4) {
     const mid = Math.floor(trend.length / 2);
     const recentUsage = avg(trend.slice(mid).map((d) => d.usage_pct));
-    const olderUsage  = avg(trend.slice(0, mid).map((d) => d.usage_pct));
+    const olderUsage = avg(trend.slice(0, mid).map((d) => d.usage_pct));
     const uDelta = recentUsage - olderUsage;
 
     if (uDelta >= 2) {
-      out.push({ type: "positive", icon: "bi-graph-up-arrow",   text: `Trending up — usage has risen ${uDelta.toFixed(1)}% over the past month` });
+      out.push({
+        type: "positive",
+        icon: "bi-graph-up-arrow",
+        text: `Trending up — usage has risen ${uDelta.toFixed(1)}% over the past month`,
+      });
     } else if (uDelta <= -2) {
-      out.push({ type: "negative", icon: "bi-graph-down-arrow", text: `Falling off — usage has dropped ${Math.abs(uDelta).toFixed(1)}% over the past month` });
+      out.push({
+        type: "negative",
+        icon: "bi-graph-down-arrow",
+        text: `Falling off — usage has dropped ${Math.abs(uDelta).toFixed(1)}% over the past month`,
+      });
     } else {
-      out.push({ type: "neutral",  icon: "bi-activity",         text: "Holding steady — usage is consistent over the past month" });
+      out.push({
+        type: "neutral",
+        icon: "bi-activity",
+        text: "Holding steady — usage is consistent over the past month",
+      });
     }
 
     const recentWR = avg(trend.slice(mid).map((d) => d.win_rate));
-    const olderWR  = avg(trend.slice(0, mid).map((d) => d.win_rate));
+    const olderWR = avg(trend.slice(0, mid).map((d) => d.win_rate));
     const wDelta = recentWR - olderWR;
     if (wDelta >= 2) {
-      out.push({ type: "positive", icon: "bi-shield-fill-check", text: `Win rate improving — up ${wDelta.toFixed(1)}% in recent weeks` });
+      out.push({
+        type: "positive",
+        icon: "bi-shield-fill-check",
+        text: `Win rate improving — up ${wDelta.toFixed(1)}% in recent weeks`,
+      });
     } else if (wDelta <= -2) {
-      out.push({ type: "negative", icon: "bi-shield-fill-x",     text: `Win rate declining — down ${Math.abs(wDelta).toFixed(1)}% in recent weeks` });
+      out.push({
+        type: "negative",
+        icon: "bi-shield-fill-x",
+        text: `Win rate declining — down ${Math.abs(wDelta).toFixed(1)}% in recent weeks`,
+      });
     }
   }
 
   // ── Matchup meta-relevance ──────────────────────────────────────────────────
-  const usageMap = new Map(allUsage.map((u) => [u.species.toLowerCase(), u.usage_pct]));
+  const usageMap = new Map(
+    allUsage.map((u) => [u.species.toLowerCase(), u.usage_pct]),
+  );
   const POPULAR = 15; // usage % threshold to be considered "meta-relevant"
 
   const withMeta = matchups
-    .map((m) => ({ ...m, metaUsage: usageMap.get(m.opponent_species.toLowerCase()) ?? 0 }))
+    .map((m) => ({
+      ...m,
+      metaUsage: usageMap.get(m.opponent_species.toLowerCase()) ?? 0,
+    }))
     .filter((m) => m.metaUsage >= POPULAR);
 
-  const goodVs = withMeta.filter((m) => m.win_rate >= 55).sort((a, b) => b.win_rate - a.win_rate).slice(0, 2);
-  const badVs  = withMeta.filter((m) => m.win_rate <= 45).sort((a, b) => a.win_rate - b.win_rate).slice(0, 2);
+  const goodVs = withMeta
+    .filter((m) => m.win_rate >= 55)
+    .sort((a, b) => b.win_rate - a.win_rate)
+    .slice(0, 2);
+  const badVs = withMeta
+    .filter((m) => m.win_rate <= 45)
+    .sort((a, b) => a.win_rate - b.win_rate)
+    .slice(0, 2);
 
   for (const m of goodVs) {
     out.push({
@@ -259,8 +345,16 @@ function WinRateBar({ value }: { value: number }) {
   const color = wrColor(value);
   return (
     <div className="wr-bar" aria-label={`${pct(value)} win rate`}>
-      <div className="wr-bar__fill" style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: color }} />
-      <span className="wr-bar__label" style={{ color }}>{pct(value)}</span>
+      <div
+        className="wr-bar__fill"
+        style={{
+          width: `${Math.max(0, Math.min(100, value))}%`,
+          background: color,
+        }}
+      />
+      <span className="wr-bar__label" style={{ color }}>
+        {pct(value)}
+      </span>
     </div>
   );
 }
@@ -275,10 +369,31 @@ function SectionSkeleton({ cols = 3 }: { cols?: number }) {
         <tbody>
           {Array.from({ length: 6 }, (_, i) => (
             <tr key={i} className="profile-skel-row">
-              <td><div className="skel" style={{ width: `${45 + (i * 13) % 35}%`, height: 14 }} /></td>
-              <td><div className="skel" style={{ width: 36, height: 14, marginLeft: "auto" }} /></td>
-              {cols >= 3 && <td><div className="skel" style={{ height: 22 }} /></td>}
-              {cols >= 4 && <td><div className="skel" style={{ width: 46, height: 14, marginLeft: "auto" }} /></td>}
+              <td>
+                <div
+                  className="skel"
+                  style={{ width: `${45 + ((i * 13) % 35)}%`, height: 14 }}
+                />
+              </td>
+              <td>
+                <div
+                  className="skel"
+                  style={{ width: 36, height: 14, marginLeft: "auto" }}
+                />
+              </td>
+              {cols >= 3 && (
+                <td>
+                  <div className="skel" style={{ height: 22 }} />
+                </td>
+              )}
+              {cols >= 4 && (
+                <td>
+                  <div
+                    className="skel"
+                    style={{ width: 46, height: 14, marginLeft: "auto" }}
+                  />
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -287,7 +402,14 @@ function SectionSkeleton({ cols = 3 }: { cols?: number }) {
   );
 }
 
-type Tab = "overview" | "moves" | "items" | "partners" | "matchups" | "players" | "teams";
+type Tab =
+  | "overview"
+  | "moves"
+  | "items"
+  | "partners"
+  | "matchups"
+  | "players"
+  | "teams";
 
 // ─── Mock teams data ──────────────────────────────────────────────────────────
 
@@ -301,13 +423,37 @@ function mockTeams(species: string): TeamRow[] {
     ["Calyrex-Shadow", "Zacian", "Incineroar", "Rillaboom", "Grimmsnarl"],
   ];
   const tournaments = [
-    { id: "t1", name: "Toronto Regional Championship 2026", date: "2026-04-12" },
-    { id: "t2", name: "Charlotte Regional Championship 2026", date: "2026-03-22" },
-    { id: "t3", name: "Stuttgart Regional Championship 2026", date: "2026-03-08" },
-    { id: "t4", name: "San Diego Regional Championship 2026", date: "2026-02-15" },
+    {
+      id: "t1",
+      name: "Toronto Regional Championship 2026",
+      date: "2026-04-12",
+    },
+    {
+      id: "t2",
+      name: "Charlotte Regional Championship 2026",
+      date: "2026-03-22",
+    },
+    {
+      id: "t3",
+      name: "Stuttgart Regional Championship 2026",
+      date: "2026-03-08",
+    },
+    {
+      id: "t4",
+      name: "San Diego Regional Championship 2026",
+      date: "2026-02-15",
+    },
     { id: "t5", name: "Bochum Regional Championship 2026", date: "2026-01-25" },
-    { id: "t6", name: "Liverpool Regional Championship 2026", date: "2026-01-11" },
-    { id: "t7", name: "Vancouver Regional Championship 2026", date: "2025-12-07" },
+    {
+      id: "t6",
+      name: "Liverpool Regional Championship 2026",
+      date: "2026-01-11",
+    },
+    {
+      id: "t7",
+      name: "Vancouver Regional Championship 2026",
+      date: "2025-12-07",
+    },
     { id: "t8", name: "Sydney Regional Championship 2025", date: "2025-11-23" },
   ];
   const players = [
@@ -323,27 +469,42 @@ function mockTeams(species: string): TeamRow[] {
     { id: "p10", name: "Sam Pandelis" },
   ];
   const placings = [1, 4, 2, 8, 16, 6, 3, 12, 7, 5];
-  const records  = [[8,1],[7,2],[6,2],[6,3],[5,3],[7,1],[8,0],[5,4],[6,2],[7,2]];
+  const records = [
+    [8, 1],
+    [7, 2],
+    [6, 2],
+    [6, 3],
+    [5, 3],
+    [7, 1],
+    [8, 0],
+    [5, 4],
+    [6, 2],
+    [7, 2],
+  ];
   return Array.from({ length: 10 }, (_, i) => {
     const t = tournaments[i % tournaments.length];
     const p = players[i % players.length];
     const mates = pool[i % pool.length].slice(0, 5);
     return {
-      player_id:       p.id,
-      player_name:     p.name,
-      tournament_id:   t.id,
+      player_id: p.id,
+      player_name: p.name,
+      tournament_id: t.id,
       tournament_name: t.name,
-      date:            t.date,
-      placing:         placings[i],
-      wins:            records[i][0],
-      losses:          records[i][1],
-      teammates:       [species, ...mates],
+      date: t.date,
+      placing: placings[i],
+      wins: records[i][0],
+      losses: records[i][1],
+      teammates: [species, ...mates],
     };
   });
 }
 
 function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  return new Date(d).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function placingLabel(p: number): string {
@@ -372,19 +533,19 @@ export function PokemonPage() {
   const { species } = useParams<{ species: string }>();
   const decoded = species ? decodeURIComponent(species) : "";
 
-  const [loading,          setLoading]          = useState(true);
-  const [error,            setError]            = useState<string | null>(null);
-  const [stats,            setStats]            = useState<PokemonStats | null>(null);
-  const [allUsage,         setAllUsage]         = useState<UsageRow[]>([]);
-  const [moves,            setMoves]            = useState<MoveRow[]>([]);
-  const [items,            setItems]            = useState<ItemRow[]>([]);
-  const [partners,         setPartners]         = useState<PartnerRow[]>([]);
-  const [matchups,         setMatchups]         = useState<MatchupRow[]>([]);
-  const [trend,            setTrend]            = useState<TrendPoint[]>([]);
-  const [players,          setPlayers]          = useState<PokemonPlayerRow[]>([]);
-  const [tab,              setTab]              = useState<Tab>("overview");
-  const [selectedMoves,    setSelectedMoves]    = useState<string[]>([]);
-  const [selectedItems,    setSelectedItems]    = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<PokemonStats | null>(null);
+  const [allUsage, setAllUsage] = useState<UsageRow[]>([]);
+  const [moves, setMoves] = useState<MoveRow[]>([]);
+  const [items, setItems] = useState<ItemRow[]>([]);
+  const [partners, setPartners] = useState<PartnerRow[]>([]);
+  const [matchups, setMatchups] = useState<MatchupRow[]>([]);
+  const [trend, setTrend] = useState<TrendPoint[]>([]);
+  const [players, setPlayers] = useState<PokemonPlayerRow[]>([]);
+  const [tab, setTab] = useState<Tab>("overview");
+  const [selectedMoves, setSelectedMoves] = useState<string[]>([]);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
   const [selectedMatchups, setSelectedMatchups] = useState<string[]>([]);
 
@@ -404,8 +565,12 @@ export function PokemonPage() {
         setPlayers(d.players);
         setSelectedMoves(d.moves.slice(0, 3).map((r) => r.move_name));
         setSelectedItems(d.items.slice(0, 3).map((r) => r.item));
-        setSelectedPartners(d.partners.slice(0, 3).map((r) => r.partner_species));
-        setSelectedMatchups(d.matchups.slice(0, 3).map((r) => r.opponent_species));
+        setSelectedPartners(
+          d.partners.slice(0, 3).map((r) => r.partner_species),
+        );
+        setSelectedMatchups(
+          d.matchups.slice(0, 3).map((r) => r.opponent_species),
+        );
       })
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
@@ -424,7 +589,11 @@ export function PokemonPage() {
   }
 
   if (!decoded) {
-    return <div className="profile-page"><div className="profile-empty">No Pokemon selected.</div></div>;
+    return (
+      <div className="profile-page">
+        <div className="profile-empty">No Pokemon selected.</div>
+      </div>
+    );
   }
 
   if (loading) {
@@ -435,13 +604,25 @@ export function PokemonPage() {
             <div className="skel skel--back" />
             <div className="skel skel--name" />
             <div className="profile-stats">
-              {[0, 1, 2].map((i) => <div key={i} className="skel skel--stat" />)}
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="skel skel--stat" />
+              ))}
             </div>
           </div>
         </div>
         <div className="profile-tabs">
-          {["Overview", "Moves", "Items", "Partners", "Matchups", "Players", "Teams"].map((t) => (
-            <button key={t} className="profile-tab" disabled>{t}</button>
+          {[
+            "Overview",
+            "Moves",
+            "Items",
+            "Partners",
+            "Matchups",
+            "Players",
+            "Teams",
+          ].map((t) => (
+            <button key={t} className="profile-tab" disabled>
+              {t}
+            </button>
           ))}
         </div>
         <div className="profile-body">
@@ -456,9 +637,22 @@ export function PokemonPage() {
       <div className="profile-page">
         <div className="profile-hero">
           <div className="profile-hero__content">
-            <Link to="/pokemon" className="back-link"><i className="bi bi-arrow-left" /> All Pokemon</Link>
-            <h2 className="profile-name" style={{ color: "var(--red)" }}>Failed to load</h2>
-            <p style={{ color: "var(--text-3)", fontSize: 13, fontFamily: "var(--font-ui)", marginTop: 8 }}>{error}</p>
+            <Link to="/pokemon" className="back-link">
+              <i className="bi bi-arrow-left" /> All Pokemon
+            </Link>
+            <h2 className="profile-name" style={{ color: "var(--red)" }}>
+              Failed to load
+            </h2>
+            <p
+              style={{
+                color: "var(--text-3)",
+                fontSize: 13,
+                fontFamily: "var(--font-ui)",
+                marginTop: 8,
+              }}
+            >
+              {error}
+            </p>
           </div>
         </div>
       </div>
@@ -467,7 +661,6 @@ export function PokemonPage() {
 
   return (
     <div className="profile-page">
-
       {/* ── Hero ── */}
       <div className="profile-hero">
         <div className="pokemon-art-glow" />
@@ -475,23 +668,36 @@ export function PokemonPage() {
           src={spriteUrl(decoded)}
           alt={decoded}
           className="pokemon-art"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
         />
         <div className="profile-hero__content">
-          <Link to="/pokemon" className="back-link"><i className="bi bi-arrow-left" /> All Pokemon</Link>
+          <Link to="/pokemon" className="back-link">
+            <i className="bi bi-arrow-left" /> All Pokemon
+          </Link>
           <h2 className="profile-name">{decoded}</h2>
           {stats && (
             <div className="profile-stats">
               <div className="profile-stat">
-                <span className="profile-stat__value">{pct(stats.usage_pct)}</span>
+                <span className="profile-stat__value">
+                  {pct(stats.usage_pct)}
+                </span>
                 <span className="profile-stat__label">Usage</span>
               </div>
               <div className="profile-stat">
-                <span className="profile-stat__value" style={{ color: wrColor(stats.win_rate) }}>{pct(stats.win_rate)}</span>
+                <span
+                  className="profile-stat__value"
+                  style={{ color: wrColor(stats.win_rate) }}
+                >
+                  {pct(stats.win_rate)}
+                </span>
                 <span className="profile-stat__label">Win Rate</span>
               </div>
               <div className="profile-stat">
-                <span className="profile-stat__value">{stats.teams.toLocaleString()}</span>
+                <span className="profile-stat__value">
+                  {stats.teams.toLocaleString()}
+                </span>
                 <span className="profile-stat__label">Teams</span>
               </div>
             </div>
@@ -501,7 +707,17 @@ export function PokemonPage() {
 
       {/* ── Tabs ── */}
       <div className="profile-tabs">
-        {(["overview", "moves", "items", "partners", "matchups", "players", "teams"] as Tab[]).map((t) => (
+        {(
+          [
+            "overview",
+            "moves",
+            "items",
+            "partners",
+            "matchups",
+            "players",
+            "teams",
+          ] as Tab[]
+        ).map((t) => (
           <button
             key={t}
             className={`profile-tab${tab === t ? " active" : ""}`}
@@ -514,266 +730,497 @@ export function PokemonPage() {
 
       {/* ── Content ── */}
       <div className="profile-body">
-
         {tab === "overview" && (
           <>
-            <InsightsPanel insights={computeInsights(decoded, trend, matchups, allUsage)} />
-            {trend.length > 0
-              ? <TrendChart data={trend} name={decoded} defaultMetric="both" height={280} />
-              : <p className="profile-no-data" style={{ padding: "32px 0" }}>No trend data available.</p>
-            }
+            <InsightsPanel
+              insights={computeInsights(decoded, trend, matchups, allUsage)}
+            />
+            {trend.length > 0 ? (
+              <TrendChart
+                data={trend}
+                name={decoded}
+                defaultMetric="both"
+                height={280}
+              />
+            ) : (
+              <p className="profile-no-data" style={{ padding: "32px 0" }}>
+                No trend data available.
+              </p>
+            )}
           </>
         )}
 
-        {tab === "moves" && (() => {
-          const series = moves
-            .filter((r) => selectedMoves.includes(r.move_name))
-            .map((r) => ({
-              name: r.move_name,
-              color: SERIES_COLORS[moves.findIndex((m) => m.move_name === r.move_name) % SERIES_COLORS.length],
-              points: r.trend ?? trend,
-            }));
-          return (
-            <>
-              {series.length > 0 && <MultiTrendChart series={series} defaultMetric="usage" height={200} />}
-              <table className="profile-table">
-                <thead><tr>
-                  <th>Move</th>
-                  <th className="right">Teams</th>
-                  <th>Win Rate</th>
-                </tr></thead>
-                <tbody>
-                  {moves.length === 0
-                    ? <tr><td colSpan={3} className="profile-no-data">No data available.</td></tr>
-                    : moves.map((r, i) => (
-                      <tr
-                        key={i}
-                        className={selectedMoves.includes(r.move_name) ? "profile-table__row--selected" : ""}
-                        style={{ cursor: "pointer" }}
-                        onClick={() => toggleSelection(r.move_name, selectedMoves, setSelectedMoves)}
-                      >
-                        <td className="profile-table__name" style={{ color: selectedMoves.includes(r.move_name) ? SERIES_COLORS[i % SERIES_COLORS.length] : undefined }}>
-                          {r.move_name}
+        {tab === "moves" &&
+          (() => {
+            const series = moves
+              .filter((r) => selectedMoves.includes(r.move_name))
+              .map((r) => ({
+                name: r.move_name,
+                color:
+                  SERIES_COLORS[
+                    moves.findIndex((m) => m.move_name === r.move_name) %
+                      SERIES_COLORS.length
+                  ],
+                points: r.trend ?? trend,
+              }));
+            return (
+              <>
+                {series.length > 0 && (
+                  <MultiTrendChart
+                    series={series}
+                    defaultMetric="usage"
+                    height={200}
+                  />
+                )}
+                <table className="profile-table">
+                  <thead>
+                    <tr>
+                      <th>Move</th>
+                      <th className="right">Teams</th>
+                      <th>Win Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {moves.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="profile-no-data">
+                          No data available.
                         </td>
-                        <td className="profile-table__num">{r.teams}</td>
-                        <td style={{ width: 180 }}><WinRateBar value={r.win_rate} /></td>
                       </tr>
-                    ))}
-                </tbody>
-              </table>
-            </>
-          );
-        })()}
+                    ) : (
+                      moves.map((r, i) => (
+                        <tr
+                          key={i}
+                          className={
+                            selectedMoves.includes(r.move_name)
+                              ? "profile-table__row--selected"
+                              : ""
+                          }
+                          style={{ cursor: "pointer" }}
+                          onClick={() =>
+                            toggleSelection(
+                              r.move_name,
+                              selectedMoves,
+                              setSelectedMoves,
+                            )
+                          }
+                        >
+                          <td
+                            className="profile-table__name"
+                            style={{
+                              color: selectedMoves.includes(r.move_name)
+                                ? SERIES_COLORS[i % SERIES_COLORS.length]
+                                : undefined,
+                            }}
+                          >
+                            {r.move_name}
+                          </td>
+                          <td className="profile-table__num">{r.teams}</td>
+                          <td style={{ width: 180 }}>
+                            <WinRateBar value={r.win_rate} />
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </>
+            );
+          })()}
 
-        {tab === "items" && (() => {
-          const series = items
-            .filter((r) => selectedItems.includes(r.item))
-            .map((r) => ({
-              name: r.item,
-              color: SERIES_COLORS[items.findIndex((m) => m.item === r.item) % SERIES_COLORS.length],
-              points: r.trend ?? trend,
-            }));
-          return (
-            <>
-              {series.length > 0 && <MultiTrendChart series={series} defaultMetric="usage" height={200} />}
-              <table className="profile-table">
-                <thead><tr>
-                  <th>Item</th>
-                  <th className="right">Teams</th>
-                  <th>Win Rate</th>
-                </tr></thead>
-                <tbody>
-                  {items.length === 0
-                    ? <tr><td colSpan={3} className="profile-no-data">No data available.</td></tr>
-                    : items.map((r, i) => (
-                      <tr
-                        key={i}
-                        className={selectedItems.includes(r.item) ? "profile-table__row--selected" : ""}
-                        style={{ cursor: "pointer" }}
-                        onClick={() => toggleSelection(r.item, selectedItems, setSelectedItems)}
-                      >
-                        <td className="profile-table__name" style={{ color: selectedItems.includes(r.item) ? SERIES_COLORS[i % SERIES_COLORS.length] : undefined }}>
-                          {r.item}
+        {tab === "items" &&
+          (() => {
+            const series = items
+              .filter((r) => selectedItems.includes(r.item))
+              .map((r) => ({
+                name: r.item,
+                color:
+                  SERIES_COLORS[
+                    items.findIndex((m) => m.item === r.item) %
+                      SERIES_COLORS.length
+                  ],
+                points: r.trend ?? trend,
+              }));
+            return (
+              <>
+                {series.length > 0 && (
+                  <MultiTrendChart
+                    series={series}
+                    defaultMetric="usage"
+                    height={200}
+                  />
+                )}
+                <table className="profile-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th className="right">Teams</th>
+                      <th>Win Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="profile-no-data">
+                          No data available.
                         </td>
-                        <td className="profile-table__num">{r.teams}</td>
-                        <td style={{ width: 180 }}><WinRateBar value={r.win_rate} /></td>
                       </tr>
-                    ))}
-                </tbody>
-              </table>
-            </>
-          );
-        })()}
+                    ) : (
+                      items.map((r, i) => (
+                        <tr
+                          key={i}
+                          className={
+                            selectedItems.includes(r.item)
+                              ? "profile-table__row--selected"
+                              : ""
+                          }
+                          style={{ cursor: "pointer" }}
+                          onClick={() =>
+                            toggleSelection(
+                              r.item,
+                              selectedItems,
+                              setSelectedItems,
+                            )
+                          }
+                        >
+                          <td
+                            className="profile-table__name"
+                            style={{
+                              color: selectedItems.includes(r.item)
+                                ? SERIES_COLORS[i % SERIES_COLORS.length]
+                                : undefined,
+                            }}
+                          >
+                            {r.item}
+                          </td>
+                          <td className="profile-table__num">{r.teams}</td>
+                          <td style={{ width: 180 }}>
+                            <WinRateBar value={r.win_rate} />
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </>
+            );
+          })()}
 
-        {tab === "partners" && (() => {
-          const series = partners
-            .filter((r) => selectedPartners.includes(r.partner_species))
-            .map((r) => ({
-              name: r.partner_species,
-              color: SERIES_COLORS[partners.findIndex((m) => m.partner_species === r.partner_species) % SERIES_COLORS.length],
-              points: r.trend ?? trend,
-            }));
-          return (
-            <>
-              {series.length > 0 && <MultiTrendChart series={series} defaultMetric="usage" height={200} />}
-              <table className="profile-table">
-                <thead><tr>
-                  <th>Pokémon</th>
-                  <th className="right">Teams</th>
-                  <th className="right">Usage</th>
-                  <th>Win Rate</th>
-                </tr></thead>
-                <tbody>
-                  {partners.length === 0
-                    ? <tr><td colSpan={4} className="profile-no-data">No data available.</td></tr>
-                    : partners.map((r, i) => (
-                      <tr
-                        key={i}
-                        className={selectedPartners.includes(r.partner_species) ? "profile-table__row--selected" : ""}
-                        style={{ cursor: "pointer" }}
-                        onClick={() => toggleSelection(r.partner_species, selectedPartners, setSelectedPartners)}
-                      >
-                        <td className="profile-table__name" style={{ color: selectedPartners.includes(r.partner_species) ? SERIES_COLORS[i % SERIES_COLORS.length] : undefined }}>
-                          <Link to={`/pokemon/${encodeURIComponent(r.partner_species)}`} className="cell-link" onClick={(e) => e.stopPropagation()}>
-                            {r.partner_species}
-                          </Link>
+        {tab === "partners" &&
+          (() => {
+            const series = partners
+              .filter((r) => selectedPartners.includes(r.partner_species))
+              .map((r) => ({
+                name: r.partner_species,
+                color:
+                  SERIES_COLORS[
+                    partners.findIndex(
+                      (m) => m.partner_species === r.partner_species,
+                    ) % SERIES_COLORS.length
+                  ],
+                points: r.trend ?? trend,
+              }));
+            return (
+              <>
+                {series.length > 0 && (
+                  <MultiTrendChart
+                    series={series}
+                    defaultMetric="usage"
+                    height={200}
+                  />
+                )}
+                <table className="profile-table">
+                  <thead>
+                    <tr>
+                      <th>Pokémon</th>
+                      <th className="right">Teams</th>
+                      <th className="right">Usage</th>
+                      <th>Win Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {partners.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="profile-no-data">
+                          No data available.
                         </td>
-                        <td className="profile-table__num">{r.teams}</td>
-                        <td className="profile-table__num">{pct(r.usage_pct)}</td>
-                        <td style={{ width: 180 }}><WinRateBar value={r.win_rate} /></td>
                       </tr>
-                    ))}
-                </tbody>
-              </table>
-            </>
-          );
-        })()}
+                    ) : (
+                      partners.map((r, i) => (
+                        <tr
+                          key={i}
+                          className={
+                            selectedPartners.includes(r.partner_species)
+                              ? "profile-table__row--selected"
+                              : ""
+                          }
+                          style={{ cursor: "pointer" }}
+                          onClick={() =>
+                            toggleSelection(
+                              r.partner_species,
+                              selectedPartners,
+                              setSelectedPartners,
+                            )
+                          }
+                        >
+                          <td
+                            className="profile-table__name"
+                            style={{
+                              color: selectedPartners.includes(
+                                r.partner_species,
+                              )
+                                ? SERIES_COLORS[i % SERIES_COLORS.length]
+                                : undefined,
+                            }}
+                          >
+                            <Link
+                              to={`/pokemon/${encodeURIComponent(r.partner_species)}`}
+                              className="cell-link"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {r.partner_species}
+                            </Link>
+                          </td>
+                          <td className="profile-table__num">{r.teams}</td>
+                          <td className="profile-table__num">
+                            {pct(r.usage_pct)}
+                          </td>
+                          <td style={{ width: 180 }}>
+                            <WinRateBar value={r.win_rate} />
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </>
+            );
+          })()}
 
-        {tab === "matchups" && (() => {
-          const series = matchups
-            .filter((r) => selectedMatchups.includes(r.opponent_species))
-            .map((r) => ({
-              name: r.opponent_species,
-              color: SERIES_COLORS[matchups.findIndex((m) => m.opponent_species === r.opponent_species) % SERIES_COLORS.length],
-              points: r.trend ?? trend,
-            }));
-          return (
-            <>
-              {series.length > 0 && <MultiTrendChart series={series} defaultMetric="winrate" height={200} />}
-              <table className="profile-table">
-                <thead><tr>
-                  <th>Opponent</th>
-                  <th className="right">Matches</th>
-                  <th>Win Rate</th>
-                </tr></thead>
-                <tbody>
-                  {matchups.length === 0
-                    ? <tr><td colSpan={3} className="profile-no-data">No data available.</td></tr>
-                    : matchups.map((r, i) => (
-                      <tr
-                        key={i}
-                        className={selectedMatchups.includes(r.opponent_species) ? "profile-table__row--selected" : ""}
-                        style={{ cursor: "pointer" }}
-                        onClick={() => toggleSelection(r.opponent_species, selectedMatchups, setSelectedMatchups)}
-                      >
-                        <td className="profile-table__name" style={{ color: selectedMatchups.includes(r.opponent_species) ? SERIES_COLORS[i % SERIES_COLORS.length] : undefined }}>
-                          <Link to={`/pokemon/${encodeURIComponent(r.opponent_species)}`} className="cell-link" onClick={(e) => e.stopPropagation()}>
-                            {r.opponent_species}
-                          </Link>
+        {tab === "matchups" &&
+          (() => {
+            const series = matchups
+              .filter((r) => selectedMatchups.includes(r.opponent_species))
+              .map((r) => ({
+                name: r.opponent_species,
+                color:
+                  SERIES_COLORS[
+                    matchups.findIndex(
+                      (m) => m.opponent_species === r.opponent_species,
+                    ) % SERIES_COLORS.length
+                  ],
+                points: r.trend ?? trend,
+              }));
+            return (
+              <>
+                {series.length > 0 && (
+                  <MultiTrendChart
+                    series={series}
+                    defaultMetric="winrate"
+                    height={200}
+                  />
+                )}
+                <table className="profile-table">
+                  <thead>
+                    <tr>
+                      <th>Opponent</th>
+                      <th className="right">Matches</th>
+                      <th>Win Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {matchups.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="profile-no-data">
+                          No data available.
                         </td>
-                        <td className="profile-table__num">{r.matches}</td>
-                        <td style={{ width: 180 }}><WinRateBar value={r.win_rate} /></td>
                       </tr>
-                    ))}
-                </tbody>
-              </table>
-            </>
-          );
-        })()}
+                    ) : (
+                      matchups.map((r, i) => (
+                        <tr
+                          key={i}
+                          className={
+                            selectedMatchups.includes(r.opponent_species)
+                              ? "profile-table__row--selected"
+                              : ""
+                          }
+                          style={{ cursor: "pointer" }}
+                          onClick={() =>
+                            toggleSelection(
+                              r.opponent_species,
+                              selectedMatchups,
+                              setSelectedMatchups,
+                            )
+                          }
+                        >
+                          <td
+                            className="profile-table__name"
+                            style={{
+                              color: selectedMatchups.includes(
+                                r.opponent_species,
+                              )
+                                ? SERIES_COLORS[i % SERIES_COLORS.length]
+                                : undefined,
+                            }}
+                          >
+                            <Link
+                              to={`/pokemon/${encodeURIComponent(r.opponent_species)}`}
+                              className="cell-link"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {r.opponent_species}
+                            </Link>
+                          </td>
+                          <td className="profile-table__num">{r.matches}</td>
+                          <td style={{ width: 180 }}>
+                            <WinRateBar value={r.win_rate} />
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </>
+            );
+          })()}
 
         {tab === "players" && (
           <table className="profile-table">
-            <thead><tr>
-              <th>Player</th>
-              <th className="right">Entries</th>
-              <th className="right">Best</th>
-              <th>Win Rate</th>
-            </tr></thead>
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th className="right">Entries</th>
+                <th className="right">Best</th>
+                <th>Win Rate</th>
+              </tr>
+            </thead>
             <tbody>
-              {players.length === 0
-                ? <tr><td colSpan={4} className="profile-no-data">No data available.</td></tr>
-                : players.map((r, i) => (
+              {players.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="profile-no-data">
+                    No data available.
+                  </td>
+                </tr>
+              ) : (
+                players.map((r, i) => (
                   <tr key={i}>
                     <td className="profile-table__name">
-                      <Link to={`/players/${r.player_id}`} className="cell-link">
-                        <span style={{ marginRight: 6 }}>{r.flag}</span>{r.player_name}
+                      <Link
+                        to={`/players/${r.player_id}`}
+                        className="cell-link"
+                      >
+                        <span style={{ marginRight: 6 }}>{r.flag}</span>
+                        {r.player_name}
                       </Link>
                     </td>
                     <td className="profile-table__num">{r.teams}</td>
                     <td className="profile-table__num">
-                      <span style={{ color: r.best_placing <= 3 ? "var(--accent-2)" : "var(--text-2)" }}>
+                      <span
+                        style={{
+                          color:
+                            r.best_placing <= 3
+                              ? "var(--accent-2)"
+                              : "var(--text-2)",
+                        }}
+                      >
                         {placingLabel(r.best_placing)}
                       </span>
                     </td>
-                    <td style={{ width: 180 }}><WinRateBar value={r.win_rate} /></td>
+                    <td style={{ width: 180 }}>
+                      <WinRateBar value={r.win_rate} />
+                    </td>
                   </tr>
-                ))}
+                ))
+              )}
             </tbody>
           </table>
         )}
 
-        {tab === "teams" && (() => {
-          const rows = mockTeams(decoded);
-          return (
-            <table className="profile-table">
-              <thead><tr>
-                <th>Date</th>
-                <th>Tournament</th>
-                <th>Player</th>
-                <th className="right">Place</th>
-                <th className="right">Record</th>
-                <th>Team</th>
-              </tr></thead>
-              <tbody>
-                {rows.map((r, i) => (
-                  <tr key={i}>
-                    <td style={{ whiteSpace: "nowrap" }}>
-                      <span style={{ fontFamily: "var(--font-data)", fontSize: 12, color: "var(--text-4)", fontVariantNumeric: "tabular-nums" }}>
-                        {formatDate(r.date)}
-                      </span>
-                    </td>
-                    <td className="profile-table__name">
-                      <Link to={`/tournaments/${r.tournament_id}`} className="cell-link">
-                        {r.tournament_name}
-                      </Link>
-                    </td>
-                    <td className="profile-table__name">
-                      <Link to={`/players/${r.player_id}`} className="cell-link">
-                        {r.player_name}
-                      </Link>
-                    </td>
-                    <td className="profile-table__num">
-                      <span style={{ color: r.placing <= 3 ? "var(--accent-2)" : "var(--text-2)" }}>
-                        {placingLabel(r.placing)}
-                      </span>
-                    </td>
-                    <td className="profile-table__num">
-                      <span style={{ color: "var(--green)" }}>{r.wins}</span>
-                      <span style={{ color: "var(--text-4)", margin: "0 2px" }}>–</span>
-                      <span style={{ color: "var(--red)" }}>{r.losses}</span>
-                    </td>
-                    <td>
-                      <span style={{ fontFamily: "var(--font-data)", fontSize: 12, color: "var(--text-3)", letterSpacing: "-0.01em" }}>
-                        {r.teammates.join(", ")}
-                      </span>
-                    </td>
+        {tab === "teams" &&
+          (() => {
+            const rows = mockTeams(decoded);
+            return (
+              <table className="profile-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Tournament</th>
+                    <th>Player</th>
+                    <th className="right">Place</th>
+                    <th className="right">Record</th>
+                    <th>Team</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          );
-        })()}
-
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => (
+                    <tr key={i}>
+                      <td style={{ whiteSpace: "nowrap" }}>
+                        <span
+                          style={{
+                            fontFamily: "var(--font-data)",
+                            fontSize: 12,
+                            color: "var(--text-4)",
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          {formatDate(r.date)}
+                        </span>
+                      </td>
+                      <td className="profile-table__name">
+                        <Link
+                          to={`/tournaments/${r.tournament_id}`}
+                          className="cell-link"
+                        >
+                          {r.tournament_name}
+                        </Link>
+                      </td>
+                      <td className="profile-table__name">
+                        <Link
+                          to={`/players/${r.player_id}`}
+                          className="cell-link"
+                        >
+                          {r.player_name}
+                        </Link>
+                      </td>
+                      <td className="profile-table__num">
+                        <span
+                          style={{
+                            color:
+                              r.placing <= 3
+                                ? "var(--accent-2)"
+                                : "var(--text-2)",
+                          }}
+                        >
+                          {placingLabel(r.placing)}
+                        </span>
+                      </td>
+                      <td className="profile-table__num">
+                        <span style={{ color: "var(--green)" }}>{r.wins}</span>
+                        <span
+                          style={{ color: "var(--text-4)", margin: "0 2px" }}
+                        >
+                          –
+                        </span>
+                        <span style={{ color: "var(--red)" }}>{r.losses}</span>
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            fontFamily: "var(--font-data)",
+                            fontSize: 12,
+                            color: "var(--text-3)",
+                            letterSpacing: "-0.01em",
+                          }}
+                        >
+                          {r.teammates.join(", ")}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            );
+          })()}
       </div>
     </div>
   );
