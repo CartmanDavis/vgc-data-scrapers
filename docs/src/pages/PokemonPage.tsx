@@ -22,9 +22,12 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceArea,
 } from "recharts";
 import { Dex } from "@pkmn/dex";
+import type { ID, ModData } from "@pkmn/dex";
 import { Generations } from "@pkmn/data";
+import * as ChampionsMod from "@pkmn/mods/champions";
 import "./ProfilePage.css";
 import "./PokemonPage.css";
 import { PokemonIcon } from "../components/PokemonIcon";
@@ -498,7 +501,12 @@ type Tab = "overview" | "moves" | "items" | "partners" | "matchups" | "stats";
 
 // ─── Stat distribution via @pkmn ─────────────────────────────────────────────
 
-const _gens = new Generations(Dex);
+const _championsDex = Dex.mod("champions" as ID, ChampionsMod as unknown as ModData);
+const _gens = new Generations(_championsDex, (d) => {
+  if (!d.exists) return false;
+  if ("isNonstandard" in d && d.isNonstandard) return false;
+  return true;
+});
 const _gen9 = _gens.get(9);
 
 type StatKey = "hp" | "atk" | "def" | "spa" | "spd" | "spe";
@@ -517,31 +525,70 @@ function spForStat(row: SpreadRow, stat: StatKey): number {
   return { hp: row.hp, atk: row.atk, def: row.def, spa: row.spa, spd: row.spd, spe: row.spe }[stat];
 }
 
+// M-A format stat formula (from champions mod statModify):
+//   HP:    base + sp + 75
+//   Other: base + sp + 20, then nature ±10%
+function maCalcStat(
+  stat: StatKey,
+  base: number,
+  sp: number,
+  nature: ReturnType<typeof _gen9.natures.get> | undefined | null,
+): number {
+  if (stat === "hp") return base + sp + 75;
+  let val = base + sp + 20;
+  if (nature?.plus === stat) val = Math.trunc(Math.trunc(val * 110) / 100);
+  else if (nature?.minus === stat) val = Math.trunc(Math.trunc(val * 90) / 100);
+  return val;
+}
+
+// Full stat range for a given stat in effective mode (0 SP minus nature → 32 SP plus nature)
+function effectiveStatDomain(species: string, stat: StatKey): [number, number] {
+  const mon = _championsDex.species.get(species);
+  if (!mon?.exists) return [0, 32];
+  const base = mon.baseStats[stat];
+  if (stat === "hp") return [base + 75, base + 107];
+  const minVal = Math.trunc(Math.trunc((base + 20) * 90) / 100);
+  const maxVal = Math.trunc(Math.trunc((base + 52) * 110) / 100);
+  return [minVal, maxVal];
+}
+
+// Boundaries between neutral range and nature-only zones (null for HP since nature doesn't apply)
+function effectiveStatNatureZones(species: string, stat: StatKey): {
+  minusBound: number; neutralMin: number; neutralMax: number; plusBound: number;
+} | null {
+  if (stat === "hp") return null;
+  const mon = _championsDex.species.get(species);
+  if (!mon?.exists) return null;
+  const base = mon.baseStats[stat];
+  return {
+    minusBound: Math.trunc(Math.trunc((base + 20) * 90) / 100),
+    neutralMin: base + 20,
+    neutralMax: base + 52,
+    plusBound: Math.trunc(Math.trunc((base + 52) * 110) / 100),
+  };
+}
+
 function buildStatDistribution(
   species: string,
   spreads: SpreadRow[],
+  stat: StatKey,
   mode: "investment" | "effective",
-): { value: number; [stat: string]: number }[] {
-  // Use Dex.species (not gen-restricted) so mega formes resolve correctly
-  const mon = Dex.species.get(species);
-  const buckets = new Map<number, Partial<Record<StatKey, number>>>();
+): { value: number; usage: number }[] {
+  const mon = _championsDex.species.get(species);
+  const buckets = new Map<number, number>();
 
   for (const row of spreads) {
     const nature = mon?.exists ? _gen9.natures.get(row.nature) : null;
-    for (const stat of STAT_KEYS) {
-      const sp = spForStat(row, stat);
-      const value = mode === "effective" && mon?.exists && nature
-        ? _gen9.stats.calc(stat, mon.baseStats[stat], 31, sp, 50, nature)
-        : sp;
-      const bucket = buckets.get(value) ?? {};
-      bucket[stat] = (bucket[stat] ?? 0) + row.usage_pct;
-      buckets.set(value, bucket);
-    }
+    const sp = spForStat(row, stat);
+    const value = mode === "effective" && mon?.exists
+      ? maCalcStat(stat, mon.baseStats[stat], sp, nature)
+      : sp;
+    buckets.set(value, (buckets.get(value) ?? 0) + row.usage_pct);
   }
 
   return [...buckets.entries()]
     .sort(([a], [b]) => a - b)
-    .map(([value, stats]) => ({ value, ...stats }));
+    .map(([value, usage]) => ({ value, usage }));
 }
 
 // ─── Mock teams data ──────────────────────────────────────────────────────────
@@ -692,7 +739,7 @@ export function PokemonPage() {
   const [matchupSort, setMatchupSort] = useState<SortState<"win_rate" | "opp_usage">>(null);
   const [spreadSort, setSpreadSort] = useState<SortState<"usage_pct">>({ col: "usage_pct", dir: "desc" });
   const [statViewMode, setStatViewMode] = useState<"investment" | "effective">("investment");
-  const [visibleStats, setVisibleStats] = useState<StatKey[]>([...STAT_KEYS]);
+  const [selectedStat, setSelectedStat] = useState<StatKey>("hp");
 
   useEffect(() => {
     if (!decoded) return;
@@ -1453,32 +1500,27 @@ export function PokemonPage() {
 
               {/* Distribution chart */}
               <div className="trend-chart" style={{ paddingTop: 0 }}>
-                <div className="trend-chart__header">
+                <div className="trend-chart__header stat-chart-header">
                   <div className="trend-chart__title">
                     <span className="trend-chart__name">Stats</span>
                     <span className="trend-chart__period">Jan – Apr 2026 · weekly</span>
                   </div>
                   <div className="trend-chart__right" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <div className="stat-btn-group">
                       {STAT_KEYS.map((stat) => {
-                        const active = visibleStats.includes(stat);
+                        const active = selectedStat === stat;
                         return (
                           <button
                             key={stat}
-                            onClick={() =>
-                              setVisibleStats(
-                                active && visibleStats.length > 1
-                                  ? visibleStats.filter((s) => s !== stat)
-                                  : active ? visibleStats : [...visibleStats, stat],
-                              )
-                            }
+                            className="stat-btn"
+                            onClick={() => setSelectedStat(stat)}
                             style={{
-                              display: "flex", alignItems: "center", gap: 5,
-                              padding: "3px 10px", borderRadius: 99,
+                              display: "flex", alignItems: "center",
+                              borderRadius: 99,
                               border: `1px solid ${active ? STAT_COLORS[stat] : "var(--border)"}`,
                               background: active ? `${STAT_COLORS[stat]}22` : "transparent",
                               color: active ? STAT_COLORS[stat] : "var(--text-4)",
-                              fontSize: 11, fontFamily: "var(--font-ui)", fontWeight: 600,
+                              fontFamily: "var(--font-ui)", fontWeight: 600,
                               cursor: "pointer", transition: "all 0.15s",
                             }}
                           >
@@ -1504,13 +1546,40 @@ export function PokemonPage() {
                   </div>
                 </div>
                 {(() => {
-                const distData = buildStatDistribution(decoded, spreads, statViewMode);
+                const distData = buildStatDistribution(decoded, spreads, selectedStat, statViewMode);
+                const domain: [number, number] = statViewMode === "investment"
+                  ? [0, 32]
+                  : effectiveStatDomain(decoded, selectedStat);
+                const ticks = statViewMode === "investment"
+                  ? [0, 4, 8, 12, 16, 20, 24, 28, 32]
+                  : undefined;
+                const zones = statViewMode === "effective"
+                  ? effectiveStatNatureZones(decoded, selectedStat)
+                  : null;
                 return (
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={distData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="stat-minus-grad" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#ef4444" stopOpacity={0.35} />
+                          <stop offset="60%" stopColor="#ef4444" stopOpacity={0.35} />
+                          <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="stat-plus-grad" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#22c55e" stopOpacity={0} />
+                          <stop offset="40%" stopColor="#22c55e" stopOpacity={0.35} />
+                          <stop offset="100%" stopColor="#22c55e" stopOpacity={0.35} />
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="1 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                      {zones && <ReferenceArea x1={zones.minusBound} x2={zones.neutralMin} fill="url(#stat-minus-grad)" strokeOpacity={0} />}
+                      {zones && <ReferenceArea x1={zones.neutralMax} x2={zones.plusBound} fill="url(#stat-plus-grad)" strokeOpacity={0} />}
                       <XAxis
                         dataKey="value"
+                        type="number"
+                        domain={domain}
+                        ticks={ticks}
+                        padding={{ left: 10, right: 10 }}
                         tick={{ fontSize: 11, fill: "var(--text-4)", fontFamily: "JetBrains Mono, monospace" }}
                         axisLine={{ stroke: "var(--border)" }}
                         tickLine={false}
@@ -1523,20 +1592,17 @@ export function PokemonPage() {
                       />
                       <Tooltip
                         contentStyle={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--radius)", fontSize: 12, fontFamily: "var(--font-ui)" }}
-                        formatter={(v: number, name: string) => [`${v.toFixed(1)}%`, STAT_LABELS[name as StatKey] ?? name]}
+                        formatter={(v: number) => [`${v.toFixed(1)}%`, STAT_LABELS[selectedStat]]}
                         labelFormatter={(v) => statViewMode === "investment" ? `${v} SP` : `Stat: ${v}`}
-                        cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                        cursor={false}
                       />
-                      {STAT_KEYS.filter((s) => visibleStats.includes(s)).map((stat) => (
-                        <Bar
-                          key={stat}
-                          dataKey={stat}
-                          name={stat}
-                          fill={STAT_COLORS[stat]}
-                          maxBarSize={20}
-                          radius={[2, 2, 0, 0]}
-                        />
-                      ))}
+                      <Bar
+                        dataKey="usage"
+                        fill={STAT_COLORS[selectedStat]}
+                        maxBarSize={20}
+                        radius={[2, 2, 0, 0]}
+                        activeBar={{ fill: STAT_COLORS[selectedStat], stroke: "white", strokeWidth: 2, strokeOpacity: 0.5 }}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 );

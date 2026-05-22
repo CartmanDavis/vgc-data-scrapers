@@ -17,6 +17,7 @@
   "dependencies": {
     "@pkmn/data": "^0.10.9",
     "@pkmn/dex": "^0.10.9",
+    "@pkmn/mods": "^0.10.9",
     "@supabase/supabase-js": "^2.49.0",
     "ag-grid-community": "^35.2.1",
     "ag-grid-react": "^35.2.1",

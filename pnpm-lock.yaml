@@ -82,6 +82,9 @@ importers:
       '@pkmn/dex':
         specifier: ^0.10.9
         version: 0.10.9
+      '@pkmn/mods':
+        specifier: ^0.10.9
+        version: 0.10.9
       '@supabase/supabase-js':
         specifier: ^2.49.0
         version: 2.105.1
@@ -552,6 +555,9 @@ packages:
 
   '@pkmn/dex@0.10.9':
     resolution: {integrity: sha512-MzNQmIDrVb7kAheSvwD3fZm2gZRlsFKnKtp8FXHgVFlkTqaD0bv1M4ndFXicTKlsmeYX4WP+3mGZqFgKQTwahA==}
+
+  '@pkmn/mods@0.10.9':
+    resolution: {integrity: sha512-8CF00ql7zMqEkaa/mg8i60f4DZrUvGLrXCXkgWWzLIcFtra8L4DHhGvqCwBM1iowrkhxJ47qZlqN78tK57mkbw==}
 
   '@pkmn/types@4.0.0':
     resolution: {integrity: sha512-gR2s/pxJYEegek1TtsYCQupNR3d5hMlcJFsiD+2LyfKr4tc+gETTql47tWLX5mFSbPcbXh7f4+7txlMIDoZx/g==}
@@ -3098,6 +3104,10 @@ snapshots:
       '@pkmn/dex-types': 0.10.7
 
   '@pkmn/dex@0.10.9':
+    dependencies:
+      '@pkmn/dex-types': 0.10.9
+
+  '@pkmn/mods@0.10.9':
     dependencies:
       '@pkmn/dex-types': 0.10.9
 
