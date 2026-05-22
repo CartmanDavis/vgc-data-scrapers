@@ -6,6 +6,7 @@ import { MetagamePage } from './pages/MetagamePage';
 import { PokemonListPage } from './pages/PokemonListPage';
 import { PokemonPage } from './pages/PokemonPage';
 import { MegaListPage } from './pages/MegaListPage';
+import { TeamsPage } from './pages/TeamsPage';
 import { MegaPage } from './pages/MegaPage';
 import { TournamentsPage } from './pages/TournamentsPage';
 import { TournamentDetailPage } from './pages/TournamentDetailPage';
@@ -45,6 +46,7 @@ function App() {
           <Route path="/"                 element={<MetagamePage />} />
           <Route path="/pokemon"          element={<PokemonListPage />} />
           <Route path="/pokemon/:species" element={<PokemonPage />} />
+          <Route path="/teams"             element={<TeamsPage />} />
           <Route path="/mega"             element={<MegaListPage />} />
           <Route path="/mega/:item"       element={<MegaPage />} />
           <Route path="/tournaments"      element={<TournamentsPage />} />

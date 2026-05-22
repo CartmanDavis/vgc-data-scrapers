@@ -66,7 +66,7 @@ const INTL_ENTRIES = [
 
 // ─── Team compositions ────────────────────────────────────────────────────────
 
-const TEAMS: string[][] = [
+export const TEAMS: string[][] = [
   ['Garchomp',  'Mewtwo',    'Groudon',   'Kyogre',    'Rayquaza',  'Gengar'    ],
   ['Garchomp',  'Charizard', 'Blaziken',  'Blastoise',  'Salamence', 'Lucario'  ],
   ['Mewtwo',    'Groudon',   'Kyogre',    'Salamence',  'Gengar',    'Medicham'  ],
@@ -75,6 +75,87 @@ const TEAMS: string[][] = [
   ['Mewtwo',    'Rayquaza',  'Blastoise', 'Medicham',   'Charizard', 'Swampert'  ],
   ['Garchomp',  'Gengar',    'Venusaur',  'Mewtwo',     'Kyogre',    'Blaziken'  ],
   ['Salamence', 'Charizard', 'Groudon',   'Lucario',    'Garchomp',  'Rayquaza'  ],
+];
+
+export interface PokemonSlot {
+  species: string;
+  item:    string;
+  moves:   string[];
+}
+
+export const TEAM_ROSTERS: PokemonSlot[][] = [
+  // Team 0: Garchomp / Mewtwo / Groudon / Kyogre / Rayquaza / Gengar
+  [
+    { species: 'Garchomp',  item: 'Garchompite',   moves: ['Earthquake', 'Dragon Claw', 'Stone Edge', 'Protect'] },
+    { species: 'Mewtwo',    item: 'Life Orb',       moves: ['Psystrike', 'Ice Beam', 'Aura Sphere', 'Protect'] },
+    { species: 'Groudon',   item: 'Red Orb',        moves: ['Precipice Blades', 'Rock Slide', 'Fire Punch', 'Protect'] },
+    { species: 'Kyogre',    item: 'Blue Orb',       moves: ['Origin Pulse', 'Ice Beam', 'Thunder', 'Protect'] },
+    { species: 'Rayquaza',  item: 'None',           moves: ['Dragon Ascent', 'Extreme Speed', 'Earthquake', 'Protect'] },
+    { species: 'Gengar',    item: 'Choice Scarf',   moves: ['Shadow Ball', 'Sludge Bomb', 'Dazzling Gleam', 'Trick'] },
+  ],
+  // Team 1: Garchomp / Charizard / Blaziken / Blastoise / Salamence / Lucario
+  [
+    { species: 'Garchomp',  item: 'Choice Scarf',   moves: ['Earthquake', 'Dragon Claw', 'Stone Edge', 'Outrage'] },
+    { species: 'Charizard', item: 'Charizardite Y', moves: ['Heat Wave', 'Solar Beam', 'Air Slash', 'Protect'] },
+    { species: 'Blaziken',  item: 'Blazikenite',    moves: ['High Jump Kick', 'Flare Blitz', 'Stone Edge', 'Protect'] },
+    { species: 'Blastoise', item: 'Assault Vest',   moves: ['Scald', 'Ice Beam', 'Dark Pulse', 'Aura Sphere'] },
+    { species: 'Salamence', item: 'Choice Band',    moves: ['Double-Edge', 'Earthquake', 'Dragon Claw', 'Outrage'] },
+    { species: 'Lucario',   item: 'Life Orb',       moves: ['Close Combat', 'Flash Cannon', 'Extreme Speed', 'Protect'] },
+  ],
+  // Team 2: Mewtwo / Groudon / Kyogre / Salamence / Gengar / Medicham
+  [
+    { species: 'Mewtwo',    item: 'Mewtwonite X',   moves: ['Psystrike', 'Ice Beam', 'Flamethrower', 'Protect'] },
+    { species: 'Groudon',   item: 'Red Orb',        moves: ['Precipice Blades', 'Rock Slide', 'Thunder Punch', 'Protect'] },
+    { species: 'Kyogre',    item: 'Blue Orb',       moves: ['Origin Pulse', 'Thunder', 'Ice Beam', 'Protect'] },
+    { species: 'Salamence', item: 'Salamencite',    moves: ['Double-Edge', 'Earthquake', 'Dragon Claw', 'Protect'] },
+    { species: 'Gengar',    item: 'Focus Sash',     moves: ['Shadow Ball', 'Sludge Bomb', 'Will-O-Wisp', 'Protect'] },
+    { species: 'Medicham',  item: 'Medichamite',    moves: ['Fake Out', 'High Jump Kick', 'Ice Punch', 'Protect'] },
+  ],
+  // Team 3: Rayquaza / Garchomp / Charizard / Venusaur / Swampert / Lucario
+  [
+    { species: 'Rayquaza',  item: 'None',           moves: ['Dragon Ascent', 'Extreme Speed', 'V-Create', 'Protect'] },
+    { species: 'Garchomp',  item: 'Garchompite',    moves: ['Earthquake', 'Dragon Claw', 'Rock Slide', 'Protect'] },
+    { species: 'Charizard', item: 'Choice Scarf',   moves: ['Heat Wave', 'Air Slash', 'Focus Blast', 'Overheat'] },
+    { species: 'Venusaur',  item: 'Venusaurite',    moves: ['Petal Blizzard', 'Sludge Bomb', 'Synthesis', 'Protect'] },
+    { species: 'Swampert',  item: 'Swampertite',    moves: ['Waterfall', 'Earthquake', 'Ice Punch', 'Protect'] },
+    { species: 'Lucario',   item: 'Life Orb',       moves: ['Close Combat', 'Flash Cannon', 'Extreme Speed', 'Protect'] },
+  ],
+  // Team 4: Kyogre / Groudon / Gengar / Salamence / Blaziken / Garchomp
+  [
+    { species: 'Kyogre',    item: 'Blue Orb',       moves: ['Origin Pulse', 'Thunder', 'Scald', 'Protect'] },
+    { species: 'Groudon',   item: 'Red Orb',        moves: ['Precipice Blades', 'Rock Slide', 'Fire Punch', 'Protect'] },
+    { species: 'Gengar',    item: 'Gengarite',      moves: ['Shadow Ball', 'Sludge Bomb', 'Dazzling Gleam', 'Protect'] },
+    { species: 'Salamence', item: 'Choice Scarf',   moves: ['Draco Meteor', 'Hyper Voice', 'Flamethrower', 'Earthquake'] },
+    { species: 'Blaziken',  item: 'Blazikenite',    moves: ['High Jump Kick', 'Flare Blitz', 'Rock Slide', 'Protect'] },
+    { species: 'Garchomp',  item: 'Focus Sash',     moves: ['Earthquake', 'Dragon Claw', 'Stone Edge', 'Stealth Rock'] },
+  ],
+  // Team 5: Mewtwo / Rayquaza / Blastoise / Medicham / Charizard / Swampert
+  [
+    { species: 'Mewtwo',    item: 'Mewtwonite Y',   moves: ['Psystrike', 'Aura Sphere', 'Ice Beam', 'Protect'] },
+    { species: 'Rayquaza',  item: 'None',           moves: ['Dragon Ascent', 'Extreme Speed', 'Earthquake', 'Protect'] },
+    { species: 'Blastoise', item: 'Blastoisinite',  moves: ['Scald', 'Ice Beam', 'Dark Pulse', 'Protect'] },
+    { species: 'Medicham',  item: 'Focus Sash',     moves: ['Fake Out', 'High Jump Kick', 'Thunder Punch', 'Protect'] },
+    { species: 'Charizard', item: 'Charizardite X', moves: ['Flare Blitz', 'Dragon Claw', 'Earthquake', 'Protect'] },
+    { species: 'Swampert',  item: 'Assault Vest',   moves: ['Waterfall', 'Earthquake', 'Ice Punch', 'Superpower'] },
+  ],
+  // Team 6: Garchomp / Gengar / Venusaur / Mewtwo / Kyogre / Blaziken
+  [
+    { species: 'Garchomp',  item: 'Life Orb',       moves: ['Earthquake', 'Dragon Claw', 'Rock Slide', 'Protect'] },
+    { species: 'Gengar',    item: 'Gengarite',      moves: ['Shadow Ball', 'Sludge Bomb', 'Focus Blast', 'Protect'] },
+    { species: 'Venusaur',  item: 'Black Sludge',   moves: ['Petal Blizzard', 'Sludge Bomb', 'Sleep Powder', 'Protect'] },
+    { species: 'Mewtwo',    item: 'Choice Scarf',   moves: ['Psystrike', 'Ice Beam', 'Flamethrower', 'Thunderbolt'] },
+    { species: 'Kyogre',    item: 'Blue Orb',       moves: ['Origin Pulse', 'Ice Beam', 'Thunder', 'Protect'] },
+    { species: 'Blaziken',  item: 'Blazikenite',    moves: ['High Jump Kick', 'Flare Blitz', 'Stone Edge', 'Protect'] },
+  ],
+  // Team 7: Salamence / Charizard / Groudon / Lucario / Garchomp / Rayquaza
+  [
+    { species: 'Salamence', item: 'Salamencite',    moves: ['Double-Edge', 'Earthquake', 'Dragon Claw', 'Protect'] },
+    { species: 'Charizard', item: 'Charizardite Y', moves: ['Heat Wave', 'Solar Beam', 'Focus Blast', 'Protect'] },
+    { species: 'Groudon',   item: 'Red Orb',        moves: ['Precipice Blades', 'Rock Slide', 'Fire Punch', 'Protect'] },
+    { species: 'Lucario',   item: 'Lucarionite',    moves: ['Close Combat', 'Flash Cannon', 'Extreme Speed', 'Protect'] },
+    { species: 'Garchomp',  item: 'Garchompite',    moves: ['Earthquake', 'Dragon Claw', 'Stone Edge', 'Protect'] },
+    { species: 'Rayquaza',  item: 'None',           moves: ['Dragon Ascent', 'Extreme Speed', 'V-Create', 'Protect'] },
+  ],
 ];
 
 // ─── Fake tournament index ────────────────────────────────────────────────────

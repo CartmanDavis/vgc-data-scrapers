@@ -4,7 +4,7 @@ import "./NavBar.css";
 const PRIMARY_NAV = [
   { to: "/", end: true, icon: "bi-bar-chart-fill", label: "Metagame" },
   { to: "/pokemon", end: false, icon: "bi-circle-fill", label: "Pokemon" },
-  { to: "/mega", end: false, icon: "bi-gem", label: "Mega" },
+  { to: "/teams", end: false, icon: "bi-card-list", label: "Teams" },
   { to: "/tournaments", end: false, icon: "bi-trophy", label: "Tournaments" },
   { to: "/players", end: false, icon: "bi-people-fill", label: "Players" },
 ];
