@@ -41,6 +41,26 @@ export const CUSTOM_ITEMS: Map<string, string> = new Map([
  */
 export const CUSTOM_SPECIES: Map<string, string> = new Map();
 
+/**
+ * Species name aliases: maps alternate names used by external sources (e.g. Limitless)
+ * to the @pkmn/dex-compatible lookup name. Applied before the normal dex lookup.
+ * Keys are lowercase raw names; values are dex lookup strings.
+ */
+export const SPECIES_ALIASES: Map<string, string> = new Map([
+  // Limitless uses adjective-first order; dex expects species-first
+  ['eternal flower floette', 'Floette-Eternal'],
+  ['wash rotom',             'Rotom-Wash'],
+  ['heat rotom',             'Rotom-Heat'],
+  ['frost rotom',            'Rotom-Frost'],
+  ['fan rotom',              'Rotom-Fan'],
+  ['mow rotom',              'Rotom-Mow'],
+  // Limitless says "Paldean", dex uses "Paldea"
+  ['paldean tauros aqua breed', 'Tauros-Paldea-Aqua'],
+  // Aegislash-Blade is an in-battle form only; store as base species
+  ['aegislash blade forme',  'Aegislash'],
+  ['aegislash blade',        'Aegislash'],
+]);
+
 // Regex for mega stone detection on custom items not known to @pkmn/dex.
 // Matches items ending in 'ite' (case-insensitive), excluding 'Eviolite'.
 const MEGA_STONE_PATTERN = /ite$/i;
@@ -55,13 +75,19 @@ export function validatePokemon(raw: RawPokemon): ValidatedPokemon {
   let lookupSpecies = rawSpecies;
   let isMegaFromName = false;
 
-  // Strip "Mega " prefix and optional trailing X/Y/Z form letter before Dex lookup.
-  // @pkmn/dex only knows base species names, not "Mega Venusaur"-style names.
-  if (lookupSpecies.startsWith('Mega ')) {
-    isMegaFromName = true;
-    lookupSpecies = lookupSpecies.slice(5);
-    if (/^.+ [XYZ]$/.test(lookupSpecies)) {
-      lookupSpecies = lookupSpecies.slice(0, -2);
+  // Apply source-specific name aliases before any other normalization.
+  const aliased = SPECIES_ALIASES.get(rawSpecies.toLowerCase());
+  if (aliased !== undefined) {
+    lookupSpecies = aliased;
+  } else {
+    // Strip "Mega " prefix and optional trailing X/Y/Z form letter before Dex lookup.
+    // @pkmn/dex only knows base species names, not "Mega Venusaur"-style names.
+    if (lookupSpecies.startsWith('Mega ')) {
+      isMegaFromName = true;
+      lookupSpecies = lookupSpecies.slice(5);
+      if (/^.+ [XYZ]$/.test(lookupSpecies)) {
+        lookupSpecies = lookupSpecies.slice(0, -2);
+      }
     }
   }
 
