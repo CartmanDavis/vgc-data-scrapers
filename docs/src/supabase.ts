@@ -105,7 +105,8 @@ function rpcData(fn: string, params?: Record<string, unknown>): unknown {
     }
     case 'get_nature_trends': {
       const sp = String(params?.p_species ?? '');
-      return MOCK_NATURE_TRENDS[sp] ?? MOCK_NATURE_TRENDS.default ?? {};
+      const val = MOCK_NATURE_TRENDS[sp] ?? MOCK_NATURE_TRENDS.default;
+      return Array.isArray(val) ? val : [];
     }
     case 'get_teams_with_rosters': return [];
     default: return [];
@@ -115,7 +116,9 @@ function rpcData(fn: string, params?: Record<string, unknown>): unknown {
 // ─── Client (real or mock) ────────────────────────────────────────────────────
 
 function isDemoMode(): boolean {
-  return !_realClient || (window as unknown as { __DEMO_MODE__?: DemoMode }).__DEMO_MODE__ != null;
+  if (!_realClient) return true;
+  const m = (window as unknown as { __DEMO_MODE__?: DemoMode }).__DEMO_MODE__;
+  return m === 'loading' || m === 'error';
 }
 
 export const supabase = {
