@@ -114,6 +114,87 @@ CREATE INDEX IF NOT EXISTS idx_tournament_standings_player    ON tournament_stan
 CREATE INDEX IF NOT EXISTS idx_ps_usage_stats_month_format    ON ps_usage_stats(month, format);
 CREATE INDEX IF NOT EXISTS idx_ps_usage_stats_species         ON ps_usage_stats(species);
 
+CREATE INDEX IF NOT EXISTS idx_pokemon_sets_item_lower        ON pokemon_sets(LOWER(item));
+CREATE INDEX IF NOT EXISTS idx_pokemon_sets_species_lower     ON pokemon_sets(LOWER(species));
+
+-- ─── Materialized views ───────────────────────────────────────────────────────
+-- Caches expensive full-dataset queries. Refresh after each processor run via
+-- the refresh_materialized_views() RPC.
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS pokemon_usage_mv AS
+  WITH
+  total AS (
+    SELECT COUNT(*)::numeric AS n
+    FROM teams t
+    JOIN tournaments tour ON tour.id = t.tournament_id
+    WHERE tour.format = 'M-A'
+  ),
+  tc_teams AS (
+    WITH tc_phases AS (
+      SELECT m.tournament_id, MAX(m.phase) AS max_phase
+      FROM matches m
+      JOIN tournaments t ON t.id = m.tournament_id
+      WHERE t.format = 'M-A' AND m.phase IS NOT NULL
+      GROUP BY m.tournament_id
+      HAVING COUNT(DISTINCT m.phase) > 1
+    )
+    SELECT DISTINCT mp.team_id
+    FROM match_participants mp
+    JOIN matches m ON m.id = mp.match_id
+    JOIN tc_phases tcp ON tcp.tournament_id = m.tournament_id AND m.phase = tcp.max_phase
+  ),
+  tc_mp AS (
+    WITH tc_phases AS (
+      SELECT m.tournament_id, MAX(m.phase) AS max_phase
+      FROM matches m
+      JOIN tournaments t ON t.id = m.tournament_id
+      WHERE t.format = 'M-A' AND m.phase IS NOT NULL
+      GROUP BY m.tournament_id
+      HAVING COUNT(DISTINCT m.phase) > 1
+    )
+    SELECT mp.team_id, mp.score
+    FROM match_participants mp
+    JOIN matches m ON m.id = mp.match_id
+    JOIN tc_phases tcp ON tcp.tournament_id = m.tournament_id AND m.phase = tcp.max_phase
+  ),
+  top_cut_total AS (SELECT COUNT(*)::numeric AS n FROM tc_teams),
+  base AS (
+    SELECT
+      ps.species,
+      BOOL_OR(ps.is_mega) AS is_mega,
+      COUNT(DISTINCT t.id) AS teams,
+      ROUND(SUM(mp.score) * 100.0 / NULLIF(COUNT(mp.score), 0), 2) AS win_rate
+    FROM pokemon_sets ps
+    JOIN teams t ON t.id = ps.team_id
+    JOIN tournaments tour ON tour.id = t.tournament_id
+    JOIN match_participants mp ON mp.team_id = t.id
+    WHERE tour.format = 'M-A'
+    GROUP BY ps.species
+  ),
+  top_cut AS (
+    SELECT
+      ps.species,
+      COUNT(DISTINCT t.id) AS teams,
+      ROUND(SUM(tcmp.score) * 100.0 / NULLIF(COUNT(tcmp.score), 0), 2) AS win_rate
+    FROM pokemon_sets ps
+    JOIN teams t ON t.id = ps.team_id
+    JOIN tc_mp tcmp ON tcmp.team_id = t.id
+    GROUP BY ps.species
+  )
+  SELECT
+    b.species, b.is_mega, b.teams,
+    ROUND(b.teams * 100.0 / total.n, 2)           AS usage_pct,
+    b.win_rate,
+    COALESCE(tc.teams, 0)                          AS top_cut_teams,
+    ROUND(COALESCE(tc.teams, 0) * 100.0 / top_cut_total.n, 2) AS top_cut_usage,
+    tc.win_rate                                    AS top_cut_wr
+  FROM base b
+  CROSS JOIN total CROSS JOIN top_cut_total
+  LEFT JOIN top_cut tc ON tc.species = b.species
+  ORDER BY b.teams DESC;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pokemon_usage_mv_species ON pokemon_usage_mv(species);
+
 -- ─── Row-Level Security ───────────────────────────────────────────────────────
 -- All normalized tables are publicly readable (anon key).
 -- limitless_api_raw_data is admin-only (service_role bypasses RLS automatically).

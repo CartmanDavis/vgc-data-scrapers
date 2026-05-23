@@ -11,6 +11,7 @@ import type {
 
 export class SupabaseDataStore implements IDataStore {
   private client: SupabaseClient;
+  get supabase() { return this.client; }
 
   constructor(url: string, serviceRoleKey: string) {
     this.client = createClient(url, serviceRoleKey, {

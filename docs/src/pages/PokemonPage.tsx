@@ -194,7 +194,7 @@ async function fetchAll(species: string) {
   const allUsage = (usageRes.data ?? []) as UsageRow[];
   const stats = allUsage.find((r) => r.species.toLowerCase() === species.toLowerCase()) ?? null;
   // pivot nature trends: flat rows { nature, date, usage_pct, win_rate } → Record<nature, TrendPoint[]>
-  const flatNt = (natureTrendRes.data ?? []) as { nature: string; date: string; usage_pct: number; win_rate: number }[];
+  const flatNt = (Array.isArray(natureTrendRes.data) ? natureTrendRes.data : []) as { nature: string; date: string; usage_pct: number; win_rate: number }[];
   const natureTrends: Record<string, TrendPoint[]> = {};
   for (const row of flatNt) {
     (natureTrends[row.nature] ??= []).push({ date: row.date, usage_pct: row.usage_pct, win_rate: row.win_rate });

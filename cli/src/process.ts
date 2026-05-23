@@ -36,6 +36,13 @@ program
     });
 
     console.log(JSON.stringify(result, null, 2));
+
+    if (result.success && (result.errors as string[]).length === 0) {
+      const { error: refreshErr } = await db.supabase.rpc('refresh_materialized_views');
+      if (refreshErr) console.warn('Warning: failed to refresh materialized views:', refreshErr.message);
+      else console.log('Materialized views refreshed.');
+    }
+
     db.close();
     if (!result.success || (result.errors as string[]).length > 0) process.exit(1);
   });

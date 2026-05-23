@@ -124,7 +124,7 @@ function isDemoMode(): boolean {
 export const supabase = {
   rpc: (fn: string, params?: Record<string, unknown>) => {
     if (isDemoMode()) return resolve(rpcData(fn, params));
-    return _realClient!.rpc(fn, params ?? {});
+    return Promise.resolve(_realClient!.rpc(fn, params ?? {}));
   },
 
   from: (_table: string) => ({
@@ -136,7 +136,7 @@ export const supabase = {
           if (m === 'error')   return Promise.resolve({ data: null, count: null, error: { message: 'Demo error' } });
           return Promise.resolve({ data: MOCK_TOURNAMENTS, count: MOCK_TOURNAMENTS.length, error: null });
         }
-        return _realClient!.from(_table).select(_cols, _opts as object).eq(_col, _val);
+        return Promise.resolve(_realClient!.from(_table).select(_cols, _opts as object).eq(_col, _val));
       },
     }),
   }),

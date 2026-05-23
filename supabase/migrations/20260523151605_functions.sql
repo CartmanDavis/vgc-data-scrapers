@@ -2,17 +2,6 @@
 -- Run in the Supabase SQL editor (safe to re-run; all are CREATE OR REPLACE).
 -- After running, execute: NOTIFY pgrst, 'reload schema';
 
--- ─── Materialized view refresh ────────────────────────────────────────────────
--- Called by the processor after each run. CONCURRENTLY means reads are never
--- blocked; requires the unique index on each MV.
-
-CREATE OR REPLACE FUNCTION refresh_materialized_views()
-RETURNS void
-LANGUAGE sql SECURITY DEFINER AS $$
-  REFRESH MATERIALIZED VIEW CONCURRENTLY pokemon_usage_mv;
-$$;
-GRANT EXECUTE ON FUNCTION refresh_materialized_views() TO service_role;
-
 -- ─── Drop old overloads ───────────────────────────────────────────────────────
 
 DROP FUNCTION IF EXISTS get_pokemon_usage();
@@ -113,62 +102,51 @@ RETURNS TABLE (
   top_cut_usage NUMERIC,
   top_cut_wr    NUMERIC
 )
-LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$
-BEGIN
-  IF p_since IS NULL THEN
-    RETURN QUERY
-      SELECT mv.species, mv.is_mega, mv.teams, mv.usage_pct, mv.win_rate,
-             mv.top_cut_teams, mv.top_cut_usage, mv.top_cut_wr
-      FROM pokemon_usage_mv mv
-      ORDER BY mv.teams DESC;
-  ELSE
-    RETURN QUERY
-      WITH
-      total AS (
-        SELECT COUNT(*)::numeric AS n
-        FROM teams t
-        JOIN tournaments tour ON tour.id = t.tournament_id
-        WHERE tour.format = 'M-A' AND tour.date >= p_since
-      ),
-      tc_teams AS MATERIALIZED (SELECT team_id FROM top_cut_teams_ma(p_since)),
-      tc_mp    AS MATERIALIZED (SELECT team_id, score FROM top_cut_match_participants_ma(p_since)),
-      top_cut_total AS (SELECT COUNT(*)::numeric AS n FROM tc_teams),
-      base AS (
-        SELECT
-          ps.species,
-          BOOL_OR(ps.is_mega) AS is_mega,
-          COUNT(DISTINCT t.id) AS teams,
-          ROUND(SUM(mp.score) * 100.0 / NULLIF(COUNT(mp.score), 0), 2) AS win_rate
-        FROM pokemon_sets ps
-        JOIN teams t ON t.id = ps.team_id
-        JOIN tournaments tour ON tour.id = t.tournament_id
-        JOIN match_participants mp ON mp.team_id = t.id
-        WHERE tour.format = 'M-A' AND tour.date >= p_since
-        GROUP BY ps.species
-      ),
-      top_cut AS (
-        SELECT
-          ps.species,
-          COUNT(DISTINCT t.id) AS teams,
-          ROUND(SUM(tcmp.score) * 100.0 / NULLIF(COUNT(tcmp.score), 0), 2) AS win_rate
-        FROM pokemon_sets ps
-        JOIN teams t ON t.id = ps.team_id
-        JOIN tc_mp tcmp ON tcmp.team_id = t.id
-        GROUP BY ps.species
-      )
-      SELECT
-        b.species, b.is_mega, b.teams,
-        ROUND(b.teams * 100.0 / total.n, 2),
-        b.win_rate,
-        COALESCE(tc.teams, 0),
-        ROUND(COALESCE(tc.teams, 0) * 100.0 / top_cut_total.n, 2),
-        tc.win_rate
-      FROM base b
-      CROSS JOIN total CROSS JOIN top_cut_total
-      LEFT JOIN top_cut tc ON tc.species = b.species
-      ORDER BY b.teams DESC;
-  END IF;
-END;
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  WITH
+  total AS (
+    SELECT COUNT(*)::numeric AS n
+    FROM teams t
+    JOIN tournaments tour ON tour.id = t.tournament_id
+    WHERE tour.format = 'M-A' AND (p_since IS NULL OR tour.date >= p_since)
+  ),
+  tc_teams AS MATERIALIZED (SELECT team_id FROM top_cut_teams_ma(p_since)),
+  tc_mp    AS MATERIALIZED (SELECT team_id, score FROM top_cut_match_participants_ma(p_since)),
+  top_cut_total AS (SELECT COUNT(*)::numeric AS n FROM tc_teams),
+  base AS (
+    SELECT
+      ps.species,
+      BOOL_OR(ps.is_mega) AS is_mega,
+      COUNT(DISTINCT t.id) AS teams,
+      ROUND(SUM(mp.score) * 100.0 / NULLIF(COUNT(mp.score), 0), 2) AS win_rate
+    FROM pokemon_sets ps
+    JOIN teams t ON t.id = ps.team_id
+    JOIN tournaments tour ON tour.id = t.tournament_id
+    JOIN match_participants mp ON mp.team_id = t.id
+    WHERE tour.format = 'M-A' AND (p_since IS NULL OR tour.date >= p_since)
+    GROUP BY ps.species
+  ),
+  top_cut AS (
+    SELECT
+      ps.species,
+      COUNT(DISTINCT t.id) AS teams,
+      ROUND(SUM(tcmp.score) * 100.0 / NULLIF(COUNT(tcmp.score), 0), 2) AS win_rate
+    FROM pokemon_sets ps
+    JOIN teams t ON t.id = ps.team_id
+    JOIN tc_mp tcmp ON tcmp.team_id = t.id
+    GROUP BY ps.species
+  )
+  SELECT
+    b.species, b.is_mega, b.teams,
+    ROUND(b.teams * 100.0 / total.n, 2),
+    b.win_rate,
+    COALESCE(tc.teams, 0),
+    ROUND(COALESCE(tc.teams, 0) * 100.0 / top_cut_total.n, 2),
+    tc.win_rate
+  FROM base b
+  CROSS JOIN total CROSS JOIN top_cut_total
+  LEFT JOIN top_cut tc ON tc.species = b.species
+  ORDER BY b.teams DESC
 $$;
 GRANT EXECUTE ON FUNCTION get_pokemon_usage(DATE) TO anon;
 
