@@ -1351,6 +1351,7 @@ export function PokemonPage() {
                               className="cell-link"
                               onClick={(e) => e.stopPropagation()}
                             >
+                              <PokemonIcon species={r.partner_species} size="small" style={{ width: 24, height: 24, marginRight: 6, verticalAlign: 'middle' }} />
                               {r.partner_species}
                             </Link>
                           </td>
@@ -1461,6 +1462,7 @@ export function PokemonPage() {
                               className="cell-link"
                               onClick={(e) => e.stopPropagation()}
                             >
+                              <PokemonIcon species={r.opponent_species} size="small" style={{ width: 24, height: 24, marginRight: 6, verticalAlign: 'middle' }} />
                               {r.opponent_species}
                             </Link>
                           </td>

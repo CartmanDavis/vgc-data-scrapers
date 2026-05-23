@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { ItemSprite } from '../components/ItemSprite';
 import './ProfilePage.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -114,7 +115,10 @@ function UsageTab() {
               <tr key={r.pokemon}>
                 <td className="profile-table__num">{i + 1}</td>
                 <td className="profile-table__name">
-                  <Link to={`/mega/${encodeURIComponent(r.pokemon)}`} className="cell-link">{r.pokemon}</Link>
+                  <Link to={`/mega/${encodeURIComponent(r.pokemon)}`} className="cell-link">
+                    <ItemSprite item={r.pokemon} size={20} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                    {r.pokemon}
+                  </Link>
                 </td>
                 <td className="profile-table__num">{r.teams.toLocaleString()}</td>
                 <td className="profile-table__num">{pct(r.usage_pct)}</td>

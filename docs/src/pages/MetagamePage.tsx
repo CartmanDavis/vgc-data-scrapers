@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { StatCards } from '../components/StatCards';
+import { PokemonIcon } from '../components/PokemonIcon';
+import { ItemSprite } from '../components/ItemSprite';
 import './MetagamePage.css';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -54,6 +56,7 @@ interface InsightDef {
   subject: string;
   stat: string;
   href: string;
+  spriteType: 'mega' | 'pokemon' | 'none';
 }
 
 function computeInsights(
@@ -73,6 +76,7 @@ function computeInsights(
       subject: topMega.pokemon,
       stat: `${pct(topMega.usage_pct)} usage · ${pct(topMega.win_rate)} WR`,
       href: `/mega/${encodeURIComponent(topMega.pokemon)}`,
+      spriteType: 'mega',
     });
   }
 
@@ -85,6 +89,7 @@ function computeInsights(
       subject: wrKing.pokemon,
       stat: `${pct(wrKing.win_rate)} WR · ${pct(wrKing.usage_pct)} usage`,
       href: `/mega/${encodeURIComponent(wrKing.pokemon)}`,
+      spriteType: 'mega',
     });
   }
 
@@ -97,6 +102,7 @@ function computeInsights(
       subject: topPokemon.species,
       stat: `${pct(topPokemon.usage_pct)} usage · ${pct(topPokemon.win_rate)} WR`,
       href: `/pokemon/${encodeURIComponent(topPokemon.species)}`,
+      spriteType: 'pokemon',
     });
   }
 
@@ -109,6 +115,7 @@ function computeInsights(
       subject: bestCombo.combo,
       stat: `${pct(bestCombo.win_rate)} WR · ${pct(bestCombo.usage_pct)} of teams`,
       href: '/mega',
+      spriteType: 'none',
     });
   }
 
@@ -124,6 +131,7 @@ function computeInsights(
       subject: climber.pokemon,
       stat: `+${pct(delta)} top cut lift · ${pct(climber.top_cut_usage)} in top cut`,
       href: `/mega/${encodeURIComponent(climber.pokemon)}`,
+      spriteType: 'mega',
     });
   }
 
@@ -136,6 +144,7 @@ function computeInsights(
       subject: dominant.mega1,
       stat: `${pct(dominant.mega1_wr)} WR vs ${dominant.mega2}`,
       href: '/mega',
+      spriteType: 'mega',
     });
   }
 
@@ -194,7 +203,15 @@ function InsightsGrid() {
             <i className={`bi ${ins.icon}`} />
             {ins.category}
           </span>
-          <span className="mg-insight-card__subject">{ins.subject}</span>
+          <span className="mg-insight-card__subject">
+            {ins.spriteType === 'mega' && (
+              <ItemSprite item={ins.subject} size={28} style={{ marginRight: 8, verticalAlign: 'middle' }} />
+            )}
+            {ins.spriteType === 'pokemon' && (
+              <PokemonIcon species={ins.subject} size="small" style={{ width: 28, height: 28, marginRight: 8, verticalAlign: 'middle' }} />
+            )}
+            {ins.subject}
+          </span>
           <span className="mg-insight-card__stat">{ins.stat}</span>
         </Link>
       ))}

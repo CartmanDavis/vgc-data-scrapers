@@ -2,6 +2,8 @@ import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { TrendChart } from '../components/TrendChart';
+import { ItemSprite } from '../components/ItemSprite';
+import { PokemonIcon } from '../components/PokemonIcon';
 import type { TrendPoint } from '../mock-data';
 import './ProfilePage.css';
 import './MegaPage.css';
@@ -158,7 +160,7 @@ export function MegaPage() {
       <div className="profile-hero">
         <div className="mega-gem-glow" />
         <div className="mega-gem-art">
-          <i className="bi bi-gem" aria-hidden="true" />
+          <ItemSprite item={decoded} size={96} />
         </div>
         <div className="profile-hero__content">
           <Link to="/mega" className="back-link"><i className="bi bi-arrow-left" /> All Mega Items</Link>
@@ -214,7 +216,10 @@ export function MegaPage() {
                   : teammates.map((r, i) => (
                     <tr key={i}>
                       <td className="profile-table__name">
-                        <Link to={`/pokemon/${encodeURIComponent(r.species)}`} className="cell-link">{r.species}</Link>
+                        <Link to={`/pokemon/${encodeURIComponent(r.species)}`} className="cell-link">
+                          <PokemonIcon species={r.species} size="small" style={{ width: 24, height: 24, marginRight: 6, verticalAlign: 'middle' }} />
+                          {r.species}
+                        </Link>
                       </td>
                       <td className="profile-table__num">{r.teams}</td>
                       <td className="profile-table__num">{pct(r.usage_pct)}</td>

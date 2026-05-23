@@ -1,3 +1,5 @@
+import type React from 'react';
+
 function toSlug(s: string): string {
   return s
     .toLowerCase()
@@ -24,6 +26,7 @@ interface PokemonIconProps {
   form?: string;
   size?: PokemonIconSize;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 export function PokemonIcon({
@@ -31,18 +34,18 @@ export function PokemonIcon({
   form,
   size = "medium",
   className,
+  style,
 }: PokemonIconProps) {
   const sizePx = iconSizeToPx[size];
 
   return (
-    // TODO: We probably need some form / translation logic for the URL here
-
     <img
       src={pokemonSpriteUrl(species, form)}
       alt={species}
       width={sizePx}
       height={sizePx}
       className={className}
+      style={style}
       onError={(e) => {
         (e.target as HTMLImageElement).style.display = "none";
       }}
