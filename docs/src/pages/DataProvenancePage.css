@@ -240,15 +240,15 @@
   display: flex;
   gap: 14px;
   background: var(--surface);
-  border: 1px solid rgba(248, 184, 78, 0.25);
-  border-left: 3px solid var(--yellow);
+  border: 1px solid rgba(242, 102, 120, 0.25);
+  border-left: 3px solid var(--red);
   border-radius: var(--radius);
   padding: 16px 18px;
 }
 
 .prov-quality__icon {
   font-size: 16px;
-  color: var(--yellow);
+  color: var(--red);
   flex-shrink: 0;
   margin-top: 1px;
 }

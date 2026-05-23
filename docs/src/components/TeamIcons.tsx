@@ -3,9 +3,10 @@ import { PokemonIcon } from "./PokemonIcon";
 import "./TeamIcons.css";
 
 export interface PokemonSlot {
-  species: string;
-  item:    string;
-  moves:   string[];
+  species:  string;
+  item:     string;
+  moves:    string[];
+  invalid?: boolean;
 }
 
 interface TeamIconsProps {
@@ -42,6 +43,8 @@ function openPaste(roster: PokemonSlot[]) {
 }
 
 export function TeamIcons({ team, roster }: TeamIconsProps) {
+  const hasInvalid = roster?.some((s) => s.invalid) || team.length < 6;
+
   return (
     <span className="team-icons">
       {team.map((species) => (
@@ -64,6 +67,18 @@ export function TeamIcons({ team, roster }: TeamIconsProps) {
         >
           <i className="bi bi-box-arrow-up-right" style={{ fontSize: 11 }} />
         </button>
+      )}
+      {hasInvalid && (
+        <span className="team-invalid-badge" onClick={(e) => e.stopPropagation()}>
+          <i className="bi bi-exclamation-circle" />
+          <span className="team-invalid-tooltip">
+            This team could not be fully validated — some data may be inaccurate.
+            <br />
+            <Link to="/provenance" onClick={(e) => e.stopPropagation()}>
+              Learn about our data sources
+            </Link>
+          </span>
+        </span>
       )}
     </span>
   );

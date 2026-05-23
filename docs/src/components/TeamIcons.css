@@ -4,6 +4,51 @@
   align-items: center;
 }
 
+/* ─── Invalid badge ───────────────────────────────────────────────────────── */
+
+.team-invalid-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  color: var(--red);
+  font-size: 13px;
+  cursor: default;
+  line-height: 1;
+}
+
+.team-invalid-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  background: var(--surface-3);
+  border: 1px solid rgba(242, 102, 120, 0.3);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: var(--font-ui);
+  color: var(--text-2);
+  line-height: 1.5;
+  white-space: normal;
+  z-index: 10;
+  /* Bridge the 6px gap so the mouse doesn't leave the hover area */
+  margin-bottom: -6px;
+  padding-bottom: 14px;
+}
+
+.team-invalid-badge:hover .team-invalid-tooltip {
+  display: block;
+  pointer-events: auto;
+}
+
+.team-invalid-tooltip a {
+  color: var(--accent-2);
+  text-decoration: underline;
+}
+
 @media (max-width: 768px) {
   .team-icons {
     flex-wrap: wrap;
