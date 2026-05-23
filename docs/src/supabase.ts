@@ -107,6 +107,7 @@ function rpcData(fn: string, params?: Record<string, unknown>): unknown {
       const sp = String(params?.p_species ?? '');
       return MOCK_NATURE_TRENDS[sp] ?? MOCK_NATURE_TRENDS.default ?? {};
     }
+    case 'get_teams_with_rosters': return [];
     default: return [];
   }
 }

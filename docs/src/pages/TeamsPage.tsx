@@ -1,10 +1,16 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { MOCK_TOURNAMENT_STANDINGS, MOCK_TOURNAMENTS, TEAMS, TEAM_ROSTERS, type PokemonSlot } from '../mock-data';
+import { supabase } from '../supabase';
 import { TeamIcons } from '../components/TeamIcons';
 import { PokemonIcon } from '../components/PokemonIcon';
 import './ProfilePage.css';
 import './TeamsPage.css';
+
+interface PokemonSlot {
+  species: string;
+  item:    string;
+  moves:   string[];
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -14,7 +20,7 @@ interface TeamRecord {
   placing:         number;
   player_id:       string;
   player_name:     string;
-  flag:            string;
+  country:         string;
   wins:            number;
   losses:          number;
   win_rate:        number;
@@ -69,37 +75,36 @@ function slotMatches(slot: PokemonSlot, criteria: SlotCriteria): boolean {
   return true;
 }
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+// ─── Data fetching ────────────────────────────────────────────────────────────
 
-const ROSTER_BY_KEY = new Map<string, PokemonSlot[]>(
-  TEAMS.map((t, i) => [t.join('|'), TEAM_ROSTERS[i]]),
-);
+interface RawTeamRow {
+  tournament_id:   string;
+  tournament_name: string;
+  placing:         number;
+  player_id:       number;
+  player_name:     string;
+  country:         string | null;
+  wins:            number;
+  losses:          number;
+  roster:          PokemonSlot[];
+}
 
-const FALLBACK_ROSTER = (team: string[]): PokemonSlot[] =>
-  team.map((species) => ({ species, item: '', moves: [] }));
-
-const ALL_TEAMS: TeamRecord[] = Object.entries(MOCK_TOURNAMENT_STANDINGS)
-  .filter(([id]) => id !== 'default')
-  .flatMap(([tournamentId, standings]) => {
-    const t = MOCK_TOURNAMENTS.find((t) => t.id === tournamentId);
-    return standings.map((s) => ({
-      tournament_id:   tournamentId,
-      tournament_name: t?.name ?? tournamentId,
-      placing:         s.placing,
-      player_id:       s.player_id,
-      player_name:     s.player_name,
-      flag:            s.flag,
-      wins:            s.wins,
-      losses:          s.losses,
-      win_rate:        s.wins / (s.wins + s.losses) * 100,
-      team:            s.team,
-      roster:          ROSTER_BY_KEY.get(s.team.join('|')) ?? FALLBACK_ROSTER(s.team),
-    }));
-  });
-
-const TRENDING_TEAMS = [...ALL_TEAMS]
-  .sort((a, b) => b.win_rate - a.win_rate || a.placing - b.placing)
-  .slice(0, 20);
+function toTeamRecord(r: RawTeamRow): TeamRecord {
+  const roster = r.roster ?? [];
+  return {
+    tournament_id:   r.tournament_id,
+    tournament_name: r.tournament_name,
+    placing:         r.placing ?? 9999,
+    player_id:       String(r.player_id),
+    player_name:     r.player_name,
+    country:         r.country ?? '',
+    wins:            r.wins,
+    losses:          r.losses,
+    win_rate:        r.wins / Math.max(r.wins + r.losses, 1) * 100,
+    team:            roster.map((s) => s.species),
+    roster,
+  };
+}
 
 // ─── Type / category lookup tables ───────────────────────────────────────────
 
@@ -183,12 +188,17 @@ const MOVE_CATEGORIES: MoveCategory[] = ['Physical', 'Special', 'Status'];
 
 // ─── Option lists ─────────────────────────────────────────────────────────────
 
-const flat = TEAM_ROSTERS.flat();
-const POKEMON_NAMES   = [...new Set(flat.map((s) => s.species))].sort();
-const POKEMON_OPTIONS = [...POKEMON_NAMES, ...ALL_TYPES].sort();
-const ITEM_OPTIONS    = [...new Set(flat.map((s) => s.item).filter((i) => i !== 'None'))].sort();
-const MOVE_NAMES      = [...new Set(flat.flatMap((s) => s.moves))].sort();
-const MOVE_OPTIONS    = [...MOVE_NAMES, ...ALL_TYPES, ...MOVE_CATEGORIES].sort();
+function buildOptions(teams: TeamRecord[]) {
+  const flat = teams.flatMap((t) => t.roster);
+  const pokemonNames  = [...new Set(flat.map((s) => s.species))].sort();
+  const itemOptions   = [...new Set(flat.map((s) => s.item).filter((i) => i && i !== 'None' && i !== ''))].sort();
+  const moveNames     = [...new Set(flat.flatMap((s) => s.moves).filter(Boolean))].sort();
+  return {
+    pokemonOptions: [...pokemonNames, ...ALL_TYPES].sort(),
+    itemOptions,
+    moveOptions: [...moveNames, ...ALL_TYPES, ...MOVE_CATEGORIES].sort(),
+  };
+}
 
 const PASTE_URL = 'https://pokepast.es/6dbe083ec3d8afa2';
 
@@ -328,7 +338,7 @@ function TeamsTable({ rows }: { rows: TeamRecord[] }) {
             <td className="profile-table__num">#{r.placing}</td>
             <td className="profile-table__name">
               <Link to={`/players/${r.player_id}`} className="cell-link">
-                <span style={{ marginRight: 6 }}>{r.flag}</span>
+                {r.country && <span style={{ marginRight: 6, fontSize: 14 }}>{r.country}</span>}
                 {r.player_name}
               </Link>
             </td>
@@ -355,11 +365,14 @@ function TeamsTable({ rows }: { rows: TeamRecord[] }) {
 // ─── Slot form (expanded) ─────────────────────────────────────────────────────
 
 interface SlotFormProps {
-  slot:     SlotCriteria;
-  onChange: (next: SlotCriteria) => void;
+  slot:           SlotCriteria;
+  onChange:       (next: SlotCriteria) => void;
+  pokemonOptions: string[];
+  itemOptions:    string[];
+  moveOptions:    string[];
 }
 
-function SlotForm({ slot, onChange }: SlotFormProps) {
+function SlotForm({ slot, onChange, pokemonOptions, itemOptions, moveOptions }: SlotFormProps) {
   const setField = (field: 'pokemon' | 'item', val: string) =>
     onChange({ ...slot, [field]: val });
 
@@ -373,7 +386,7 @@ function SlotForm({ slot, onChange }: SlotFormProps) {
         <AutocompleteInput
           value={slot.pokemon}
           onChange={(v) => setField('pokemon', v)}
-          options={POKEMON_OPTIONS}
+          options={pokemonOptions}
           placeholder="Any Pokémon"
           iconType="pokemon"
         />
@@ -384,7 +397,7 @@ function SlotForm({ slot, onChange }: SlotFormProps) {
         <AutocompleteInput
           value={slot.item}
           onChange={(v) => setField('item', v)}
-          options={ITEM_OPTIONS}
+          options={itemOptions}
           placeholder="Any item"
           iconType="item"
         />
@@ -396,7 +409,7 @@ function SlotForm({ slot, onChange }: SlotFormProps) {
           <AutocompleteInput
             value={move}
             onChange={(v) => setMove(idx, v)}
-            options={MOVE_OPTIONS}
+            options={moveOptions}
             placeholder={`Move ${idx + 1}`}
           />
         </div>
@@ -407,7 +420,14 @@ function SlotForm({ slot, onChange }: SlotFormProps) {
 
 // ─── Search tab ───────────────────────────────────────────────────────────────
 
-function SearchTab() {
+interface SearchTabProps {
+  allTeams:       TeamRecord[];
+  pokemonOptions: string[];
+  itemOptions:    string[];
+  moveOptions:    string[];
+}
+
+function SearchTab({ allTeams, pokemonOptions, itemOptions, moveOptions }: SearchTabProps) {
   const [slots,     setSlots]     = useState<SlotCriteria[]>(() => Array.from({ length: 6 }, emptySlot));
   const [activeIdx, setActiveIdx] = useState(0);
 
@@ -421,10 +441,10 @@ function SearchTab() {
 
   const results = useMemo(() => {
     if (!activeSlots.length) return null;
-    return ALL_TEAMS.filter((team) =>
+    return allTeams.filter((team) =>
       activeSlots.every((criteria) => team.roster.some((slot) => slotMatches(slot, criteria))),
     );
-  }, [slots]);
+  }, [slots, allTeams]);
 
   return (
     <div className="profile-body">
@@ -456,7 +476,13 @@ function SearchTab() {
         </div>
 
         <div className="teams-slot-panel">
-          <SlotForm slot={slots[activeIdx]} onChange={updateActive} />
+          <SlotForm
+            slot={slots[activeIdx]}
+            onChange={updateActive}
+            pokemonOptions={pokemonOptions}
+            itemOptions={itemOptions}
+            moveOptions={moveOptions}
+          />
         </div>
       </div>
 
@@ -480,11 +506,15 @@ function SearchTab() {
 
 // ─── Trending tab ─────────────────────────────────────────────────────────────
 
-function TrendingTab() {
+function TrendingTab({ allTeams }: { allTeams: TeamRecord[] }) {
+  const trending = useMemo(() =>
+    [...allTeams].sort((a, b) => b.win_rate - a.win_rate || a.placing - b.placing).slice(0, 20),
+  [allTeams]);
+
   return (
     <div className="profile-body">
       <p className="teams-trending-label">Top win rate · all M-A tournaments</p>
-      <TeamsTable rows={TRENDING_TEAMS} />
+      <TeamsTable rows={trending} />
     </div>
   );
 }
@@ -492,23 +522,49 @@ function TrendingTab() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function TeamsPage() {
-  const [tab, setTab] = useState<TabId>('search');
+  const [tab,      setTab]      = useState<TabId>('search');
+  const [allTeams, setAllTeams] = useState<TeamRecord[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.rpc('get_teams_with_rosters', { p_mode: 'all', p_limit: 2000 })
+      .then(({ data, error: err }) => {
+        if (err) throw new Error(err.message);
+        setAllTeams(((data ?? []) as RawTeamRow[]).map(toTeamRecord));
+      })
+      .catch((e) => setError((e as Error).message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const options = useMemo(() => buildOptions(allTeams), [allTeams]);
+  const tournamentCount = useMemo(
+    () => new Set(allTeams.map((t) => t.tournament_id)).size,
+    [allTeams],
+  );
 
   return (
     <div className="profile-page">
       <div className="profile-hero" style={{ minHeight: 'auto', padding: '28px 36px 24px' }}>
         <div className="profile-hero__content">
           <h1 className="profile-name">Teams</h1>
-          <div className="profile-stats">
-            <div className="profile-stat">
-              <span className="profile-stat__value">{ALL_TEAMS.length}</span>
-              <span className="profile-stat__label">Teams</span>
+          {loading ? (
+            <div className="profile-stats">
+              <div className="skel" style={{ width: 80, height: 40 }} />
+              <div className="skel" style={{ width: 80, height: 40, marginLeft: 16 }} />
             </div>
-            <div className="profile-stat">
-              <span className="profile-stat__value">{MOCK_TOURNAMENTS.length}</span>
-              <span className="profile-stat__label">Tournaments</span>
+          ) : (
+            <div className="profile-stats">
+              <div className="profile-stat">
+                <span className="profile-stat__value">{allTeams.length.toLocaleString()}</span>
+                <span className="profile-stat__label">Teams</span>
+              </div>
+              <div className="profile-stat">
+                <span className="profile-stat__value">{tournamentCount}</span>
+                <span className="profile-stat__label">Tournaments</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -527,8 +583,17 @@ export function TeamsPage() {
         </button>
       </div>
 
-      {tab === 'search'   && <SearchTab />}
-      {tab === 'trending' && <TrendingTab />}
+      {error && <div className="list-page__error" style={{ margin: '24px 36px' }}>{error}</div>}
+
+      {tab === 'search' && (
+        <SearchTab
+          allTeams={allTeams}
+          pokemonOptions={options.pokemonOptions}
+          itemOptions={options.itemOptions}
+          moveOptions={options.moveOptions}
+        />
+      )}
+      {tab === 'trending' && <TrendingTab allTeams={allTeams} />}
     </div>
   );
 }

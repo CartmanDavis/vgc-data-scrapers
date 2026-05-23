@@ -859,3 +859,68 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   WHERE FALSE
 $$;
 GRANT EXECUTE ON FUNCTION get_pokemon_spreads(TEXT) TO anon;
+
+-- ─── 20. Teams with rosters ───────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_teams_with_rosters(
+  p_mode  TEXT    DEFAULT 'all',
+  p_limit INTEGER DEFAULT 2000
+)
+RETURNS TABLE (
+  tournament_id   TEXT,
+  tournament_name TEXT,
+  tournament_date DATE,
+  placing         INTEGER,
+  player_id       BIGINT,
+  player_name     TEXT,
+  country         TEXT,
+  wins            INTEGER,
+  losses          INTEGER,
+  roster          JSONB
+)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  WITH
+  tc_teams AS (
+    SELECT team_id FROM top_cut_teams_ma(NULL)
+  ),
+  team_rosters AS (
+    SELECT
+      ps.team_id,
+      jsonb_agg(
+        jsonb_build_object(
+          'species', ps.species,
+          'item',    COALESCE(ps.item, ''),
+          'moves',   COALESCE(
+            (SELECT jsonb_agg(m.move_name ORDER BY m.id)
+             FROM moves m WHERE m.pokemon_set_id = ps.id),
+            '[]'::jsonb
+          )
+        )
+        ORDER BY ps.id
+      ) AS roster
+    FROM pokemon_sets ps
+    WHERE NOT ps.invalid
+    GROUP BY ps.team_id
+  )
+  SELECT
+    ts.tournament_id,
+    t.name           AS tournament_name,
+    t.date::DATE     AS tournament_date,
+    ts.placing,
+    p.id             AS player_id,
+    p.name           AS player_name,
+    p.country,
+    ts.wins,
+    ts.losses,
+    tr.roster
+  FROM tournament_standings ts
+  JOIN tournaments t ON t.id = ts.tournament_id
+  JOIN players p ON p.id = ts.player_id
+  JOIN team_rosters tr ON tr.team_id = ts.team_id
+  LEFT JOIN tc_teams tc ON tc.team_id = ts.team_id
+  WHERE t.format = 'M-A'
+    AND (p_mode = 'all' OR tc.team_id IS NOT NULL)
+  ORDER BY ts.placing ASC NULLS LAST, t.date DESC
+  LIMIT p_limit
+$$;
+GRANT EXECUTE ON FUNCTION get_teams_with_rosters(TEXT, INTEGER) TO anon;
