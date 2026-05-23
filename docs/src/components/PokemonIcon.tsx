@@ -1,4 +1,4 @@
-import type React from 'react';
+import React, { useState } from 'react';
 
 function toSlug(s: string): string {
   return s
@@ -29,6 +29,20 @@ interface PokemonIconProps {
   style?: React.CSSProperties;
 }
 
+function PokeballFallback({ sizePx, className, style }: { sizePx: number; className?: string; style?: React.CSSProperties }) {
+  return (
+    <img
+      src="https://img.pokemondb.net/sprites/items/poke-ball.png"
+      alt="Pokéball"
+      width={sizePx}
+      height={sizePx}
+      className={className}
+      style={{ imageRendering: "pixelated", ...style }}
+      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+    />
+  );
+}
+
 export function PokemonIcon({
   species,
   form,
@@ -37,6 +51,11 @@ export function PokemonIcon({
   style,
 }: PokemonIconProps) {
   const sizePx = iconSizeToPx[size];
+  const [errored, setErrored] = useState(false);
+
+  if (errored) {
+    return <PokeballFallback sizePx={sizePx} className={className} style={style} />;
+  }
 
   return (
     <img
@@ -46,9 +65,7 @@ export function PokemonIcon({
       height={sizePx}
       className={className}
       style={style}
-      onError={(e) => {
-        (e.target as HTMLImageElement).style.display = "none";
-      }}
+      onError={() => setErrored(true)}
     />
   );
 }

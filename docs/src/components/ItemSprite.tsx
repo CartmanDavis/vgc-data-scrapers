@@ -1,4 +1,4 @@
-import type React from 'react';
+import React, { useState } from 'react';
 
 function toSlug(s: string): string {
   return s
@@ -14,7 +14,27 @@ interface ItemSpriteProps {
   style?: React.CSSProperties;
 }
 
+function PokeballFallback({ size, className, style }: { size: number; className?: string; style?: React.CSSProperties }) {
+  return (
+    <img
+      src="https://img.pokemondb.net/sprites/items/poke-ball.png"
+      alt="Pokéball"
+      width={size}
+      height={size}
+      className={className}
+      style={{ imageRendering: "pixelated", ...style }}
+      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+    />
+  );
+}
+
 export function ItemSprite({ item, size = 24, className, style }: ItemSpriteProps) {
+  const [errored, setErrored] = useState(false);
+
+  if (errored) {
+    return <PokeballFallback size={size} className={className} style={style} />;
+  }
+
   return (
     <img
       src={`https://img.pokemondb.net/sprites/items/${toSlug(item)}.png`}
@@ -23,9 +43,7 @@ export function ItemSprite({ item, size = 24, className, style }: ItemSpriteProp
       height={size}
       className={className}
       style={style}
-      onError={(e) => {
-        (e.target as HTMLImageElement).style.display = "none";
-      }}
+      onError={() => setErrored(true)}
     />
   );
 }
