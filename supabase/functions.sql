@@ -724,7 +724,7 @@ GRANT EXECUTE ON FUNCTION get_pokemon_players(TEXT) TO anon;
 
 CREATE OR REPLACE FUNCTION get_pokemon_trend(p_species TEXT)
 RETURNS TABLE (
-  tournament_date DATE,
+  date DATE,
   usage_pct       NUMERIC,
   win_rate        NUMERIC
 )
@@ -732,7 +732,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   WITH per_tournament AS (
     SELECT
       t.id   AS tid,
-      t.date::DATE AS tournament_date,
+      t.date::DATE AS date,
       COUNT(DISTINCT tm.id)                        AS total_teams,
       COUNT(DISTINCT CASE WHEN LOWER(ps.species) = LOWER(p_species) THEN tm.id END) AS species_teams
     FROM tournaments t
@@ -754,13 +754,13 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     GROUP BY t.id
   )
   SELECT
-    pt.tournament_date,
+    pt.date,
     ROUND(100.0 * pt.species_teams / NULLIF(pt.total_teams, 0), 2) AS usage_pct,
     ROUND(100.0 * wt.wins / NULLIF(wt.total, 0), 2)                AS win_rate
   FROM per_tournament pt
   LEFT JOIN win_per_tournament wt ON wt.tid = pt.tid
   WHERE pt.species_teams > 0
-  ORDER BY pt.tournament_date ASC
+  ORDER BY pt.date ASC
 $$;
 GRANT EXECUTE ON FUNCTION get_pokemon_trend(TEXT) TO anon;
 
@@ -768,7 +768,7 @@ GRANT EXECUTE ON FUNCTION get_pokemon_trend(TEXT) TO anon;
 
 CREATE OR REPLACE FUNCTION get_mega_trend(p_mega_item TEXT)
 RETURNS TABLE (
-  tournament_date DATE,
+  date DATE,
   usage_pct       NUMERIC,
   win_rate        NUMERIC
 )
@@ -783,7 +783,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   per_tournament AS (
     SELECT
       t.id   AS tid,
-      t.date::DATE AS tournament_date,
+      t.date::DATE AS date,
       COUNT(DISTINCT mt.team_id)                           AS total_mega_teams,
       COUNT(DISTINCT CASE WHEN LOWER(ps.item) = LOWER(p_mega_item) THEN tm.id END) AS item_teams
     FROM tournaments t
@@ -806,13 +806,13 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     GROUP BY t.id
   )
   SELECT
-    pt.tournament_date,
+    pt.date,
     ROUND(100.0 * pt.item_teams / NULLIF(pt.total_mega_teams, 0), 2) AS usage_pct,
     ROUND(100.0 * wt.wins / NULLIF(wt.total, 0), 2)                  AS win_rate
   FROM per_tournament pt
   LEFT JOIN win_per_tournament wt ON wt.tid = pt.tid
   WHERE pt.item_teams > 0
-  ORDER BY pt.tournament_date ASC
+  ORDER BY pt.date ASC
 $$;
 GRANT EXECUTE ON FUNCTION get_mega_trend(TEXT) TO anon;
 
@@ -821,7 +821,7 @@ GRANT EXECUTE ON FUNCTION get_mega_trend(TEXT) TO anon;
 CREATE OR REPLACE FUNCTION get_nature_trends(p_species TEXT)
 RETURNS TABLE (
   nature          TEXT,
-  tournament_date DATE,
+  date DATE,
   usage_pct       NUMERIC,
   win_rate        NUMERIC
 )
@@ -835,7 +835,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
       AND t.format = 'M-A'
       AND ps.ability IS NOT NULL
   )
-  SELECT 'unknown'::TEXT AS nature, NULL::DATE AS tournament_date,
+  SELECT 'unknown'::TEXT AS nature, NULL::DATE AS date,
          0::NUMERIC AS usage_pct, 0::NUMERIC AS win_rate
   WHERE FALSE
 $$;
