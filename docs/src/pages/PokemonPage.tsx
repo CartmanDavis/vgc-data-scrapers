@@ -176,8 +176,24 @@ function toggleSort<T extends string>(
   }
 }
 
+type FlatTrendRow = { date: string; usage_pct: number; win_rate: number };
+
+function pivotTrends<K extends string>(
+  rows: ({ date: string; usage_pct: number; win_rate: number } & Record<K, string>)[],
+  key: K,
+): Record<string, TrendPoint[]> {
+  const out: Record<string, TrendPoint[]> = {};
+  for (const row of rows) {
+    (out[row[key]] ??= []).push({ date: row.date, usage_pct: row.usage_pct, win_rate: row.win_rate });
+  }
+  return out;
+}
+
 async function fetchAll(species: string) {
-  const [usageRes, movesRes, itemsRes, partnersRes, matchupsRes, trendRes, playersRes, spreadsRes, natureTrendRes] = await Promise.all([
+  const [
+    usageRes, movesRes, itemsRes, partnersRes, matchupsRes,
+    trendRes, playersRes, spreadsRes, natureTrendRes,
+  ] = await Promise.all([
     supabase.rpc('get_pokemon_usage'),
     supabase.rpc('get_pokemon_moves', { p_species: species }),
     supabase.rpc('get_pokemon_items', { p_species: species }),
@@ -193,12 +209,13 @@ async function fetchAll(species: string) {
   }
   const allUsage = (usageRes.data ?? []) as UsageRow[];
   const stats = allUsage.find((r) => r.species.toLowerCase() === species.toLowerCase()) ?? null;
-  // pivot nature trends: flat rows { nature, date, usage_pct, win_rate } → Record<nature, TrendPoint[]>
+
   const flatNt = (Array.isArray(natureTrendRes.data) ? natureTrendRes.data : []) as { nature: string; date: string; usage_pct: number; win_rate: number }[];
   const natureTrends: Record<string, TrendPoint[]> = {};
   for (const row of flatNt) {
     (natureTrends[row.nature] ??= []).push({ date: row.date, usage_pct: row.usage_pct, win_rate: row.win_rate });
   }
+
   return {
     stats,
     allUsage,
@@ -211,6 +228,25 @@ async function fetchAll(species: string) {
     spreads: (spreadsRes.data ?? []) as SpreadRow[],
     natureTrends,
   };
+}
+
+// Fetch trend data for a single tab on demand.
+async function fetchTabTrends(species: string, tab: 'moves' | 'items' | 'partners' | 'matchups') {
+  const rpcMap = {
+    moves:    () => supabase.rpc('get_pokemon_move_trends',    { p_species: species }),
+    items:    () => supabase.rpc('get_pokemon_item_trends',    { p_species: species }),
+    partners: () => supabase.rpc('get_pokemon_partner_trends', { p_species: species }),
+    matchups: () => supabase.rpc('get_pokemon_matchup_trends', { p_species: species }),
+  };
+  const pivotKeyMap = {
+    moves:    'move_name',
+    items:    'item',
+    partners: 'partner_species',
+    matchups: 'opponent_species',
+  } as const;
+  const res = await rpcMap[tab]();
+  if (res.error) return {};
+  return pivotTrends((res.data ?? []) as ({ [k: string]: string } & FlatTrendRow)[], pivotKeyMap[tab]);
 }
 
 // ─── Insights ─────────────────────────────────────────────────────────────────
@@ -732,6 +768,12 @@ export function PokemonPage() {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
   const [selectedMatchups, setSelectedMatchups] = useState<string[]>([]);
+  const [moveTrends, setMoveTrends] = useState<Record<string, TrendPoint[]>>({});
+  const [itemTrends, setItemTrends] = useState<Record<string, TrendPoint[]>>({});
+  const [partnerTrends, setPartnerTrends] = useState<Record<string, TrendPoint[]>>({});
+  const [matchupTrends, setMatchupTrends] = useState<Record<string, TrendPoint[]>>({});
+  const [trendsLoaded, setTrendsLoaded] = useState<Set<string>>(new Set());
+  const [trendsLoading, setTrendsLoading] = useState<Set<string>>(new Set());
 
   type SortDir = "asc" | "desc";
   type SortState<T extends string> = { col: T; dir: SortDir } | null;
@@ -767,10 +809,34 @@ export function PokemonPage() {
         setSelectedMatchups(
           d.matchups.slice(0, 5).map((r) => r.opponent_species),
         );
+        // Reset lazy-loaded trend state when species changes
+        setMoveTrends({});
+        setItemTrends({});
+        setPartnerTrends({});
+        setMatchupTrends({});
+        setTrendsLoaded(new Set());
+        setTrendsLoading(new Set());
       })
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
   }, [decoded]);
+
+  // Lazy-load per-item trend data the first time each trend tab is visited.
+  useEffect(() => {
+    if (!decoded || loading) return;
+    const trendTab = (tab === 'moves' || tab === 'items' || tab === 'partners' || tab === 'matchups') ? tab : null;
+    if (!trendTab || trendsLoaded.has(trendTab) || trendsLoading.has(trendTab)) return;
+
+    setTrendsLoading((prev) => new Set([...prev, trendTab]));
+    fetchTabTrends(decoded, trendTab).then((data) => {
+      if (trendTab === 'moves')    setMoveTrends(data);
+      if (trendTab === 'items')    setItemTrends(data);
+      if (trendTab === 'partners') setPartnerTrends(data);
+      if (trendTab === 'matchups') setMatchupTrends(data);
+      setTrendsLoaded((prev) => new Set([...prev, trendTab]));
+      setTrendsLoading((prev) => { const s = new Set(prev); s.delete(trendTab); return s; });
+    });
+  }, [tab, decoded, loading, trendsLoaded, trendsLoading]);
 
   function toggleSelection(
     key: string,
@@ -1081,7 +1147,7 @@ export function PokemonPage() {
                     moves.findIndex((m) => m.move_name === r.move_name) %
                       SERIES_COLORS.length
                   ],
-                points: r.trend ?? trend,
+                points: moveTrends[r.move_name] ?? [],
               }));
             return (
               <>
@@ -1175,7 +1241,7 @@ export function PokemonPage() {
                     items.findIndex((m) => m.item === r.item) %
                       SERIES_COLORS.length
                   ],
-                points: r.trend ?? trend,
+                points: itemTrends[r.item] ?? [],
               }));
             return (
               <>
@@ -1278,7 +1344,7 @@ export function PokemonPage() {
                       (m) => m.partner_species === r.partner_species,
                     ) % SERIES_COLORS.length
                   ],
-                points: r.trend ?? trend,
+                points: partnerTrends[r.partner_species] ?? [],
               }));
             return (
               <>
@@ -1389,7 +1455,7 @@ export function PokemonPage() {
                       (m) => m.opponent_species === r.opponent_species,
                     ) % SERIES_COLORS.length
                   ],
-                points: r.trend ?? trend,
+                points: matchupTrends[r.opponent_species] ?? [],
               }));
             return (
               <>

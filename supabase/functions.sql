@@ -10,6 +10,8 @@ CREATE OR REPLACE FUNCTION refresh_materialized_views()
 RETURNS void
 LANGUAGE sql SECURITY DEFINER AS $$
   REFRESH MATERIALIZED VIEW CONCURRENTLY pokemon_usage_mv;
+  REFRESH MATERIALIZED VIEW CONCURRENTLY pokemon_matchups_mv;
+  REFRESH MATERIALIZED VIEW CONCURRENTLY pokemon_partners_mv;
 $$;
 GRANT EXECUTE ON FUNCTION refresh_materialized_views() TO service_role;
 
@@ -463,7 +465,20 @@ GRANT EXECUTE ON FUNCTION get_pokemon_items(TEXT, DATE, TEXT) TO anon;
 
 CREATE OR REPLACE FUNCTION get_pokemon_partners(p_species TEXT, p_since DATE DEFAULT NULL, p_mode TEXT DEFAULT 'all')
 RETURNS TABLE (partner_species TEXT, teams BIGINT, usage_pct NUMERIC, win_rate NUMERIC)
-LANGUAGE sql STABLE SECURITY DEFINER AS $$
+LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$
+BEGIN
+  -- Fast path: MV lookup (handles the only call pattern the UI uses)
+  IF p_since IS NULL AND p_mode = 'all' THEN
+    RETURN QUERY
+      SELECT mv.partner_species, mv.teams, mv.usage_pct, mv.win_rate
+      FROM pokemon_partners_mv mv
+      WHERE LOWER(mv.species) = LOWER(p_species)
+      ORDER BY mv.teams DESC;
+    RETURN;
+  END IF;
+
+  -- Fallback: original query for filtered calls
+  RETURN QUERY
   WITH
   tc_phases AS (
     SELECT tournament_id, MAX(phase) AS max_phase
@@ -492,10 +507,10 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     WHERE p_mode = 'all' OR tcp.max_phase IS NOT NULL
   )
   SELECT
-    ps.species AS partner_species,
-    COUNT(DISTINCT tt.team_id) AS teams,
-    ROUND(COUNT(DISTINCT tt.team_id) * 100.0 / total.n, 2) AS usage_pct,
-    ROUND(SUM(fmp.score) * 100.0 / NULLIF(COUNT(fmp.score), 0), 2) AS win_rate
+    ps.species                                                            AS partner_species,
+    COUNT(DISTINCT tt.team_id)                                            AS teams,
+    ROUND(COUNT(DISTINCT tt.team_id) * 100.0 / total.n, 2)              AS usage_pct,
+    ROUND(SUM(fmp.score) * 100.0 / NULLIF(COUNT(fmp.score), 0), 2)      AS win_rate
   FROM target_teams tt
   JOIN pokemon_sets ps ON ps.team_id = tt.team_id
   JOIN filtered_mp fmp ON fmp.team_id = tt.team_id
@@ -503,7 +518,8 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   WHERE LOWER(ps.species) != LOWER(p_species)
   GROUP BY ps.species, total.n
   HAVING COUNT(DISTINCT tt.team_id) >= 5
-  ORDER BY teams DESC
+  ORDER BY teams DESC;
+END;
 $$;
 GRANT EXECUTE ON FUNCTION get_pokemon_partners(TEXT, DATE, TEXT) TO anon;
 
@@ -511,7 +527,20 @@ GRANT EXECUTE ON FUNCTION get_pokemon_partners(TEXT, DATE, TEXT) TO anon;
 
 CREATE OR REPLACE FUNCTION get_pokemon_matchups(p_species TEXT, p_since DATE DEFAULT NULL, p_mode TEXT DEFAULT 'all')
 RETURNS TABLE (opponent_species TEXT, matches BIGINT, wins BIGINT, win_rate NUMERIC)
-LANGUAGE sql STABLE SECURITY DEFINER AS $$
+LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$
+BEGIN
+  -- Fast path: MV lookup (handles the only call pattern the UI uses)
+  IF p_since IS NULL AND p_mode = 'all' THEN
+    RETURN QUERY
+      SELECT mv.opponent_species, mv.matches, mv.wins, mv.win_rate
+      FROM pokemon_matchups_mv mv
+      WHERE LOWER(mv.target_species) = LOWER(p_species)
+      ORDER BY mv.matches DESC;
+    RETURN;
+  END IF;
+
+  -- Fallback: original query for filtered calls
+  RETURN QUERY
   WITH
   tc_phases AS (
     SELECT tournament_id, MAX(phase) AS max_phase
@@ -544,14 +573,15 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     JOIN pokemon_sets ps ON ps.team_id = oi.opp_team
   )
   SELECT
-    opp_species AS opponent_species,
-    COUNT(*)::BIGINT AS matches,
-    SUM(target_score)::BIGINT AS wins,
-    ROUND(SUM(target_score) * 100.0 / NULLIF(COUNT(*), 0), 2) AS win_rate
+    opp_species                                                           AS opponent_species,
+    COUNT(*)::BIGINT                                                      AS matches,
+    SUM(target_score)::BIGINT                                             AS wins,
+    ROUND(SUM(target_score) * 100.0 / NULLIF(COUNT(*), 0), 2)            AS win_rate
   FROM matchup_by_species
   GROUP BY opp_species
   HAVING COUNT(*) >= 10
-  ORDER BY matches DESC
+  ORDER BY matches DESC;
+END;
 $$;
 GRANT EXECUTE ON FUNCTION get_pokemon_matchups(TEXT, DATE, TEXT) TO anon;
 
@@ -808,7 +838,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   WITH per_tournament AS (
     SELECT
       t.id   AS tid,
-      t.date::DATE AS date,
+      DATE_TRUNC('week', t.date)::DATE AS week_start,
       COUNT(DISTINCT tm.id)                        AS total_teams,
       COUNT(DISTINCT CASE WHEN LOWER(ps.species) = LOWER(p_species) THEN tm.id END) AS species_teams
     FROM tournaments t
@@ -828,15 +858,25 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     JOIN pokemon_sets ps ON ps.team_id = tm.id AND LOWER(ps.species) = LOWER(p_species)
     WHERE t.format = 'M-A'
     GROUP BY t.id
+  ),
+  weekly AS (
+    SELECT
+      pt.week_start,
+      SUM(pt.species_teams) AS species_teams,
+      SUM(pt.total_teams)   AS total_teams,
+      SUM(wt.wins)          AS wins,
+      SUM(wt.total)         AS total
+    FROM per_tournament pt
+    LEFT JOIN win_per_tournament wt ON wt.tid = pt.tid
+    WHERE pt.species_teams > 0
+    GROUP BY pt.week_start
   )
   SELECT
-    pt.date,
-    ROUND(100.0 * pt.species_teams / NULLIF(pt.total_teams, 0), 2) AS usage_pct,
-    ROUND(100.0 * wt.wins / NULLIF(wt.total, 0), 2)                AS win_rate
-  FROM per_tournament pt
-  LEFT JOIN win_per_tournament wt ON wt.tid = pt.tid
-  WHERE pt.species_teams > 0
-  ORDER BY pt.date ASC
+    week_start                                                     AS date,
+    ROUND(100.0 * species_teams / NULLIF(total_teams, 0), 2)      AS usage_pct,
+    ROUND(100.0 * wins          / NULLIF(total, 0),       2)      AS win_rate
+  FROM weekly
+  ORDER BY week_start ASC
 $$;
 GRANT EXECUTE ON FUNCTION get_pokemon_trend(TEXT) TO anon;
 
@@ -859,7 +899,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   per_tournament AS (
     SELECT
       t.id   AS tid,
-      t.date::DATE AS date,
+      DATE_TRUNC('week', t.date)::DATE AS week_start,
       COUNT(DISTINCT mt.team_id)                           AS total_mega_teams,
       COUNT(DISTINCT CASE WHEN LOWER(ps.item) = LOWER(p_mega_item) THEN tm.id END) AS item_teams
     FROM tournaments t
@@ -880,15 +920,25 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     JOIN pokemon_sets ps ON ps.team_id = tm.id AND LOWER(ps.item) = LOWER(p_mega_item)
     WHERE t.format = 'M-A'
     GROUP BY t.id
+  ),
+  weekly AS (
+    SELECT
+      pt.week_start,
+      SUM(pt.item_teams)        AS item_teams,
+      SUM(pt.total_mega_teams)  AS total_mega_teams,
+      SUM(wt.wins)              AS wins,
+      SUM(wt.total)             AS total
+    FROM per_tournament pt
+    LEFT JOIN win_per_tournament wt ON wt.tid = pt.tid
+    WHERE pt.item_teams > 0
+    GROUP BY pt.week_start
   )
   SELECT
-    pt.date,
-    ROUND(100.0 * pt.item_teams / NULLIF(pt.total_mega_teams, 0), 2) AS usage_pct,
-    ROUND(100.0 * wt.wins / NULLIF(wt.total, 0), 2)                  AS win_rate
-  FROM per_tournament pt
-  LEFT JOIN win_per_tournament wt ON wt.tid = pt.tid
-  WHERE pt.item_teams > 0
-  ORDER BY pt.date ASC
+    week_start                                                          AS date,
+    ROUND(100.0 * item_teams       / NULLIF(total_mega_teams, 0), 2)  AS usage_pct,
+    ROUND(100.0 * wins             / NULLIF(total, 0),            2)  AS win_rate
+  FROM weekly
+  ORDER BY week_start ASC
 $$;
 GRANT EXECUTE ON FUNCTION get_mega_trend(TEXT) TO anon;
 
@@ -1000,3 +1050,112 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   LIMIT p_limit
 $$;
 GRANT EXECUTE ON FUNCTION get_teams_with_rosters(TEXT, INTEGER) TO anon;
+
+-- ─── 21. Matchup trends (weekly, from week-level matchup MV) ──────────────────
+
+CREATE OR REPLACE FUNCTION get_pokemon_matchup_trends(p_species TEXT)
+RETURNS TABLE (opponent_species TEXT, date DATE, usage_pct NUMERIC, win_rate NUMERIC)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT
+    mv.opponent_species,
+    mv.week_start                                                        AS date,
+    0::NUMERIC                                                           AS usage_pct,
+    ROUND(SUM(mv.wins) * 100.0 / NULLIF(SUM(mv.matches), 0), 2)        AS win_rate
+  FROM pokemon_matchups_mv mv
+  WHERE LOWER(mv.target_species) = LOWER(p_species)
+  GROUP BY mv.opponent_species, mv.week_start
+  HAVING SUM(mv.matches) >= 5
+  ORDER BY mv.opponent_species, mv.week_start
+$$;
+GRANT EXECUTE ON FUNCTION get_pokemon_matchup_trends(TEXT) TO anon;
+
+-- ─── 22. Move trends ──────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_pokemon_move_trends(p_species TEXT)
+RETURNS TABLE (move_name TEXT, date DATE, usage_pct NUMERIC, win_rate NUMERIC)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  WITH species_per_week AS (
+    SELECT DATE_TRUNC('week', t.date)::DATE AS week_start, COUNT(DISTINCT tm.id) AS n
+    FROM tournaments t
+    JOIN teams tm ON tm.tournament_id = t.id
+    JOIN pokemon_sets ps ON ps.team_id = tm.id AND LOWER(ps.species) = LOWER(p_species)
+    WHERE t.format = 'M-A' GROUP BY 1
+  ),
+  move_per_week AS (
+    SELECT DATE_TRUNC('week', t.date)::DATE AS week_start, mv.move_name,
+      COUNT(DISTINCT tm.id) AS move_teams, SUM(mp.score)::BIGINT AS wins, COUNT(mp.id)::BIGINT AS total
+    FROM tournaments t
+    JOIN teams tm ON tm.tournament_id = t.id
+    JOIN pokemon_sets ps ON ps.team_id = tm.id AND LOWER(ps.species) = LOWER(p_species)
+    JOIN moves mv ON mv.pokemon_set_id = ps.id
+    JOIN match_participants mp ON mp.team_id = tm.id
+    WHERE t.format = 'M-A' GROUP BY 1, mv.move_name
+  )
+  SELECT mpw.move_name, mpw.week_start AS date,
+    ROUND(100.0 * mpw.move_teams / NULLIF(spw.n, 0), 2) AS usage_pct,
+    ROUND(100.0 * mpw.wins / NULLIF(mpw.total, 0), 2)   AS win_rate
+  FROM move_per_week mpw JOIN species_per_week spw ON spw.week_start = mpw.week_start
+  ORDER BY mpw.move_name, mpw.week_start
+$$;
+GRANT EXECUTE ON FUNCTION get_pokemon_move_trends(TEXT) TO anon;
+
+-- ─── 23. Item trends ──────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_pokemon_item_trends(p_species TEXT)
+RETURNS TABLE (item TEXT, date DATE, usage_pct NUMERIC, win_rate NUMERIC)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  WITH species_per_week AS (
+    SELECT DATE_TRUNC('week', t.date)::DATE AS week_start, COUNT(DISTINCT tm.id) AS n
+    FROM tournaments t
+    JOIN teams tm ON tm.tournament_id = t.id
+    JOIN pokemon_sets ps ON ps.team_id = tm.id AND LOWER(ps.species) = LOWER(p_species)
+    WHERE t.format = 'M-A' GROUP BY 1
+  ),
+  item_per_week AS (
+    SELECT DATE_TRUNC('week', t.date)::DATE AS week_start, ps.item,
+      COUNT(DISTINCT tm.id) AS item_teams, SUM(mp.score)::BIGINT AS wins, COUNT(mp.id)::BIGINT AS total
+    FROM tournaments t
+    JOIN teams tm ON tm.tournament_id = t.id
+    JOIN pokemon_sets ps ON ps.team_id = tm.id AND LOWER(ps.species) = LOWER(p_species)
+    JOIN match_participants mp ON mp.team_id = tm.id
+    WHERE t.format = 'M-A' AND ps.item IS NOT NULL AND ps.item <> ''
+    GROUP BY 1, ps.item
+  )
+  SELECT ipw.item, ipw.week_start AS date,
+    ROUND(100.0 * ipw.item_teams / NULLIF(spw.n, 0), 2) AS usage_pct,
+    ROUND(100.0 * ipw.wins / NULLIF(ipw.total, 0), 2)   AS win_rate
+  FROM item_per_week ipw JOIN species_per_week spw ON spw.week_start = ipw.week_start
+  ORDER BY ipw.item, ipw.week_start
+$$;
+GRANT EXECUTE ON FUNCTION get_pokemon_item_trends(TEXT) TO anon;
+
+-- ─── 24. Partner trends ───────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_pokemon_partner_trends(p_species TEXT)
+RETURNS TABLE (partner_species TEXT, date DATE, usage_pct NUMERIC, win_rate NUMERIC)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  WITH species_per_week AS (
+    SELECT DATE_TRUNC('week', t.date)::DATE AS week_start, COUNT(DISTINCT tm.id) AS n
+    FROM tournaments t
+    JOIN teams tm ON tm.tournament_id = t.id
+    JOIN pokemon_sets ps ON ps.team_id = tm.id AND LOWER(ps.species) = LOWER(p_species)
+    WHERE t.format = 'M-A' GROUP BY 1
+  ),
+  partner_per_week AS (
+    SELECT DATE_TRUNC('week', t.date)::DATE AS week_start, ps2.species AS partner_species,
+      COUNT(DISTINCT tm.id) AS partner_teams, SUM(mp.score)::BIGINT AS wins, COUNT(mp.id)::BIGINT AS total
+    FROM tournaments t
+    JOIN teams tm ON tm.tournament_id = t.id
+    JOIN pokemon_sets ps  ON ps.team_id  = tm.id AND LOWER(ps.species)  = LOWER(p_species)
+    JOIN pokemon_sets ps2 ON ps2.team_id = tm.id AND LOWER(ps2.species) != LOWER(p_species)
+    JOIN match_participants mp ON mp.team_id = tm.id
+    WHERE t.format = 'M-A' GROUP BY 1, ps2.species
+  )
+  SELECT ppw.partner_species, ppw.week_start AS date,
+    ROUND(100.0 * ppw.partner_teams / NULLIF(spw.n, 0), 2) AS usage_pct,
+    ROUND(100.0 * ppw.wins / NULLIF(ppw.total, 0), 2)      AS win_rate
+  FROM partner_per_week ppw JOIN species_per_week spw ON spw.week_start = ppw.week_start
+  WHERE ppw.partner_teams >= 3
+  ORDER BY ppw.partner_species, ppw.week_start
+$$;
+GRANT EXECUTE ON FUNCTION get_pokemon_partner_trends(TEXT) TO anon;

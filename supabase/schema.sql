@@ -195,6 +195,90 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS pokemon_usage_mv AS
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_pokemon_usage_mv_species ON pokemon_usage_mv(species);
 
+-- Matchups MV: precomputed species-vs-species win rates across all M-A matches.
+-- Refreshed alongside pokemon_usage_mv; eliminates the slow join/aggregate that
+-- caused >3s timeouts for popular species (issue #24).
+CREATE MATERIALIZED VIEW IF NOT EXISTS pokemon_matchups_mv AS
+WITH
+ma_mp AS (
+  SELECT mp.match_id, mp.team_id, mp.score
+  FROM match_participants mp
+  JOIN teams t ON t.id = mp.team_id
+  JOIN tournaments tour ON tour.id = t.tournament_id
+  WHERE tour.format = 'M-A'
+),
+match_sides AS (
+  SELECT a.match_id, a.team_id AS team_a, a.score AS score_a, b.team_id AS team_b
+  FROM ma_mp a
+  JOIN ma_mp b ON b.match_id = a.match_id AND b.team_id != a.team_id
+),
+target_side AS (
+  SELECT DISTINCT ms.match_id, ps.species AS target_species, ms.score_a AS target_score, ms.team_b AS opp_team
+  FROM match_sides ms
+  JOIN pokemon_sets ps ON ps.team_id = ms.team_a
+),
+matchup_pairs AS (
+  SELECT DISTINCT ts.match_id, ts.target_species, ps.species AS opponent_species, ts.target_score
+  FROM target_side ts
+  JOIN pokemon_sets ps ON ps.team_id = ts.opp_team
+)
+SELECT
+  target_species,
+  opponent_species,
+  COUNT(*)::BIGINT                                             AS matches,
+  SUM(target_score)::BIGINT                                   AS wins,
+  ROUND(SUM(target_score) * 100.0 / NULLIF(COUNT(*), 0), 2) AS win_rate
+FROM matchup_pairs
+GROUP BY target_species, opponent_species
+HAVING COUNT(*) >= 10
+ORDER BY target_species, matches DESC;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pokemon_matchups_mv_pk
+  ON pokemon_matchups_mv(target_species, opponent_species);
+
+-- Partners MV: precomputed co-usage and win rates for species pairs.
+CREATE MATERIALIZED VIEW IF NOT EXISTS pokemon_partners_mv AS
+WITH
+ma_team_species AS (
+  SELECT ps.species, t.id AS team_id
+  FROM pokemon_sets ps
+  JOIN teams t ON t.id = ps.team_id
+  JOIN tournaments tour ON tour.id = t.tournament_id
+  WHERE tour.format = 'M-A'
+),
+species_total AS (
+  SELECT species, COUNT(DISTINCT team_id)::numeric AS n
+  FROM ma_team_species
+  GROUP BY species
+),
+duo_teams AS (
+  SELECT a.species AS species_a, b.species AS species_b, a.team_id
+  FROM ma_team_species a
+  JOIN ma_team_species b ON b.team_id = a.team_id AND b.species != a.species
+),
+ma_mp AS (
+  SELECT mp.team_id, mp.score
+  FROM match_participants mp
+  JOIN teams t ON t.id = mp.team_id
+  JOIN tournaments tour ON tour.id = t.tournament_id
+  WHERE tour.format = 'M-A'
+)
+SELECT
+  dt.species_a                                                          AS species,
+  dt.species_b                                                          AS partner_species,
+  COUNT(DISTINCT dt.team_id)::BIGINT                                    AS teams,
+  ROUND(COUNT(DISTINCT dt.team_id) * 100.0 / st.n, 2)                  AS usage_pct,
+  ROUND(SUM(mp.score) * 100.0 / NULLIF(COUNT(mp.score), 0), 2)         AS win_rate
+FROM duo_teams dt
+JOIN species_total st ON st.species = dt.species_a
+JOIN ma_mp mp ON mp.team_id = dt.team_id
+GROUP BY dt.species_a, dt.species_b, st.n
+HAVING COUNT(DISTINCT dt.team_id) >= 5
+ORDER BY species, teams DESC;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pokemon_partners_mv_pk
+  ON pokemon_partners_mv(species, partner_species);
+
 -- ─── Row-Level Security ───────────────────────────────────────────────────────
 -- All normalized tables are publicly readable (anon key).
 -- limitless_api_raw_data is admin-only (service_role bypasses RLS automatically).

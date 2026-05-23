@@ -12,6 +12,12 @@ import {
 import type { TrendPoint } from "../mock-data";
 import "./TrendChart.css";
 
+// Format an ISO date string (week-start Monday) as "Jan 6"
+export function fmtWeek(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 export type TrendMetric = "usage" | "winrate" | "both";
 
 const USAGE_COLOR = "var(--accent)";
@@ -48,7 +54,7 @@ function CustomTooltip({
 
   return (
     <div className="trend-tooltip">
-      <p className="trend-tooltip__date">{label}</p>
+      <p className="trend-tooltip__date">Week of {label ? fmtWeek(label) : label}</p>
       {usageEntry && (
         <div className="trend-tooltip__row">
           <span className="trend-tooltip__label">Usage</span>
@@ -176,6 +182,7 @@ export function TrendChart({
           )}
           <XAxis
             dataKey="date"
+            tickFormatter={fmtWeek}
             tick={{
               fill: "var(--text-4)",
               fontSize: 11,
@@ -183,7 +190,7 @@ export function TrendChart({
             }}
             axisLine={{ stroke: "var(--border)" }}
             tickLine={false}
-            interval={1}
+            interval="preserveStartEnd"
           />
           <YAxis
             domain={[minVal, maxVal]}

@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { TrendPoint } from "../mock-data";
+import { fmtWeek } from "./TrendChart";
 import "./TrendChart.css";
 import "./MultiTrendChart.css";
 
@@ -43,7 +44,7 @@ function CustomTooltip({
   const colorMap = Object.fromEntries(series.map((s) => [s.name, s.color]));
   return (
     <div className="trend-tooltip">
-      <p className="trend-tooltip__date">{label}</p>
+      <p className="trend-tooltip__date">Week of {label ? fmtWeek(label) : label}</p>
       {payload.map((entry) => (
         <div key={entry.dataKey} className="trend-tooltip__row">
           <span className="trend-tooltip__label" style={{ color: colorMap[entry.dataKey] }}>
@@ -63,12 +64,17 @@ export function MultiTrendChart({ series, defaultMetric = "usage", height = 200,
 
   const dataKey = metric === "usage" ? "usage_pct" : "win_rate";
 
-  // Merge all series into one flat data array keyed by series name
-  const dates = series[0]?.points.map((p) => p.date) ?? [];
-  const mergedData = dates.map((date, i) => {
+  // Merge series by date value so series with different date ranges align correctly.
+  const seriesMaps = series.map((s) => ({
+    s,
+    map: new Map(s.points.map((p) => [p.date, p])),
+  }));
+  const allDates = [...new Set(series.flatMap((s) => s.points.map((p) => p.date)))].sort();
+  const mergedData = allDates.map((date) => {
     const row: Record<string, number | string> = { date };
-    for (const s of series) {
-      row[s.name] = s.points[i]?.[dataKey] ?? 0;
+    for (const { s, map } of seriesMaps) {
+      const pt = map.get(date);
+      row[s.name] = pt != null ? pt[dataKey] : 0;
     }
     return row;
   });
@@ -118,10 +124,11 @@ export function MultiTrendChart({ series, defaultMetric = "usage", height = 200,
           )}
           <XAxis
             dataKey="date"
+            tickFormatter={fmtWeek}
             tick={{ fill: "var(--text-4)", fontSize: 11, fontFamily: "JetBrains Mono, monospace" }}
             axisLine={{ stroke: "var(--border)" }}
             tickLine={false}
-            interval={1}
+            interval="preserveStartEnd"
           />
           <YAxis
             domain={[minVal, maxVal]}
