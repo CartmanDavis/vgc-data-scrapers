@@ -1,9 +1,11 @@
 /**
- * Mock Supabase client for UI development.
- * Reads demo mode from window.__DEMO_MODE__ (set by DemoControls).
+ * Supabase client with demo-mode fallback.
+ * When VITE_SUPABASE_URL is configured and __DEMO_MODE__ is off, delegates to
+ * the real Supabase client. Otherwise falls back to mock data.
  * Tests mock this module directly so the implementation doesn't matter to them.
  */
 
+import { createClient } from '@supabase/supabase-js';
 import {
   MOCK_TOURNAMENTS,
   MOCK_PLAYERS,
@@ -21,7 +23,17 @@ import {
   MOCK_METAGAME_SUMMARY,
   MOCK_POKEMON_TREND,
   MOCK_MEGA_TREND,
+  MOCK_POKEMON_PLAYERS,
+  MOCK_POKEMON_SPREADS,
+  MOCK_NATURE_TRENDS,
 } from './mock-data';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+const _realClient = SUPABASE_URL
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } })
+  : null;
 
 type DemoMode = 'loaded' | 'loading' | 'error';
 
@@ -83,22 +95,44 @@ function rpcData(fn: string, params?: Record<string, unknown>): unknown {
       const item = String(params?.p_mega_item ?? '');
       return MOCK_MEGA_TREND[item] ?? MOCK_MEGA_TREND.default;
     }
+    case 'get_pokemon_players': {
+      const sp = String(params?.p_species ?? '');
+      return MOCK_POKEMON_PLAYERS[sp] ?? MOCK_POKEMON_PLAYERS.default;
+    }
+    case 'get_pokemon_spreads': {
+      const sp = String(params?.p_species ?? '');
+      return MOCK_POKEMON_SPREADS[sp] ?? MOCK_POKEMON_SPREADS.default;
+    }
+    case 'get_nature_trends': {
+      const sp = String(params?.p_species ?? '');
+      return MOCK_NATURE_TRENDS[sp] ?? MOCK_NATURE_TRENDS.default ?? {};
+    }
     default: return [];
   }
 }
 
-// ─── Mock client ─────────────────────────────────────────────────────────────
+// ─── Client (real or mock) ────────────────────────────────────────────────────
+
+function isDemoMode(): boolean {
+  return !_realClient || (window as unknown as { __DEMO_MODE__?: DemoMode }).__DEMO_MODE__ != null;
+}
 
 export const supabase = {
-  rpc: (fn: string, params?: Record<string, unknown>) => resolve(rpcData(fn, params)),
+  rpc: (fn: string, params?: Record<string, unknown>) => {
+    if (isDemoMode()) return resolve(rpcData(fn, params));
+    return _realClient!.rpc(fn, params ?? {});
+  },
 
   from: (_table: string) => ({
     select: (_cols: string, _opts?: unknown) => ({
       eq: (_col: string, _val: string) => {
-        const m = mode();
-        if (m === 'loading') return new Promise<never>(() => {});
-        if (m === 'error')   return Promise.resolve({ data: null, count: null, error: { message: 'Demo error' } });
-        return Promise.resolve({ data: MOCK_TOURNAMENTS, count: MOCK_TOURNAMENTS.length, error: null });
+        if (isDemoMode()) {
+          const m = mode();
+          if (m === 'loading') return new Promise<never>(() => {});
+          if (m === 'error')   return Promise.resolve({ data: null, count: null, error: { message: 'Demo error' } });
+          return Promise.resolve({ data: MOCK_TOURNAMENTS, count: MOCK_TOURNAMENTS.length, error: null });
+        }
+        return _realClient!.from(_table).select(_cols, _opts as object).eq(_col, _val);
       },
     }),
   }),

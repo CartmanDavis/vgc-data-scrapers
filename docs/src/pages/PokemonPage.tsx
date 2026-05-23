@@ -2,18 +2,8 @@ import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { TrendChart } from "../components/TrendChart";
 import { MultiTrendChart } from "../components/MultiTrendChart";
-import {
-  MOCK_POKEMON_USAGE,
-  MOCK_POKEMON_MOVES,
-  MOCK_POKEMON_ITEMS,
-  MOCK_POKEMON_PARTNERS,
-  MOCK_POKEMON_MATCHUPS,
-  MOCK_POKEMON_TREND,
-  MOCK_POKEMON_PLAYERS,
-  MOCK_POKEMON_SPREADS,
-  MOCK_NATURE_TRENDS,
-} from "../mock-data";
 import type { TrendPoint, PokemonPlayerRow, SpreadRow } from "../mock-data";
+import { supabase } from "../supabase";
 import {
   BarChart,
   Bar,
@@ -186,29 +176,41 @@ function toggleSort<T extends string>(
   }
 }
 
-function fetchAll(species: string) {
-  const allUsage = MOCK_POKEMON_USAGE;
-  const stats =
-    allUsage.find((r) => r.species.toLowerCase() === species.toLowerCase()) ??
-    null;
-  return Promise.resolve({
+async function fetchAll(species: string) {
+  const [usageRes, movesRes, itemsRes, partnersRes, matchupsRes, trendRes, playersRes, spreadsRes, natureTrendRes] = await Promise.all([
+    supabase.rpc('get_pokemon_usage'),
+    supabase.rpc('get_pokemon_moves', { p_species: species }),
+    supabase.rpc('get_pokemon_items', { p_species: species }),
+    supabase.rpc('get_pokemon_partners', { p_species: species }),
+    supabase.rpc('get_pokemon_matchups', { p_species: species }),
+    supabase.rpc('get_pokemon_trend', { p_species: species }),
+    supabase.rpc('get_pokemon_players', { p_species: species }),
+    supabase.rpc('get_pokemon_spreads', { p_species: species }),
+    supabase.rpc('get_nature_trends', { p_species: species }),
+  ]);
+  for (const r of [usageRes, movesRes, itemsRes, partnersRes, matchupsRes, trendRes, playersRes, spreadsRes, natureTrendRes]) {
+    if ((r as { error?: { message: string } }).error) throw new Error((r as { error: { message: string } }).error.message);
+  }
+  const allUsage = (usageRes.data ?? []) as UsageRow[];
+  const stats = allUsage.find((r) => r.species.toLowerCase() === species.toLowerCase()) ?? null;
+  // pivot nature trends: flat rows { nature, date, usage_pct, win_rate } → Record<nature, TrendPoint[]>
+  const flatNt = (natureTrendRes.data ?? []) as { nature: string; date: string; usage_pct: number; win_rate: number }[];
+  const natureTrends: Record<string, TrendPoint[]> = {};
+  for (const row of flatNt) {
+    (natureTrends[row.nature] ??= []).push({ date: row.date, usage_pct: row.usage_pct, win_rate: row.win_rate });
+  }
+  return {
     stats,
     allUsage,
-    moves: (MOCK_POKEMON_MOVES[species] ??
-      MOCK_POKEMON_MOVES.default) as MoveRow[],
-    items: (MOCK_POKEMON_ITEMS[species] ??
-      MOCK_POKEMON_ITEMS.default) as ItemRow[],
-    partners: (MOCK_POKEMON_PARTNERS[species] ??
-      MOCK_POKEMON_PARTNERS.default) as PartnerRow[],
-    matchups: (MOCK_POKEMON_MATCHUPS[species] ??
-      MOCK_POKEMON_MATCHUPS.default) as MatchupRow[],
-    trend: (MOCK_POKEMON_TREND[species] ??
-      MOCK_POKEMON_TREND.default) as TrendPoint[],
-    players: (MOCK_POKEMON_PLAYERS[species] ??
-      MOCK_POKEMON_PLAYERS.default) as PokemonPlayerRow[],
-    spreads: (MOCK_POKEMON_SPREADS[species] ??
-      MOCK_POKEMON_SPREADS.default) as SpreadRow[],
-  });
+    moves: (movesRes.data ?? []) as MoveRow[],
+    items: (itemsRes.data ?? []) as ItemRow[],
+    partners: (partnersRes.data ?? []) as PartnerRow[],
+    matchups: (matchupsRes.data ?? []) as MatchupRow[],
+    trend: (trendRes.data ?? []) as TrendPoint[],
+    players: (playersRes.data ?? []) as PokemonPlayerRow[],
+    spreads: (spreadsRes.data ?? []) as SpreadRow[],
+    natureTrends,
+  };
 }
 
 // ─── Insights ─────────────────────────────────────────────────────────────────
@@ -761,7 +763,7 @@ export function PokemonPage() {
           d.partners.slice(0, 5).map((r) => r.partner_species),
         );
         setSpreads(d.spreads);
-        setNatureTrends(MOCK_NATURE_TRENDS[decoded] ?? MOCK_NATURE_TRENDS.default ?? {});
+        setNatureTrends(d.natureTrends);
         setSelectedMatchups(
           d.matchups.slice(0, 5).map((r) => r.opponent_species),
         );
