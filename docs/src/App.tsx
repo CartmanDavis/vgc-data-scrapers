@@ -12,6 +12,7 @@ import { TournamentsPage } from './pages/TournamentsPage';
 import { TournamentDetailPage } from './pages/TournamentDetailPage';
 import { PlayersPage } from './pages/PlayersPage';
 import { PlayerPage } from './pages/PlayerPage';
+import { DataProvenancePage } from './pages/DataProvenancePage';
 import { DemoControls } from './DemoControls';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
@@ -53,6 +54,7 @@ function App() {
           <Route path="/tournaments/:id"  element={<TournamentDetailPage />} />
           <Route path="/players"          element={<PlayersPage />} />
           <Route path="/players/:id"      element={<PlayerPage />} />
+          <Route path="/provenance"       element={<DataProvenancePage />} />
         </Routes>
       </div>
       <DemoControls mode={demoMode} onSet={handleDemoMode} />

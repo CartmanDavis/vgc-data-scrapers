@@ -7,6 +7,7 @@ const PRIMARY_NAV = [
   { to: "/teams", end: false, icon: "bi-card-list", label: "Teams" },
   { to: "/tournaments", end: false, icon: "bi-trophy", label: "Tournaments" },
   { to: "/players", end: false, icon: "bi-people-fill", label: "Players" },
+  { to: "/provenance", end: false, icon: "bi-signpost-split-fill", label: "Data Sources" },
 ];
 
 export function NavBar() {
