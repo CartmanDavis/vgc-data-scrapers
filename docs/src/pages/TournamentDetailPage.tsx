@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "../supabase";
-import { MOCK_TOURNAMENTS } from "../mock-data";
 import "./ProfilePage.css";
 import { TeamIcons } from "../components/TeamIcons";
 
@@ -33,22 +32,33 @@ function formatDate(d: string) {
 
 const SKEL_WIDTHS = [72, 58, 65, 80, 50, 68, 75, 55];
 
+interface TournamentMeta {
+  id: string;
+  name: string;
+  date: string;
+  attendees: number;
+}
+
 export function TournamentDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
   const [rows, setRows] = useState<StandingRow[]>([]);
+  const [meta, setMeta] = useState<TournamentMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const meta = MOCK_TOURNAMENTS.find((t) => t.id === id);
 
   useEffect(() => {
     setLoading(true);
     setError(null);
-    supabase
-      .rpc("get_tournament_standings", { p_tournament_id: id })
-      .then(({ data, error: err }) => {
-        if (err) throw new Error(err.message);
-        setRows((data ?? []) as StandingRow[]);
+    Promise.all([
+      supabase.rpc("get_tournament_standings", { p_tournament_id: id }),
+      supabase.rpc("get_tournaments"),
+    ])
+      .then(([standings, tournaments]) => {
+        if (standings.error) throw new Error(standings.error.message);
+        if (tournaments.error) throw new Error(tournaments.error.message);
+        setRows((standings.data ?? []) as StandingRow[]);
+        const found = ((tournaments.data ?? []) as TournamentMeta[]).find(t => t.id === id) ?? null;
+        setMeta(found);
       })
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
