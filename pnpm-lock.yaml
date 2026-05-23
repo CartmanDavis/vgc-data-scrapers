@@ -48,9 +48,15 @@ importers:
 
   common:
     dependencies:
+      '@pkmn/data':
+        specifier: ^0.10.9
+        version: 0.10.9
       '@pkmn/dex':
         specifier: ^0.10.7
         version: 0.10.7
+      '@pkmn/mods':
+        specifier: ^0.10.9
+        version: 0.10.9
       axios:
         specifier: ^1.6.0
         version: 1.13.6

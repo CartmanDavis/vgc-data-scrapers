@@ -187,8 +187,8 @@ export class DataProcessor {
 
       const player1Name = pairing.player1 as string;
       const player2Name = pairing.player2 as string;
-      const winner = pairing.winner as string;
-      const winnerLower = winner?.toLowerCase() ?? '';
+      const winner = pairing.winner;
+      const winnerLower = typeof winner === 'string' ? winner.toLowerCase() : '';
 
       if (player1Name) {
         const player1Id = playerNamesToIds[player1Name.toLowerCase()];

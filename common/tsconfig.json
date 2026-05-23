@@ -3,7 +3,11 @@
   "compilerOptions": {
     "composite": true,
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@pkmn/mods/*": ["node_modules/@pkmn/mods/build/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["src/**/__tests__/**", "src/**/*.test.ts", "src/**/*.spec.ts"]

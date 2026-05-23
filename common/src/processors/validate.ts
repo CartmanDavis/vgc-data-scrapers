@@ -1,4 +1,8 @@
 import { Dex } from '@pkmn/dex';
+import type { ID, ModData } from '@pkmn/dex';
+import * as ChampionsMod from '@pkmn/mods/champions';
+
+const championsDex = Dex.mod('champions' as ID, ChampionsMod as unknown as ModData);
 
 export interface RawPokemon {
   name: string;
@@ -61,7 +65,7 @@ export function validatePokemon(raw: RawPokemon): ValidatedPokemon {
     }
   }
 
-  const speciesData = Dex.species.get(lookupSpecies);
+  const speciesData = championsDex.species.get(lookupSpecies);
   let species: string;
   if (speciesData.exists) {
     if (speciesData.name !== rawSpecies) {
@@ -86,7 +90,7 @@ export function validatePokemon(raw: RawPokemon): ValidatedPokemon {
   let item: string | null = null;
   let is_mega = isMegaFromName;
   if (raw.item) {
-    const itemData = Dex.items.get(raw.item);
+    const itemData = championsDex.items.get(raw.item);
     if (itemData.exists) {
       if (itemData.name !== raw.item) {
         fixes.push(`item: "${raw.item}" → "${itemData.name}"`);
@@ -111,7 +115,7 @@ export function validatePokemon(raw: RawPokemon): ValidatedPokemon {
   // --- Ability ---
   let ability: string | null = null;
   if (raw.ability) {
-    const abilityData = Dex.abilities.get(raw.ability);
+    const abilityData = championsDex.abilities.get(raw.ability);
     if (abilityData.exists) {
       if (abilityData.name !== raw.ability) {
         fixes.push(`ability: "${raw.ability}" → "${abilityData.name}"`);
@@ -127,7 +131,7 @@ export function validatePokemon(raw: RawPokemon): ValidatedPokemon {
   // --- Tera type ---
   let tera_type: string | null = null;
   if (raw.tera) {
-    const typeData = Dex.types.get(raw.tera);
+    const typeData = championsDex.types.get(raw.tera);
     if (typeData.exists) {
       if (typeData.name !== raw.tera) {
         fixes.push(`tera_type: "${raw.tera}" → "${typeData.name}"`);
@@ -143,7 +147,7 @@ export function validatePokemon(raw: RawPokemon): ValidatedPokemon {
   // --- Moves ---
   const moves: string[] = [];
   for (const rawMove of raw.attacks ?? []) {
-    const moveData = Dex.moves.get(rawMove);
+    const moveData = championsDex.moves.get(rawMove);
     if (moveData.exists) {
       if (moveData.name !== rawMove) {
         fixes.push(`move: "${rawMove}" → "${moveData.name}"`);
