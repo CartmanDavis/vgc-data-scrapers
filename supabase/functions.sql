@@ -526,3 +526,336 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   ORDER BY matches DESC
 $$;
 GRANT EXECUTE ON FUNCTION get_pokemon_matchups(TEXT, DATE, TEXT) TO anon;
+
+-- ─── 10. Metagame summary ─────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_metagame_summary()
+RETURNS TABLE (
+  unique_players  BIGINT,
+  total_tournaments BIGINT,
+  total_teams     BIGINT,
+  total_matches   BIGINT,
+  date_start      DATE,
+  date_end        DATE
+)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT
+    (SELECT COUNT(DISTINCT tm.player_id)
+     FROM teams tm JOIN tournaments t ON t.id = tm.tournament_id
+     WHERE t.format = 'M-A') AS unique_players,
+    (SELECT COUNT(*) FROM tournaments WHERE format = 'M-A') AS total_tournaments,
+    (SELECT COUNT(*) FROM teams tm JOIN tournaments t ON t.id = tm.tournament_id
+     WHERE t.format = 'M-A') AS total_teams,
+    (SELECT COUNT(*) FROM matches m JOIN tournaments t ON t.id = m.tournament_id
+     WHERE t.format = 'M-A') AS total_matches,
+    (SELECT MIN(date)::DATE FROM tournaments WHERE format = 'M-A') AS date_start,
+    (SELECT MAX(date)::DATE FROM tournaments WHERE format = 'M-A') AS date_end
+$$;
+GRANT EXECUTE ON FUNCTION get_metagame_summary() TO anon;
+
+-- ─── 11. Tournaments list ─────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_tournaments()
+RETURNS TABLE (
+  id         TEXT,
+  name       TEXT,
+  date       DATE,
+  format     TEXT,
+  attendees  BIGINT,
+  winner     TEXT,
+  winner_id  BIGINT
+)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT
+    t.id,
+    t.name,
+    t.date::DATE,
+    t.format,
+    COUNT(DISTINCT tm.id) AS attendees,
+    p.name AS winner,
+    p.id   AS winner_id
+  FROM tournaments t
+  LEFT JOIN teams tm ON tm.tournament_id = t.id
+  LEFT JOIN tournament_standings ts ON ts.tournament_id = t.id AND ts.placing = 1
+  LEFT JOIN players p ON p.id = ts.player_id
+  WHERE t.format = 'M-A'
+  GROUP BY t.id, t.name, t.date, t.format, p.name, p.id
+  ORDER BY t.date DESC
+$$;
+GRANT EXECUTE ON FUNCTION get_tournaments() TO anon;
+
+-- ─── 12. Players list ─────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_players()
+RETURNS TABLE (
+  id           BIGINT,
+  name         TEXT,
+  country      TEXT,
+  tournaments  BIGINT,
+  wins         BIGINT,
+  top_cuts     BIGINT,
+  best_placing INTEGER,
+  win_rate     NUMERIC
+)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  WITH ma_standings AS (
+    SELECT ts.player_id, ts.placing, ts.wins, ts.losses
+    FROM tournament_standings ts
+    JOIN tournaments t ON t.id = ts.tournament_id
+    WHERE t.format = 'M-A'
+  )
+  SELECT
+    p.id,
+    p.name,
+    p.country,
+    COUNT(*)                                               AS tournaments,
+    COUNT(CASE WHEN s.placing = 1 THEN 1 END)             AS wins,
+    COUNT(CASE WHEN s.placing <= 8 THEN 1 END)            AS top_cuts,
+    MIN(s.placing)                                         AS best_placing,
+    ROUND(
+      100.0 * SUM(s.wins)::NUMERIC /
+      NULLIF(SUM(s.wins) + SUM(s.losses), 0)
+    , 1)                                                   AS win_rate
+  FROM players p
+  JOIN ma_standings s ON s.player_id = p.id
+  GROUP BY p.id, p.name, p.country
+  ORDER BY tournaments DESC, wins DESC
+$$;
+GRANT EXECUTE ON FUNCTION get_players() TO anon;
+
+-- ─── 13. Tournament standings ─────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_tournament_standings(p_tournament_id TEXT)
+RETURNS TABLE (
+  player_id   BIGINT,
+  player_name TEXT,
+  country     TEXT,
+  placing     INTEGER,
+  wins        INTEGER,
+  losses      INTEGER,
+  ties        INTEGER,
+  dropped     BOOLEAN
+)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT
+    p.id     AS player_id,
+    p.name   AS player_name,
+    p.country,
+    ts.placing,
+    ts.wins,
+    ts.losses,
+    ts.ties,
+    ts.dropped
+  FROM tournament_standings ts
+  JOIN players p ON p.id = ts.player_id
+  WHERE ts.tournament_id = p_tournament_id
+  ORDER BY ts.placing ASC NULLS LAST
+$$;
+GRANT EXECUTE ON FUNCTION get_tournament_standings(TEXT) TO anon;
+
+-- ─── 14. Player career ────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_player_career(p_player_id BIGINT)
+RETURNS TABLE (
+  tournament_id   TEXT,
+  tournament_name TEXT,
+  date            DATE,
+  placing         INTEGER,
+  wins            INTEGER,
+  losses          INTEGER,
+  ties            INTEGER,
+  attendees       BIGINT
+)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT
+    t.id   AS tournament_id,
+    t.name AS tournament_name,
+    t.date::DATE,
+    ts.placing,
+    ts.wins,
+    ts.losses,
+    ts.ties,
+    COUNT(DISTINCT tm.id) AS attendees
+  FROM tournament_standings ts
+  JOIN tournaments t ON t.id = ts.tournament_id
+  JOIN teams tm ON tm.tournament_id = t.id
+  WHERE ts.player_id = p_player_id
+    AND t.format = 'M-A'
+  GROUP BY t.id, t.name, t.date, ts.placing, ts.wins, ts.losses, ts.ties
+  ORDER BY t.date DESC
+$$;
+GRANT EXECUTE ON FUNCTION get_player_career(BIGINT) TO anon;
+
+-- ─── 15. Pokemon players ──────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_pokemon_players(p_species TEXT)
+RETURNS TABLE (
+  player_id       BIGINT,
+  player_name     TEXT,
+  tournament_id   TEXT,
+  tournament_name TEXT,
+  date            DATE,
+  placing         INTEGER,
+  wins            INTEGER,
+  losses          INTEGER
+)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT
+    p.id    AS player_id,
+    p.name  AS player_name,
+    t.id    AS tournament_id,
+    t.name  AS tournament_name,
+    t.date::DATE,
+    ts.placing,
+    ts.wins,
+    ts.losses
+  FROM pokemon_sets ps
+  JOIN teams tm ON tm.id = ps.team_id
+  JOIN tournaments t ON t.id = tm.tournament_id
+  JOIN players p ON p.id = tm.player_id
+  JOIN tournament_standings ts ON ts.tournament_id = t.id AND ts.player_id = p.id
+  WHERE LOWER(ps.species) = LOWER(p_species)
+    AND t.format = 'M-A'
+  ORDER BY ts.placing ASC NULLS LAST, t.date DESC
+$$;
+GRANT EXECUTE ON FUNCTION get_pokemon_players(TEXT) TO anon;
+
+-- ─── 16. Pokemon trend ────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_pokemon_trend(p_species TEXT)
+RETURNS TABLE (
+  tournament_date DATE,
+  usage_pct       NUMERIC,
+  win_rate        NUMERIC
+)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  WITH per_tournament AS (
+    SELECT
+      t.id   AS tid,
+      t.date::DATE AS tournament_date,
+      COUNT(DISTINCT tm.id)                        AS total_teams,
+      COUNT(DISTINCT CASE WHEN LOWER(ps.species) = LOWER(p_species) THEN tm.id END) AS species_teams
+    FROM tournaments t
+    JOIN teams tm ON tm.tournament_id = t.id
+    LEFT JOIN pokemon_sets ps ON ps.team_id = tm.id
+    WHERE t.format = 'M-A'
+    GROUP BY t.id, t.date
+  ),
+  win_per_tournament AS (
+    SELECT
+      t.id AS tid,
+      SUM(mp.score)::BIGINT AS wins,
+      COUNT(mp.id)::BIGINT  AS total
+    FROM match_participants mp
+    JOIN teams tm ON tm.id = mp.team_id
+    JOIN tournaments t ON t.id = tm.tournament_id
+    JOIN pokemon_sets ps ON ps.team_id = tm.id AND LOWER(ps.species) = LOWER(p_species)
+    WHERE t.format = 'M-A'
+    GROUP BY t.id
+  )
+  SELECT
+    pt.tournament_date,
+    ROUND(100.0 * pt.species_teams / NULLIF(pt.total_teams, 0), 2) AS usage_pct,
+    ROUND(100.0 * wt.wins / NULLIF(wt.total, 0), 2)                AS win_rate
+  FROM per_tournament pt
+  LEFT JOIN win_per_tournament wt ON wt.tid = pt.tid
+  WHERE pt.species_teams > 0
+  ORDER BY pt.tournament_date ASC
+$$;
+GRANT EXECUTE ON FUNCTION get_pokemon_trend(TEXT) TO anon;
+
+-- ─── 17. Mega trend ───────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_mega_trend(p_mega_item TEXT)
+RETURNS TABLE (
+  tournament_date DATE,
+  usage_pct       NUMERIC,
+  win_rate        NUMERIC
+)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  WITH mega_teams AS (
+    SELECT DISTINCT tm.tournament_id, tm.id AS team_id
+    FROM teams tm
+    JOIN pokemon_sets ps ON ps.team_id = tm.id
+    JOIN canonical_mega_items() ci ON TRUE
+    WHERE LOWER(ps.item) = LOWER(ci.item)
+  ),
+  per_tournament AS (
+    SELECT
+      t.id   AS tid,
+      t.date::DATE AS tournament_date,
+      COUNT(DISTINCT mt.team_id)                           AS total_mega_teams,
+      COUNT(DISTINCT CASE WHEN LOWER(ps.item) = LOWER(p_mega_item) THEN tm.id END) AS item_teams
+    FROM tournaments t
+    JOIN teams tm ON tm.tournament_id = t.id
+    JOIN mega_teams mt ON mt.tournament_id = t.id AND mt.team_id = tm.id
+    LEFT JOIN pokemon_sets ps ON ps.team_id = tm.id
+    WHERE t.format = 'M-A'
+    GROUP BY t.id, t.date
+  ),
+  win_per_tournament AS (
+    SELECT
+      t.id AS tid,
+      SUM(mp.score)::BIGINT AS wins,
+      COUNT(mp.id)::BIGINT  AS total
+    FROM match_participants mp
+    JOIN teams tm ON tm.id = mp.team_id
+    JOIN tournaments t ON t.id = tm.tournament_id
+    JOIN pokemon_sets ps ON ps.team_id = tm.id AND LOWER(ps.item) = LOWER(p_mega_item)
+    WHERE t.format = 'M-A'
+    GROUP BY t.id
+  )
+  SELECT
+    pt.tournament_date,
+    ROUND(100.0 * pt.item_teams / NULLIF(pt.total_mega_teams, 0), 2) AS usage_pct,
+    ROUND(100.0 * wt.wins / NULLIF(wt.total, 0), 2)                  AS win_rate
+  FROM per_tournament pt
+  LEFT JOIN win_per_tournament wt ON wt.tid = pt.tid
+  WHERE pt.item_teams > 0
+  ORDER BY pt.tournament_date ASC
+$$;
+GRANT EXECUTE ON FUNCTION get_mega_trend(TEXT) TO anon;
+
+-- ─── 18. Nature trends ────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION get_nature_trends(p_species TEXT)
+RETURNS TABLE (
+  nature          TEXT,
+  tournament_date DATE,
+  usage_pct       NUMERIC,
+  win_rate        NUMERIC
+)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  WITH species_teams AS (
+    SELECT DISTINCT tm.tournament_id, tm.id AS team_id, ps.ability AS nature
+    FROM teams tm
+    JOIN pokemon_sets ps ON ps.team_id = tm.id
+    JOIN tournaments t ON t.id = tm.tournament_id
+    WHERE LOWER(ps.species) = LOWER(p_species)
+      AND t.format = 'M-A'
+      AND ps.ability IS NOT NULL
+  )
+  SELECT 'unknown'::TEXT AS nature, NULL::DATE AS tournament_date,
+         0::NUMERIC AS usage_pct, 0::NUMERIC AS win_rate
+  WHERE FALSE
+$$;
+GRANT EXECUTE ON FUNCTION get_nature_trends(TEXT) TO anon;
+
+-- ─── 19. Pokemon spreads (stub — no EV data in schema yet) ───────────────────
+
+CREATE OR REPLACE FUNCTION get_pokemon_spreads(p_species TEXT)
+RETURNS TABLE (
+  nature      TEXT,
+  hp          INTEGER,
+  atk         INTEGER,
+  def         INTEGER,
+  spa         INTEGER,
+  spd         INTEGER,
+  spe         INTEGER,
+  usage_pct   NUMERIC
+)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT NULL::TEXT, NULL::INT, NULL::INT, NULL::INT, NULL::INT, NULL::INT, NULL::INT, NULL::NUMERIC
+  WHERE FALSE
+$$;
+GRANT EXECUTE ON FUNCTION get_pokemon_spreads(TEXT) TO anon;
