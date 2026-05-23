@@ -2,12 +2,46 @@ import { Link } from "react-router-dom";
 import { PokemonIcon } from "./PokemonIcon";
 import "./TeamIcons.css";
 
-interface TeamIconsProps {
-  team: string[];
-  pasteUrl: string;
+export interface PokemonSlot {
+  species: string;
+  item:    string;
+  moves:   string[];
 }
 
-export function TeamIcons({ team, pasteUrl }: TeamIconsProps) {
+interface TeamIconsProps {
+  team:    string[];
+  roster?: PokemonSlot[];
+}
+
+function buildPasteText(roster: PokemonSlot[]): string {
+  return roster.map((p) => {
+    const header = p.item ? `${p.species} @ ${p.item}` : p.species;
+    const moves = p.moves.map((m) => `- ${m}`).join("\n");
+    return moves ? `${header}\n${moves}` : header;
+  }).join("\n\n");
+}
+
+function openPaste(roster: PokemonSlot[]) {
+  const paste = buildPasteText(roster).replace(/\n/g, "\r\n");
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = "https://pokepast.es/create";
+  form.target = "_blank";
+  form.style.display = "none";
+  form.enctype = "application/x-www-form-urlencoded";
+
+  const field = document.createElement("input");
+  field.type = "hidden";
+  field.name = "paste";
+  field.value = paste;
+  form.appendChild(field);
+
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+}
+
+export function TeamIcons({ team, roster }: TeamIconsProps) {
   return (
     <span className="team-icons">
       {team.map((species) => (
@@ -19,16 +53,18 @@ export function TeamIcons({ team, pasteUrl }: TeamIconsProps) {
           <PokemonIcon species={species} size="small" />
         </Link>
       ))}
-      <a
-        href={pasteUrl}
-        target="_blank"
-        rel="noreferrer"
-        onClick={(e) => e.stopPropagation()}
-        style={{ marginLeft: 4, color: "var(--text-4)", lineHeight: 1 }}
-        title="View Pokepaste"
-      >
-        <i className="bi bi-box-arrow-up-right" style={{ fontSize: 11 }} />
-      </a>
+      {roster && roster.length > 0 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); openPaste(roster); }}
+          style={{
+            marginLeft: 4, background: "none", border: "none",
+            padding: 0, cursor: "pointer", color: "var(--text-4)", lineHeight: 1,
+          }}
+          title="View Pokepaste"
+        >
+          <i className="bi bi-box-arrow-up-right" style={{ fontSize: 11 }} />
+        </button>
+      )}
     </span>
   );
 }

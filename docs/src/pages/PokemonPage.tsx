@@ -1058,7 +1058,7 @@ export function PokemonPage() {
                           </span>
                         </td>
                         <td>
-                          <TeamIcons team={r.teammates} pasteUrl="https://pokepast.es/6dbe083ec3d8afa2" />
+                          <TeamIcons team={r.teammates} />
                         </td>
                       </tr>
                     ))}

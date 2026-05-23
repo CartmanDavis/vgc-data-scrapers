@@ -1,16 +1,11 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
-import { TeamIcons } from '../components/TeamIcons';
+import { TeamIcons, type PokemonSlot } from '../components/TeamIcons';
 import { PokemonIcon } from '../components/PokemonIcon';
 import './ProfilePage.css';
 import './TeamsPage.css';
 
-interface PokemonSlot {
-  species: string;
-  item:    string;
-  moves:   string[];
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -200,7 +195,7 @@ function buildOptions(teams: TeamRecord[]) {
   };
 }
 
-const PASTE_URL = 'https://pokepast.es/6dbe083ec3d8afa2';
+
 
 // ─── Icon helpers ─────────────────────────────────────────────────────────────
 
@@ -353,7 +348,7 @@ function TeamsTable({ rows }: { rows: TeamRecord[] }) {
               <span style={{ color: 'var(--red)' }}>{r.losses}</span>
             </td>
             <td>
-              <TeamIcons team={r.team} pasteUrl={PASTE_URL} />
+              <TeamIcons team={r.team} roster={r.roster} />
             </td>
           </tr>
         ))}

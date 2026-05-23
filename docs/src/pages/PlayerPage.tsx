@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../supabase';
-import { TeamIcons } from '../components/TeamIcons';
+import { TeamIcons, type PokemonSlot } from '../components/TeamIcons';
 import './ProfilePage.css';
 
 interface PlayerRow {
@@ -23,7 +23,7 @@ interface ResultRow {
   placing:         number;
   wins:            number;
   losses:          number;
-  team:            string[];
+  roster:          PokemonSlot[] | null;
 }
 
 function pct(v: number) { return `${v.toFixed(1)}%`; }
@@ -187,7 +187,7 @@ export function PlayerPage() {
                   <span style={{ color: 'var(--red)' }}>{r.losses}</span>
                 </td>
                 <td>
-                  <TeamIcons team={r.team} pasteUrl="https://pokepast.es/6dbe083ec3d8afa2" />
+                  <TeamIcons team={(r.roster ?? []).map(p => p.species)} roster={r.roster ?? []} />
                 </td>
               </tr>
             ))

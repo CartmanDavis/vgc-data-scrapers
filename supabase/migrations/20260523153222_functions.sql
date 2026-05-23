@@ -35,7 +35,6 @@ DROP FUNCTION IF EXISTS get_pokemon_matchups(TEXT, DATE);
 DROP FUNCTION IF EXISTS top_cut_teams_ma();
 DROP FUNCTION IF EXISTS top_cut_match_participants_ma();
 DROP FUNCTION IF EXISTS get_tournament_standings(TEXT);
-DROP FUNCTION IF EXISTS get_player_career(BIGINT);
 
 -- ─── Helper: canonical mega items ────────────────────────────────────────────
 
@@ -664,7 +663,7 @@ RETURNS TABLE (
   losses      INTEGER,
   ties        INTEGER,
   dropped     BOOLEAN,
-  roster      JSONB
+  team        TEXT[]
 )
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT
@@ -682,22 +681,12 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     ts.losses,
     ts.ties,
     ts.dropped,
-    (
-      SELECT jsonb_agg(
-        jsonb_build_object(
-          'species', ps.species,
-          'item',    COALESCE(ps.item, ''),
-          'moves',   COALESCE(
-            (SELECT jsonb_agg(m.move_name ORDER BY m.id)
-             FROM moves m WHERE m.pokemon_set_id = ps.id),
-            '[]'::jsonb
-          )
-        )
-        ORDER BY ps.id
-      )
+    ARRAY(
+      SELECT ps.species
       FROM pokemon_sets ps
       WHERE ps.team_id = ts.team_id AND NOT ps.invalid
-    )        AS roster
+      ORDER BY ps.id
+    )        AS team
   FROM tournament_standings ts
   JOIN players p ON p.id = ts.player_id
   WHERE ts.tournament_id = p_tournament_id
@@ -716,8 +705,7 @@ RETURNS TABLE (
   wins            INTEGER,
   losses          INTEGER,
   ties            INTEGER,
-  attendees       BIGINT,
-  roster          JSONB
+  attendees       BIGINT
 )
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT
@@ -728,29 +716,13 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     ts.wins,
     ts.losses,
     ts.ties,
-    COUNT(DISTINCT tm.id) AS attendees,
-    (
-      SELECT jsonb_agg(
-        jsonb_build_object(
-          'species', ps.species,
-          'item',    COALESCE(ps.item, ''),
-          'moves',   COALESCE(
-            (SELECT jsonb_agg(m.move_name ORDER BY m.id)
-             FROM moves m WHERE m.pokemon_set_id = ps.id),
-            '[]'::jsonb
-          )
-        )
-        ORDER BY ps.id
-      )
-      FROM pokemon_sets ps
-      WHERE ps.team_id = ts.team_id AND NOT ps.invalid
-    ) AS roster
+    COUNT(DISTINCT tm.id) AS attendees
   FROM tournament_standings ts
   JOIN tournaments t ON t.id = ts.tournament_id
   JOIN teams tm ON tm.tournament_id = t.id
   WHERE ts.player_id = p_player_id
     AND t.format = 'M-A'
-  GROUP BY t.id, t.name, t.date, ts.placing, ts.wins, ts.losses, ts.ties, ts.team_id
+  GROUP BY t.id, t.name, t.date, ts.placing, ts.wins, ts.losses, ts.ties
   ORDER BY t.date DESC
 $$;
 GRANT EXECUTE ON FUNCTION get_player_career(BIGINT) TO anon;

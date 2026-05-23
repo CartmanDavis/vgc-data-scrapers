@@ -2,17 +2,17 @@ import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "../supabase";
 import "./ProfilePage.css";
-import { TeamIcons } from "../components/TeamIcons";
+import { TeamIcons, type PokemonSlot } from "../components/TeamIcons";
 
 interface StandingRow {
-  placing: number;
-  player_id: string;
+  placing:     number;
+  player_id:   string;
   player_name: string;
-  country: string;
-  flag: string;
-  wins: number;
-  losses: number;
-  team: string[];
+  country:     string;
+  flag:        string;
+  wins:        number;
+  losses:      number;
+  roster:      PokemonSlot[] | null;
 }
 
 function medal(placing: number): string {
@@ -218,7 +218,7 @@ export function TournamentDetailPage() {
                     <span style={{ color: "var(--red)" }}>{r.losses}</span>
                   </td>
                   <td>
-                    <TeamIcons team={r.team} pasteUrl="https://pokepast.es/6dbe083ec3d8afa2" />
+                    <TeamIcons team={(r.roster ?? []).map(p => p.species)} roster={r.roster ?? []} />
                   </td>
                 </tr>
               ))}
