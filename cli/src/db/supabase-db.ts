@@ -97,7 +97,7 @@ export class SupabaseDataStore implements IDataStore {
     const { data: existing } = await this.client
       .from('players')
       .select('id')
-      .eq('name', name)
+      .ilike('name', name)
       .maybeSingle();
     if (existing) return existing.id;
 

@@ -188,6 +188,7 @@ export class DataProcessor {
       const player1Name = pairing.player1 as string;
       const player2Name = pairing.player2 as string;
       const winner = pairing.winner as string;
+      const winnerLower = winner?.toLowerCase() ?? '';
 
       if (player1Name) {
         const player1Id = playerNamesToIds[player1Name.toLowerCase()];
@@ -197,7 +198,7 @@ export class DataProcessor {
             matchId,
             playerId: player1Id,
             teamId: team1Id,
-            score: winner === player1Name ? 1 : 0,
+            score: winnerLower === player1Name.toLowerCase() ? 1 : 0,
           });
         }
       }
@@ -210,7 +211,7 @@ export class DataProcessor {
             matchId,
             playerId: player2Id,
             teamId: team2Id,
-            score: winner === player2Name ? 1 : 0,
+            score: winnerLower === player2Name.toLowerCase() ? 1 : 0,
           });
         }
       }
