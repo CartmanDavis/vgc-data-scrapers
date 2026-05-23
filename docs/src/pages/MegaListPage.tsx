@@ -259,7 +259,7 @@ function CombosTab() {
               <td className="profile-table__num">{pct(r.usage_pct)}</td>
               <td><WinRateBar value={r.win_rate} /></td>
               <td className="profile-table__num">{r.top_cut_teams.toLocaleString()}</td>
-              <td className="profile-table__num" style={{ color: wrColor(r.top_cut_wr) }}>{pct(r.top_cut_wr)}</td>
+              <td className="profile-table__num" style={{ color: r.top_cut_wr != null ? wrColor(r.top_cut_wr) : undefined }}>{r.top_cut_wr != null ? pct(r.top_cut_wr) : '—'}</td>
             </tr>
           ))
         }
