@@ -182,10 +182,16 @@ function H2HTab() {
           : rows.map((r, i) => (
             <tr key={i}>
               <td className="profile-table__name">
-                <Link to={`/mega/${encodeURIComponent(r.mega1)}`} className="cell-link">{r.mega1}</Link>
+                <Link to={`/mega/${encodeURIComponent(r.mega1)}`} className="cell-link">
+                  <ItemSprite item={r.mega1} size={20} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                  {r.mega1}
+                </Link>
               </td>
               <td className="profile-table__name">
-                <Link to={`/mega/${encodeURIComponent(r.mega2)}`} className="cell-link">{r.mega2}</Link>
+                <Link to={`/mega/${encodeURIComponent(r.mega2)}`} className="cell-link">
+                  <ItemSprite item={r.mega2} size={20} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                  {r.mega2}
+                </Link>
               </td>
               <td className="profile-table__num">{r.matches.toLocaleString()}</td>
               <td className="profile-table__num">{r.mega1_wins.toLocaleString()}</td>

@@ -253,7 +253,10 @@ export function MegaPage() {
                     .map((r, i) => (
                       <tr key={i}>
                         <td className="profile-table__name">
-                          <Link to={`/mega/${encodeURIComponent(r.mega2)}`} className="cell-link">{r.mega2}</Link>
+                          <Link to={`/mega/${encodeURIComponent(r.mega2)}`} className="cell-link">
+                            <ItemSprite item={r.mega2} size={20} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                            {r.mega2}
+                          </Link>
                         </td>
                         <td className="profile-table__num">{r.matches}</td>
                         <td className="profile-table__num">{r.mega1_wins}</td>
