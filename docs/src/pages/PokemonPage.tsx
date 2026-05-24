@@ -22,6 +22,7 @@ import "./ProfilePage.css";
 import "./PokemonPage.css";
 import { PokemonIcon } from "../components/PokemonIcon";
 import { TeamIcons } from "../components/TeamIcons";
+import { applySort, toggleSort, SortTh } from "../components/SortableTable";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -127,54 +128,6 @@ function wrColor(v: number): string {
   return "var(--red)";
 }
 
-function applySort<T>(rows: T[], col: keyof T | null, dir: "asc" | "desc"): T[] {
-  if (!col) return rows;
-  return [...rows].sort((a, b) => {
-    const av = a[col] as number;
-    const bv = b[col] as number;
-    return dir === "desc" ? bv - av : av - bv;
-  });
-}
-
-function SortTh({
-  label,
-  active,
-  dir,
-  onClick,
-  className,
-}: {
-  label: string;
-  active: boolean;
-  dir: "asc" | "desc";
-  onClick: () => void;
-  className?: string;
-}) {
-  return (
-    <th
-      className={className}
-      style={{ cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
-      onClick={onClick}
-    >
-      {label}{" "}
-      <i
-        className={`bi ${active ? (dir === "desc" ? "bi-caret-down-fill" : "bi-caret-up-fill") : "bi-caret-down"}`}
-        style={{ fontSize: 10, opacity: active ? 1 : 0.35 }}
-      />
-    </th>
-  );
-}
-
-function toggleSort<T extends string>(
-  col: T,
-  sort: { col: T; dir: "asc" | "desc" } | null,
-  setSort: (s: { col: T; dir: "asc" | "desc" } | null) => void,
-) {
-  if (sort?.col === col) {
-    setSort({ col, dir: sort.dir === "desc" ? "asc" : "desc" });
-  } else {
-    setSort({ col, dir: "desc" });
-  }
-}
 
 type FlatTrendRow = { date: string; usage_pct: number; win_rate: number };
 
@@ -996,142 +949,6 @@ export function PokemonPage() {
               insights={computeInsights(decoded, trend, matchups, allUsage)}
             />
 
-            <h3
-              className="profile-section-heading"
-              style={{ borderTop: "none", paddingTop: 0 }}
-            >
-              Players
-            </h3>
-            <table className="profile-table">
-              <thead>
-                <tr>
-                  <th>Player</th>
-                  <th className="right">Entries</th>
-                  <th className="right">Best</th>
-                  <th className="col-win-rate">Win Rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {players.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="profile-no-data">
-                      No data available.
-                    </td>
-                  </tr>
-                ) : (
-                  players.map((r, i) => (
-                    <tr key={i}>
-                      <td className="profile-table__name">
-                        <Link
-                          to={`/players/${r.player_id}`}
-                          className="cell-link"
-                        >
-                          <span style={{ marginRight: 6 }}>{r.flag}</span>
-                          {r.player_name}
-                        </Link>
-                      </td>
-                      <td className="profile-table__num">{r.teams}</td>
-                      <td className="profile-table__num">
-                        <span
-                          style={{
-                            color:
-                              r.best_placing <= 3
-                                ? "var(--accent-2)"
-                                : "var(--text-2)",
-                          }}
-                        >
-                          {placingLabel(r.best_placing)}
-                        </span>
-                      </td>
-                      <td className="col-win-rate" style={{ width: 180 }}>
-                        <WinRateBar value={r.win_rate} />
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-
-            <h3 className="profile-section-heading">Teams</h3>
-            {(() => {
-              const rows = mockTeams(decoded);
-              return (
-                <table className="profile-table profile-table--pokemon-teams">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Tournament</th>
-                      <th>Player</th>
-                      <th className="right">Place</th>
-                      <th className="right">Record</th>
-                      <th>Team</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r, i) => (
-                      <tr key={i}>
-                        <td style={{ whiteSpace: "nowrap" }}>
-                          <span
-                            style={{
-                              fontFamily: "var(--font-data)",
-                              fontSize: 12,
-                              color: "var(--text-4)",
-                              fontVariantNumeric: "tabular-nums",
-                            }}
-                          >
-                            {formatDate(r.date)}
-                          </span>
-                        </td>
-                        <td className="profile-table__name">
-                          <Link
-                            to={`/tournaments/${r.tournament_id}`}
-                            className="cell-link"
-                          >
-                            {r.tournament_name}
-                          </Link>
-                        </td>
-                        <td className="profile-table__name">
-                          <Link
-                            to={`/players/${r.player_id}`}
-                            className="cell-link"
-                          >
-                            {r.player_name}
-                          </Link>
-                        </td>
-                        <td className="profile-table__num">
-                          <span
-                            style={{
-                              color:
-                                r.placing <= 3
-                                  ? "var(--accent-2)"
-                                  : "var(--text-2)",
-                            }}
-                          >
-                            {placingLabel(r.placing)}
-                          </span>
-                        </td>
-                        <td className="profile-table__num">
-                          <span style={{ color: "var(--green)" }}>
-                            {r.wins}
-                          </span>
-                          <span
-                            style={{ color: "var(--text-4)", margin: "0 2px" }}
-                          >
-                            –
-                          </span>
-                          <span style={{ color: "var(--red)" }}>
-                            {r.losses}
-                          </span>
-                        </td>
-                        <td>
-                          <TeamIcons team={r.teammates} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              );
-            })()}
           </>
         )}
 

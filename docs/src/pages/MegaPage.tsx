@@ -4,6 +4,8 @@ import { supabase } from '../supabase';
 import { TrendChart } from '../components/TrendChart';
 import { ItemSprite } from '../components/ItemSprite';
 import { PokemonIcon } from '../components/PokemonIcon';
+import { applySort, toggleSort, SortTh } from '../components/SortableTable';
+import { megaItemToPokemon } from '../utils/megaItems';
 import type { TrendPoint } from '../mock-data';
 import './ProfilePage.css';
 import './MegaPage.css';
@@ -81,13 +83,18 @@ export function MegaPage() {
   const { item } = useParams<{ item: string }>();
   const decoded  = item ? decodeURIComponent(item) : '';
 
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState<string | null>(null);
-  const [stats,     setStats]     = useState<MegaStats | null>(null);
-  const [teammates, setTeammates] = useState<TeammateRow[]>([]);
-  const [h2h,       setH2H]       = useState<H2HRow[]>([]);
-  const [trend,     setTrend]     = useState<TrendPoint[]>([]);
-  const [tab,       setTab]       = useState<'teammates' | 'h2h' | 'trends'>('teammates');
+  type TeammateSortCol = 'teams' | 'usage_pct' | 'win_rate_with' | 'win_rate_without';
+  type H2HSortCol = 'matches' | 'mega1_wins' | 'mega2_wins' | 'mega1_wr';
+
+  const [loading,       setLoading]       = useState(true);
+  const [error,         setError]         = useState<string | null>(null);
+  const [stats,         setStats]         = useState<MegaStats | null>(null);
+  const [teammates,     setTeammates]     = useState<TeammateRow[]>([]);
+  const [h2h,           setH2H]           = useState<H2HRow[]>([]);
+  const [trend,         setTrend]         = useState<TrendPoint[]>([]);
+  const [tab,           setTab]           = useState<'teammates' | 'h2h' | 'trends'>('teammates');
+  const [teammateSort,  setTeammateSort]  = useState<{ col: TeammateSortCol; dir: 'asc' | 'desc' }>({ col: 'usage_pct', dir: 'desc' });
+  const [h2hSort,       setH2HSort]       = useState<{ col: H2HSortCol; dir: 'asc' | 'desc' }>({ col: 'mega1_wr', dir: 'desc' });
 
   useEffect(() => {
     if (!decoded) return;
@@ -164,7 +171,7 @@ export function MegaPage() {
         </div>
         <div className="profile-hero__content">
           <Link to="/mega" className="back-link"><i className="bi bi-arrow-left" /> All Mega Items</Link>
-          <h2 className="profile-name">{decoded}</h2>
+          <h2 className="profile-name">{megaItemToPokemon(decoded)}</h2>
           {stats && (
             <div className="profile-stats">
               <div className="profile-stat">
@@ -205,15 +212,15 @@ export function MegaPage() {
             <table className="profile-table mega-table">
               <thead><tr>
                 <th>Pokémon</th>
-                <th>Teams</th>
-                <th>Usage</th>
-                <th>WR With</th>
-                <th>WR Without</th>
+                <SortTh label="Teams"      active={teammateSort.col === 'teams'}            dir={teammateSort.dir} onClick={() => toggleSort('teams',            teammateSort, setTeammateSort)} className="right" />
+                <SortTh label="Usage"      active={teammateSort.col === 'usage_pct'}        dir={teammateSort.dir} onClick={() => toggleSort('usage_pct',        teammateSort, setTeammateSort)} className="right" />
+                <SortTh label="WR With"    active={teammateSort.col === 'win_rate_with'}    dir={teammateSort.dir} onClick={() => toggleSort('win_rate_with',    teammateSort, setTeammateSort)} className="right" />
+                <SortTh label="WR Without" active={teammateSort.col === 'win_rate_without'} dir={teammateSort.dir} onClick={() => toggleSort('win_rate_without', teammateSort, setTeammateSort)} className="right" />
               </tr></thead>
               <tbody>
                 {teammates.length === 0
                   ? <tr><td colSpan={5} className="profile-no-data">No data available.</td></tr>
-                  : teammates.map((r, i) => (
+                  : applySort(teammates, teammateSort.col, teammateSort.dir).map((r, i) => (
                     <tr key={i}>
                       <td className="profile-table__name">
                         <Link to={`/pokemon/${encodeURIComponent(r.species)}`} className="cell-link">
@@ -240,22 +247,20 @@ export function MegaPage() {
             <table className="profile-table mega-table">
               <thead><tr>
                 <th>Opponent Mega</th>
-                <th>Matches</th>
-                <th>Wins</th>
-                <th>Opp Wins</th>
-                <th>Win Rate</th>
+                <SortTh label="Matches"  active={h2hSort.col === 'matches'}    dir={h2hSort.dir} onClick={() => toggleSort('matches',    h2hSort, setH2HSort)} className="right" />
+                <SortTh label="Wins"     active={h2hSort.col === 'mega1_wins'} dir={h2hSort.dir} onClick={() => toggleSort('mega1_wins', h2hSort, setH2HSort)} className="right" />
+                <SortTh label="Opp Wins" active={h2hSort.col === 'mega2_wins'} dir={h2hSort.dir} onClick={() => toggleSort('mega2_wins', h2hSort, setH2HSort)} className="right" />
+                <SortTh label="Win Rate" active={h2hSort.col === 'mega1_wr'}   dir={h2hSort.dir} onClick={() => toggleSort('mega1_wr',   h2hSort, setH2HSort)} className="right" />
               </tr></thead>
               <tbody>
                 {h2h.length === 0
                   ? <tr><td colSpan={5} className="profile-no-data">No data available.</td></tr>
-                  : h2h
-                    .sort((a, b) => b.mega1_wr - a.mega1_wr)
-                    .map((r, i) => (
+                  : applySort(h2h, h2hSort.col, h2hSort.dir).map((r, i) => (
                       <tr key={i}>
                         <td className="profile-table__name">
                           <Link to={`/mega/${encodeURIComponent(r.mega2)}`} className="cell-link">
                             <ItemSprite item={r.mega2} size={20} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-                            {r.mega2}
+                            {megaItemToPokemon(r.mega2)}
                           </Link>
                         </td>
                         <td className="profile-table__num">{r.matches}</td>
