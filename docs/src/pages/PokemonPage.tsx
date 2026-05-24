@@ -156,7 +156,6 @@ async function fetchAll(species: string) {
     partnersRes,
     matchupsRes,
     trendRes,
-    playersRes,
     spreadsRes,
     natureTrendRes,
   ] = await Promise.all([
@@ -166,7 +165,6 @@ async function fetchAll(species: string) {
     supabase.rpc("get_pokemon_partners", { p_species: species }),
     supabase.rpc("get_pokemon_matchups", { p_species: species }),
     supabase.rpc("get_pokemon_trend", { p_species: species }),
-    supabase.rpc("get_pokemon_players", { p_species: species }),
     supabase.rpc("get_pokemon_spreads", { p_species: species }),
     supabase.rpc("get_nature_trends", { p_species: species }),
   ]);
@@ -177,7 +175,6 @@ async function fetchAll(species: string) {
     partnersRes,
     matchupsRes,
     trendRes,
-    playersRes,
     spreadsRes,
     natureTrendRes,
   ]) {
@@ -209,7 +206,6 @@ async function fetchAll(species: string) {
     partners: (partnersRes.data ?? []) as PartnerRow[],
     matchups: (matchupsRes.data ?? []) as MatchupRow[],
     trend: (trendRes.data ?? []) as TrendPoint[],
-    players: (playersRes.data ?? []) as PokemonPlayerRow[],
     spreads: (spreadsRes.data ?? []) as SpreadRow[],
     natureTrends,
   };
@@ -648,109 +644,6 @@ function buildStatDistribution(
   return [...buckets.entries()]
     .sort(([a], [b]) => a - b)
     .map(([value, usage]) => ({ value, usage }));
-}
-
-// ─── Mock teams data ──────────────────────────────────────────────────────────
-
-function mockTeams(species: string): TeamRow[] {
-  const pool = [
-    ["Garchomp", "Incineroar", "Tornadus", "Landorus-Therian", "Rillaboom"],
-    ["Urshifu", "Regieleki", "Landorus-Therian", "Incineroar", "Grimmsnarl"],
-    ["Flutter Mane", "Iron Hands", "Palafin", "Tornadus", "Incineroar"],
-    ["Chien-Pao", "Amoonguss", "Urshifu", "Incineroar", "Rillaboom"],
-    ["Iron Bundle", "Annihilape", "Landorus-Therian", "Tornadus", "Incineroar"],
-    ["Calyrex-Shadow", "Zacian", "Incineroar", "Rillaboom", "Grimmsnarl"],
-  ];
-  const tournaments = [
-    {
-      id: "t1",
-      name: "Toronto Regional Championship 2026",
-      date: "2026-04-12",
-    },
-    {
-      id: "t2",
-      name: "Charlotte Regional Championship 2026",
-      date: "2026-03-22",
-    },
-    {
-      id: "t3",
-      name: "Stuttgart Regional Championship 2026",
-      date: "2026-03-08",
-    },
-    {
-      id: "t4",
-      name: "San Diego Regional Championship 2026",
-      date: "2026-02-15",
-    },
-    { id: "t5", name: "Bochum Regional Championship 2026", date: "2026-01-25" },
-    {
-      id: "t6",
-      name: "Liverpool Regional Championship 2026",
-      date: "2026-01-11",
-    },
-    {
-      id: "t7",
-      name: "Vancouver Regional Championship 2026",
-      date: "2025-12-07",
-    },
-    { id: "t8", name: "Sydney Regional Championship 2025", date: "2025-11-23" },
-  ];
-  const players = [
-    { id: "p1", name: "Wolfe Glick" },
-    { id: "p2", name: "Sejun Park" },
-    { id: "p3", name: "Aaron Traylor" },
-    { id: "p4", name: "Eduardo Cunha" },
-    { id: "p5", name: "Nico Davide Cognetta" },
-    { id: "p6", name: "Raghav Malaviya" },
-    { id: "p7", name: "James Baek" },
-    { id: "p8", name: "Ashton Cox" },
-    { id: "p9", name: "Justin Burns" },
-    { id: "p10", name: "Sam Pandelis" },
-  ];
-  const placings = [1, 4, 2, 8, 16, 6, 3, 12, 7, 5];
-  const records = [
-    [8, 1],
-    [7, 2],
-    [6, 2],
-    [6, 3],
-    [5, 3],
-    [7, 1],
-    [8, 0],
-    [5, 4],
-    [6, 2],
-    [7, 2],
-  ];
-  return Array.from({ length: 10 }, (_, i) => {
-    const t = tournaments[i % tournaments.length];
-    const p = players[i % players.length];
-    const mates = pool[i % pool.length].slice(0, 5);
-    return {
-      player_id: p.id,
-      player_name: p.name,
-      tournament_id: t.id,
-      tournament_name: t.name,
-      date: t.date,
-      placing: placings[i],
-      wins: records[i][0],
-      losses: records[i][1],
-      teammates: [species, ...mates],
-    };
-  });
-}
-
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function placingLabel(p: number): string {
-  if (p === 1) return "1st";
-  if (p === 2) return "2nd";
-  if (p === 3) return "3rd";
-  return `${p}th`;
 }
 
 // ─── Series color palette ─────────────────────────────────────────────────────
