@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../supabase";
 import { PokemonIcon } from "../components/PokemonIcon";
+import { currentWeekMonday } from "../utils/dates";
 import "./ProfilePage.css";
 
 interface PokemonRow {
@@ -34,8 +35,10 @@ export function PokemonListPage() {
   useEffect(() => {
     setLoading(true);
     setError(null);
+
+    const since = currentWeekMonday();
     supabase
-      .rpc("get_pokemon_usage", {})
+      .rpc("get_pokemon_usage", { p_since: since })
       .then(({ data, error: err }) => {
         if (err) throw new Error(err.message);
         setRows((data ?? []) as PokemonRow[]);

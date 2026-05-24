@@ -21,8 +21,8 @@ import * as ChampionsMod from "@pkmn/mods/champions";
 import "./ProfilePage.css";
 import "./PokemonPage.css";
 import { PokemonIcon } from "../components/PokemonIcon";
-import { TeamIcons } from "../components/TeamIcons";
 import { applySort, toggleSort, SortTh } from "../components/SortableTable";
+import { currentWeekMonday } from "../utils/dates";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -128,45 +128,77 @@ function wrColor(v: number): string {
   return "var(--red)";
 }
 
-
 type FlatTrendRow = { date: string; usage_pct: number; win_rate: number };
 
 function pivotTrends<K extends string>(
-  rows: ({ date: string; usage_pct: number; win_rate: number } & Record<K, string>)[],
+  rows: ({ date: string; usage_pct: number; win_rate: number } & Record<
+    K,
+    string
+  >)[],
   key: K,
 ): Record<string, TrendPoint[]> {
   const out: Record<string, TrendPoint[]> = {};
   for (const row of rows) {
-    (out[row[key]] ??= []).push({ date: row.date, usage_pct: row.usage_pct, win_rate: row.win_rate });
+    (out[row[key]] ??= []).push({
+      date: row.date,
+      usage_pct: row.usage_pct,
+      win_rate: row.win_rate,
+    });
   }
   return out;
 }
 
 async function fetchAll(species: string) {
   const [
-    usageRes, movesRes, itemsRes, partnersRes, matchupsRes,
-    trendRes, playersRes, spreadsRes, natureTrendRes,
+    usageRes,
+    movesRes,
+    itemsRes,
+    partnersRes,
+    matchupsRes,
+    trendRes,
+    playersRes,
+    spreadsRes,
+    natureTrendRes,
   ] = await Promise.all([
-    supabase.rpc('get_pokemon_usage'),
-    supabase.rpc('get_pokemon_moves', { p_species: species }),
-    supabase.rpc('get_pokemon_items', { p_species: species }),
-    supabase.rpc('get_pokemon_partners', { p_species: species }),
-    supabase.rpc('get_pokemon_matchups', { p_species: species }),
-    supabase.rpc('get_pokemon_trend', { p_species: species }),
-    supabase.rpc('get_pokemon_players', { p_species: species }),
-    supabase.rpc('get_pokemon_spreads', { p_species: species }),
-    supabase.rpc('get_nature_trends', { p_species: species }),
+    supabase.rpc("get_pokemon_usage", { p_since: currentWeekMonday() }),
+    supabase.rpc("get_pokemon_moves", { p_species: species }),
+    supabase.rpc("get_pokemon_items", { p_species: species }),
+    supabase.rpc("get_pokemon_partners", { p_species: species }),
+    supabase.rpc("get_pokemon_matchups", { p_species: species }),
+    supabase.rpc("get_pokemon_trend", { p_species: species }),
+    supabase.rpc("get_pokemon_players", { p_species: species }),
+    supabase.rpc("get_pokemon_spreads", { p_species: species }),
+    supabase.rpc("get_nature_trends", { p_species: species }),
   ]);
-  for (const r of [usageRes, movesRes, itemsRes, partnersRes, matchupsRes, trendRes, playersRes, spreadsRes, natureTrendRes]) {
-    if ((r as { error?: { message: string } }).error) throw new Error((r as { error: { message: string } }).error.message);
+  for (const r of [
+    usageRes,
+    movesRes,
+    itemsRes,
+    partnersRes,
+    matchupsRes,
+    trendRes,
+    playersRes,
+    spreadsRes,
+    natureTrendRes,
+  ]) {
+    if ((r as { error?: { message: string } }).error)
+      throw new Error((r as { error: { message: string } }).error.message);
   }
   const allUsage = (usageRes.data ?? []) as UsageRow[];
-  const stats = allUsage.find((r) => r.species.toLowerCase() === species.toLowerCase()) ?? null;
+  const stats =
+    allUsage.find((r) => r.species.toLowerCase() === species.toLowerCase()) ??
+    null;
 
-  const flatNt = (Array.isArray(natureTrendRes.data) ? natureTrendRes.data : []) as { nature: string; date: string; usage_pct: number; win_rate: number }[];
+  const flatNt = (
+    Array.isArray(natureTrendRes.data) ? natureTrendRes.data : []
+  ) as { nature: string; date: string; usage_pct: number; win_rate: number }[];
   const natureTrends: Record<string, TrendPoint[]> = {};
   for (const row of flatNt) {
-    (natureTrends[row.nature] ??= []).push({ date: row.date, usage_pct: row.usage_pct, win_rate: row.win_rate });
+    (natureTrends[row.nature] ??= []).push({
+      date: row.date,
+      usage_pct: row.usage_pct,
+      win_rate: row.win_rate,
+    });
   }
 
   return {
@@ -184,22 +216,32 @@ async function fetchAll(species: string) {
 }
 
 // Fetch trend data for a single tab on demand.
-async function fetchTabTrends(species: string, tab: 'moves' | 'items' | 'partners' | 'matchups') {
+async function fetchTabTrends(
+  species: string,
+  tab: "moves" | "items" | "partners" | "matchups",
+) {
   const rpcMap = {
-    moves:    () => supabase.rpc('get_pokemon_move_trends',    { p_species: species }),
-    items:    () => supabase.rpc('get_pokemon_item_trends',    { p_species: species }),
-    partners: () => supabase.rpc('get_pokemon_partner_trends', { p_species: species }),
-    matchups: () => supabase.rpc('get_pokemon_matchup_trends', { p_species: species }),
+    moves: () =>
+      supabase.rpc("get_pokemon_move_trends", { p_species: species }),
+    items: () =>
+      supabase.rpc("get_pokemon_item_trends", { p_species: species }),
+    partners: () =>
+      supabase.rpc("get_pokemon_partner_trends", { p_species: species }),
+    matchups: () =>
+      supabase.rpc("get_pokemon_matchup_trends", { p_species: species }),
   };
   const pivotKeyMap = {
-    moves:    'move_name',
-    items:    'item',
-    partners: 'partner_species',
-    matchups: 'opponent_species',
+    moves: "move_name",
+    items: "item",
+    partners: "partner_species",
+    matchups: "opponent_species",
   } as const;
   const res = await rpcMap[tab]();
   if (res.error) return {};
-  return pivotTrends((res.data ?? []) as ({ [k: string]: string } & FlatTrendRow)[], pivotKeyMap[tab]);
+  return pivotTrends(
+    (res.data ?? []) as ({ [k: string]: string } & FlatTrendRow)[],
+    pivotKeyMap[tab],
+  );
 }
 
 // ─── Insights ─────────────────────────────────────────────────────────────────
@@ -441,7 +483,9 @@ function InsightsPanel({ insights }: { insights: Insight[] }) {
 
 function WinRateBar({ value }: { value: number }) {
   return (
-    <span className="wr-text" style={{ color: wrColor(value) }}>{pct(value)}</span>
+    <span className="wr-text" style={{ color: wrColor(value) }}>
+      {pct(value)}
+    </span>
   );
 }
 
@@ -492,7 +536,10 @@ type Tab = "overview" | "moves" | "items" | "partners" | "matchups" | "stats";
 
 // ─── Stat distribution via @pkmn ─────────────────────────────────────────────
 
-const _championsDex = Dex.mod("champions" as ID, ChampionsMod as unknown as ModData);
+const _championsDex = Dex.mod(
+  "champions" as ID,
+  ChampionsMod as unknown as ModData,
+);
 const _gens = new Generations(_championsDex, (d) => {
   if (!d.exists) return false;
   if ("isNonstandard" in d && d.isNonstandard) return false;
@@ -502,9 +549,16 @@ const _gen9 = _gens.get(9);
 
 type StatKey = "hp" | "atk" | "def" | "spa" | "spd" | "spe";
 const STAT_KEYS: StatKey[] = ["hp", "atk", "def", "spa", "spd", "spe"];
-const STAT_LABELS: Record<StatKey, string> = { hp: "HP", atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe" };
+const STAT_LABELS: Record<StatKey, string> = {
+  hp: "HP",
+  atk: "Atk",
+  def: "Def",
+  spa: "SpA",
+  spd: "SpD",
+  spe: "Spe",
+};
 const STAT_COLORS: Record<StatKey, string> = {
-  hp:  "var(--green)",
+  hp: "var(--green)",
   atk: "#f87171",
   def: "#60a5fa",
   spa: "var(--accent)",
@@ -513,7 +567,14 @@ const STAT_COLORS: Record<StatKey, string> = {
 };
 
 function spForStat(row: SpreadRow, stat: StatKey): number {
-  return { hp: row.hp, atk: row.atk, def: row.def, spa: row.spa, spd: row.spd, spe: row.spe }[stat];
+  return {
+    hp: row.hp,
+    atk: row.atk,
+    def: row.def,
+    spa: row.spa,
+    spd: row.spd,
+    spe: row.spe,
+  }[stat];
 }
 
 // M-A format stat formula (from champions mod statModify):
@@ -544,8 +605,14 @@ function effectiveStatDomain(species: string, stat: StatKey): [number, number] {
 }
 
 // Boundaries between neutral range and nature-only zones (null for HP since nature doesn't apply)
-function effectiveStatNatureZones(species: string, stat: StatKey): {
-  minusBound: number; neutralMin: number; neutralMax: number; plusBound: number;
+function effectiveStatNatureZones(
+  species: string,
+  stat: StatKey,
+): {
+  minusBound: number;
+  neutralMin: number;
+  neutralMax: number;
+  plusBound: number;
 } | null {
   if (stat === "hp") return null;
   const mon = _championsDex.species.get(species);
@@ -571,9 +638,10 @@ function buildStatDistribution(
   for (const row of spreads) {
     const nature = mon?.exists ? _gen9.natures.get(row.nature) : null;
     const sp = spForStat(row, stat);
-    const value = mode === "effective" && mon?.exists
-      ? maCalcStat(stat, mon.baseStats[stat], sp, nature)
-      : sp;
+    const value =
+      mode === "effective" && mon?.exists
+        ? maCalcStat(stat, mon.baseStats[stat], sp, nature)
+        : sp;
     buckets.set(value, (buckets.get(value) ?? 0) + row.usage_pct);
   }
 
@@ -713,18 +781,27 @@ export function PokemonPage() {
   const [partners, setPartners] = useState<PartnerRow[]>([]);
   const [matchups, setMatchups] = useState<MatchupRow[]>([]);
   const [trend, setTrend] = useState<TrendPoint[]>([]);
-  const [players, setPlayers] = useState<PokemonPlayerRow[]>([]);
   const [tab, setTab] = useState<Tab>("overview");
   const [spreads, setSpreads] = useState<SpreadRow[]>([]);
-  const [natureTrends, setNatureTrends] = useState<Record<string, TrendPoint[]>>({});
+  const [natureTrends, setNatureTrends] = useState<
+    Record<string, TrendPoint[]>
+  >({});
   const [selectedMoves, setSelectedMoves] = useState<string[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
   const [selectedMatchups, setSelectedMatchups] = useState<string[]>([]);
-  const [moveTrends, setMoveTrends] = useState<Record<string, TrendPoint[]>>({});
-  const [itemTrends, setItemTrends] = useState<Record<string, TrendPoint[]>>({});
-  const [partnerTrends, setPartnerTrends] = useState<Record<string, TrendPoint[]>>({});
-  const [matchupTrends, setMatchupTrends] = useState<Record<string, TrendPoint[]>>({});
+  const [moveTrends, setMoveTrends] = useState<Record<string, TrendPoint[]>>(
+    {},
+  );
+  const [itemTrends, setItemTrends] = useState<Record<string, TrendPoint[]>>(
+    {},
+  );
+  const [partnerTrends, setPartnerTrends] = useState<
+    Record<string, TrendPoint[]>
+  >({});
+  const [matchupTrends, setMatchupTrends] = useState<
+    Record<string, TrendPoint[]>
+  >({});
   const [trendsLoaded, setTrendsLoaded] = useState<Set<string>>(new Set());
   const [trendsLoading, setTrendsLoading] = useState<Set<string>>(new Set());
 
@@ -732,10 +809,17 @@ export function PokemonPage() {
   type SortState<T extends string> = { col: T; dir: SortDir } | null;
   const [moveSort, setMoveSort] = useState<SortState<"win_rate">>(null);
   const [itemSort, setItemSort] = useState<SortState<"win_rate">>(null);
-  const [partnerSort, setPartnerSort] = useState<SortState<"usage_pct" | "win_rate">>(null);
-  const [matchupSort, setMatchupSort] = useState<SortState<"win_rate" | "opp_usage">>(null);
-  const [spreadSort, setSpreadSort] = useState<SortState<"usage_pct">>({ col: "usage_pct", dir: "desc" });
-  const [statViewMode, setStatViewMode] = useState<"investment" | "effective">("investment");
+  const [partnerSort, setPartnerSort] =
+    useState<SortState<"usage_pct" | "win_rate">>(null);
+  const [matchupSort, setMatchupSort] =
+    useState<SortState<"win_rate" | "opp_usage">>(null);
+  const [spreadSort, setSpreadSort] = useState<SortState<"usage_pct">>({
+    col: "usage_pct",
+    dir: "desc",
+  });
+  const [statViewMode, setStatViewMode] = useState<"investment" | "effective">(
+    "investment",
+  );
   const [selectedStat, setSelectedStat] = useState<StatKey>("hp");
 
   useEffect(() => {
@@ -751,7 +835,6 @@ export function PokemonPage() {
         setPartners(d.partners);
         setMatchups(d.matchups);
         setTrend(d.trend);
-        setPlayers(d.players);
         setSelectedMoves(d.moves.slice(0, 5).map((r) => r.move_name));
         setSelectedItems(d.items.slice(0, 5).map((r) => r.item));
         setSelectedPartners(
@@ -777,17 +860,28 @@ export function PokemonPage() {
   // Lazy-load per-item trend data the first time each trend tab is visited.
   useEffect(() => {
     if (!decoded || loading) return;
-    const trendTab = (tab === 'moves' || tab === 'items' || tab === 'partners' || tab === 'matchups') ? tab : null;
-    if (!trendTab || trendsLoaded.has(trendTab) || trendsLoading.has(trendTab)) return;
+    const trendTab =
+      tab === "moves" ||
+      tab === "items" ||
+      tab === "partners" ||
+      tab === "matchups"
+        ? tab
+        : null;
+    if (!trendTab || trendsLoaded.has(trendTab) || trendsLoading.has(trendTab))
+      return;
 
     setTrendsLoading((prev) => new Set([...prev, trendTab]));
     fetchTabTrends(decoded, trendTab).then((data) => {
-      if (trendTab === 'moves')    setMoveTrends(data);
-      if (trendTab === 'items')    setItemTrends(data);
-      if (trendTab === 'partners') setPartnerTrends(data);
-      if (trendTab === 'matchups') setMatchupTrends(data);
+      if (trendTab === "moves") setMoveTrends(data);
+      if (trendTab === "items") setItemTrends(data);
+      if (trendTab === "partners") setPartnerTrends(data);
+      if (trendTab === "matchups") setMatchupTrends(data);
       setTrendsLoaded((prev) => new Set([...prev, trendTab]));
-      setTrendsLoading((prev) => { const s = new Set(prev); s.delete(trendTab); return s; });
+      setTrendsLoading((prev) => {
+        const s = new Set(prev);
+        s.delete(trendTab);
+        return s;
+      });
     });
   }, [tab, decoded, loading, trendsLoaded, trendsLoading]);
 
@@ -826,19 +920,13 @@ export function PokemonPage() {
           </div>
         </div>
         <div className="profile-tabs">
-          {[
-            "Overview",
-            "Moves",
-            "Items",
-            "Partners",
-            "Matchups",
-            "Players",
-            "Teams",
-          ].map((t) => (
-            <button key={t} className="profile-tab" disabled>
-              {t}
-            </button>
-          ))}
+          {["Overview", "Moves", "Items", "Partners", "Matchups", "Teams"].map(
+            (t) => (
+              <button key={t} className="profile-tab" disabled>
+                {t}
+              </button>
+            ),
+          )}
         </div>
         <div className="profile-body">
           <SectionSkeleton />
@@ -909,17 +997,24 @@ export function PokemonPage() {
 
       {/* ── Tabs ── */}
       <div className="profile-tabs">
-        {(["overview", "moves", "items", "partners", "matchups", "stats"] as Tab[]).map(
-          (t) => (
-            <button
-              key={t}
-              className={`profile-tab${tab === t ? " active" : ""}`}
-              onClick={() => setTab(t)}
-            >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ),
-        )}
+        {(
+          [
+            "overview",
+            "moves",
+            "items",
+            "partners",
+            "matchups",
+            "stats",
+          ] as Tab[]
+        ).map((t) => (
+          <button
+            key={t}
+            className={`profile-tab${tab === t ? " active" : ""}`}
+            onClick={() => setTab(t)}
+          >
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
       </div>
 
       {/* ── Content ── */}
@@ -948,13 +1043,16 @@ export function PokemonPage() {
             <InsightsPanel
               insights={computeInsights(decoded, trend, matchups, allUsage)}
             />
-
           </>
         )}
 
         {tab === "moves" &&
           (() => {
-            const sorted = applySort(moves, moveSort?.col ?? null, moveSort?.dir ?? "desc");
+            const sorted = applySort(
+              moves,
+              moveSort?.col ?? null,
+              moveSort?.dir ?? "desc",
+            );
             const series = moves
               .filter((r) => selectedMoves.includes(r.move_name))
               .map((r) => ({
@@ -985,7 +1083,9 @@ export function PokemonPage() {
                         label="Win Rate"
                         active={moveSort?.col === "win_rate"}
                         dir={moveSort?.dir ?? "desc"}
-                        onClick={() => toggleSort("win_rate", moveSort, setMoveSort)}
+                        onClick={() =>
+                          toggleSort("win_rate", moveSort, setMoveSort)
+                        }
                         className="right"
                       />
                     </tr>
@@ -999,44 +1099,48 @@ export function PokemonPage() {
                       </tr>
                     ) : (
                       sorted.map((r) => {
-                        const origIdx = moves.findIndex((m) => m.move_name === r.move_name);
+                        const origIdx = moves.findIndex(
+                          (m) => m.move_name === r.move_name,
+                        );
                         return (
-                        <tr
-                          key={r.move_name}
-                          className={
-                            selectedMoves.includes(r.move_name)
-                              ? "profile-table__row--selected"
-                              : ""
-                          }
-                          style={{ cursor: "pointer" }}
-                          onClick={() =>
-                            toggleSelection(
-                              r.move_name,
-                              selectedMoves,
-                              setSelectedMoves,
-                            )
-                          }
-                        >
-                          <td
-                            className="profile-table__name"
-                            style={{
-                              color: selectedMoves.includes(r.move_name)
-                                ? SERIES_COLORS[origIdx % SERIES_COLORS.length]
-                                : undefined,
-                            }}
+                          <tr
+                            key={r.move_name}
+                            className={
+                              selectedMoves.includes(r.move_name)
+                                ? "profile-table__row--selected"
+                                : ""
+                            }
+                            style={{ cursor: "pointer" }}
+                            onClick={() =>
+                              toggleSelection(
+                                r.move_name,
+                                selectedMoves,
+                                setSelectedMoves,
+                              )
+                            }
                           >
-                            {r.move_name}
-                          </td>
-                          <td>{r.type && <TypeBadge type={r.type} />}</td>
-                          <td>
-                            {r.category && (
-                              <CategoryIcon category={r.category} />
-                            )}
-                          </td>
-                          <td className="profile-table__num">
-                            <WinRateBar value={r.win_rate} />
-                          </td>
-                        </tr>
+                            <td
+                              className="profile-table__name"
+                              style={{
+                                color: selectedMoves.includes(r.move_name)
+                                  ? SERIES_COLORS[
+                                      origIdx % SERIES_COLORS.length
+                                    ]
+                                  : undefined,
+                              }}
+                            >
+                              {r.move_name}
+                            </td>
+                            <td>{r.type && <TypeBadge type={r.type} />}</td>
+                            <td>
+                              {r.category && (
+                                <CategoryIcon category={r.category} />
+                              )}
+                            </td>
+                            <td className="profile-table__num">
+                              <WinRateBar value={r.win_rate} />
+                            </td>
+                          </tr>
                         );
                       })
                     )}
@@ -1048,7 +1152,11 @@ export function PokemonPage() {
 
         {tab === "items" &&
           (() => {
-            const sorted = applySort(items, itemSort?.col ?? null, itemSort?.dir ?? "desc");
+            const sorted = applySort(
+              items,
+              itemSort?.col ?? null,
+              itemSort?.dir ?? "desc",
+            );
             const series = items
               .filter((r) => selectedItems.includes(r.item))
               .map((r) => ({
@@ -1077,7 +1185,9 @@ export function PokemonPage() {
                         label="Win Rate"
                         active={itemSort?.col === "win_rate"}
                         dir={itemSort?.dir ?? "desc"}
-                        onClick={() => toggleSort("win_rate", itemSort, setItemSort)}
+                        onClick={() =>
+                          toggleSort("win_rate", itemSort, setItemSort)
+                        }
                         className="right"
                       />
                     </tr>
@@ -1091,54 +1201,58 @@ export function PokemonPage() {
                       </tr>
                     ) : (
                       sorted.map((r) => {
-                        const origIdx = items.findIndex((m) => m.item === r.item);
+                        const origIdx = items.findIndex(
+                          (m) => m.item === r.item,
+                        );
                         return (
-                        <tr
-                          key={r.item}
-                          className={
-                            selectedItems.includes(r.item)
-                              ? "profile-table__row--selected"
-                              : ""
-                          }
-                          style={{ cursor: "pointer" }}
-                          onClick={() =>
-                            toggleSelection(
-                              r.item,
-                              selectedItems,
-                              setSelectedItems,
-                            )
-                          }
-                        >
-                          <td
-                            className="profile-table__name"
-                            style={{
-                              color: selectedItems.includes(r.item)
-                                ? SERIES_COLORS[origIdx % SERIES_COLORS.length]
-                                : undefined,
-                            }}
+                          <tr
+                            key={r.item}
+                            className={
+                              selectedItems.includes(r.item)
+                                ? "profile-table__row--selected"
+                                : ""
+                            }
+                            style={{ cursor: "pointer" }}
+                            onClick={() =>
+                              toggleSelection(
+                                r.item,
+                                selectedItems,
+                                setSelectedItems,
+                              )
+                            }
                           >
-                            <img
-                              src={itemSpriteUrl(r.item)}
-                              alt=""
-                              aria-hidden
-                              width={24}
-                              height={24}
+                            <td
+                              className="profile-table__name"
                               style={{
-                                marginRight: 6,
-                                verticalAlign: "middle",
-                                imageRendering: "pixelated",
+                                color: selectedItems.includes(r.item)
+                                  ? SERIES_COLORS[
+                                      origIdx % SERIES_COLORS.length
+                                    ]
+                                  : undefined,
                               }}
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display =
-                                  "none";
-                              }}
-                            />
-                            {r.item}
-                          </td>
-                          <td className="profile-table__num">
-                            <WinRateBar value={r.win_rate} />
-                          </td>
-                        </tr>
+                            >
+                              <img
+                                src={itemSpriteUrl(r.item)}
+                                alt=""
+                                aria-hidden
+                                width={24}
+                                height={24}
+                                style={{
+                                  marginRight: 6,
+                                  verticalAlign: "middle",
+                                  imageRendering: "pixelated",
+                                }}
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display =
+                                    "none";
+                                }}
+                              />
+                              {r.item}
+                            </td>
+                            <td className="profile-table__num">
+                              <WinRateBar value={r.win_rate} />
+                            </td>
+                          </tr>
                         );
                       })
                     )}
@@ -1150,7 +1264,11 @@ export function PokemonPage() {
 
         {tab === "partners" &&
           (() => {
-            const sorted = applySort(partners, partnerSort?.col ?? null, partnerSort?.dir ?? "desc");
+            const sorted = applySort(
+              partners,
+              partnerSort?.col ?? null,
+              partnerSort?.dir ?? "desc",
+            );
             const series = partners
               .filter((r) => selectedPartners.includes(r.partner_species))
               .map((r) => ({
@@ -1180,14 +1298,18 @@ export function PokemonPage() {
                         label="Usage"
                         active={partnerSort?.col === "usage_pct"}
                         dir={partnerSort?.dir ?? "desc"}
-                        onClick={() => toggleSort("usage_pct", partnerSort, setPartnerSort)}
+                        onClick={() =>
+                          toggleSort("usage_pct", partnerSort, setPartnerSort)
+                        }
                         className="right"
                       />
                       <SortTh
                         label="Win Rate"
                         active={partnerSort?.col === "win_rate"}
                         dir={partnerSort?.dir ?? "desc"}
-                        onClick={() => toggleSort("win_rate", partnerSort, setPartnerSort)}
+                        onClick={() =>
+                          toggleSort("win_rate", partnerSort, setPartnerSort)
+                        }
                         className="right"
                       />
                     </tr>
@@ -1201,50 +1323,63 @@ export function PokemonPage() {
                       </tr>
                     ) : (
                       sorted.map((r) => {
-                        const origIdx = partners.findIndex((m) => m.partner_species === r.partner_species);
+                        const origIdx = partners.findIndex(
+                          (m) => m.partner_species === r.partner_species,
+                        );
                         return (
-                        <tr
-                          key={r.partner_species}
-                          className={
-                            selectedPartners.includes(r.partner_species)
-                              ? "profile-table__row--selected"
-                              : ""
-                          }
-                          style={{ cursor: "pointer" }}
-                          onClick={() =>
-                            toggleSelection(
-                              r.partner_species,
-                              selectedPartners,
-                              setSelectedPartners,
-                            )
-                          }
-                        >
-                          <td
-                            className="profile-table__name"
-                            style={{
-                              color: selectedPartners.includes(
+                          <tr
+                            key={r.partner_species}
+                            className={
+                              selectedPartners.includes(r.partner_species)
+                                ? "profile-table__row--selected"
+                                : ""
+                            }
+                            style={{ cursor: "pointer" }}
+                            onClick={() =>
+                              toggleSelection(
                                 r.partner_species,
+                                selectedPartners,
+                                setSelectedPartners,
                               )
-                                ? SERIES_COLORS[origIdx % SERIES_COLORS.length]
-                                : undefined,
-                            }}
+                            }
                           >
-                            <Link
-                              to={`/pokemon/${encodeURIComponent(r.partner_species)}`}
-                              className="cell-link"
-                              onClick={(e) => e.stopPropagation()}
+                            <td
+                              className="profile-table__name"
+                              style={{
+                                color: selectedPartners.includes(
+                                  r.partner_species,
+                                )
+                                  ? SERIES_COLORS[
+                                      origIdx % SERIES_COLORS.length
+                                    ]
+                                  : undefined,
+                              }}
                             >
-                              <PokemonIcon species={r.partner_species} size="small" style={{ width: 24, height: 24, marginRight: 6, verticalAlign: 'middle' }} />
-                              {r.partner_species}
-                            </Link>
-                          </td>
-                          <td className="profile-table__num">
-                            {pct(r.usage_pct)}
-                          </td>
-                          <td className="profile-table__num">
-                            <WinRateBar value={r.win_rate} />
-                          </td>
-                        </tr>
+                              <Link
+                                to={`/pokemon/${encodeURIComponent(r.partner_species)}`}
+                                className="cell-link"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <PokemonIcon
+                                  species={r.partner_species}
+                                  size="small"
+                                  style={{
+                                    width: 24,
+                                    height: 24,
+                                    marginRight: 6,
+                                    verticalAlign: "middle",
+                                  }}
+                                />
+                                {r.partner_species}
+                              </Link>
+                            </td>
+                            <td className="profile-table__num">
+                              {pct(r.usage_pct)}
+                            </td>
+                            <td className="profile-table__num">
+                              <WinRateBar value={r.win_rate} />
+                            </td>
+                          </tr>
                         );
                       })
                     )}
@@ -1256,12 +1391,18 @@ export function PokemonPage() {
 
         {tab === "matchups" &&
           (() => {
-            const usageMap = new Map(allUsage.map((u) => [u.species.toLowerCase(), u.usage_pct]));
+            const usageMap = new Map(
+              allUsage.map((u) => [u.species.toLowerCase(), u.usage_pct]),
+            );
             const enriched = matchups.map((r) => ({
               ...r,
               opp_usage: usageMap.get(r.opponent_species.toLowerCase()) ?? 0,
             }));
-            const sorted = applySort(enriched, matchupSort?.col ?? null, matchupSort?.dir ?? "desc");
+            const sorted = applySort(
+              enriched,
+              matchupSort?.col ?? null,
+              matchupSort?.dir ?? "desc",
+            );
             const series = matchups
               .filter((r) => selectedMatchups.includes(r.opponent_species))
               .map((r) => ({
@@ -1291,14 +1432,18 @@ export function PokemonPage() {
                         label="Usage"
                         active={matchupSort?.col === "opp_usage"}
                         dir={matchupSort?.dir ?? "desc"}
-                        onClick={() => toggleSort("opp_usage", matchupSort, setMatchupSort)}
+                        onClick={() =>
+                          toggleSort("opp_usage", matchupSort, setMatchupSort)
+                        }
                         className="right"
                       />
                       <SortTh
                         label="Win Rate"
                         active={matchupSort?.col === "win_rate"}
                         dir={matchupSort?.dir ?? "desc"}
-                        onClick={() => toggleSort("win_rate", matchupSort, setMatchupSort)}
+                        onClick={() =>
+                          toggleSort("win_rate", matchupSort, setMatchupSort)
+                        }
                         className="right"
                       />
                     </tr>
@@ -1312,48 +1457,63 @@ export function PokemonPage() {
                       </tr>
                     ) : (
                       sorted.map((r) => {
-                        const origIdx = matchups.findIndex((m) => m.opponent_species === r.opponent_species);
+                        const origIdx = matchups.findIndex(
+                          (m) => m.opponent_species === r.opponent_species,
+                        );
                         return (
-                        <tr
-                          key={r.opponent_species}
-                          className={
-                            selectedMatchups.includes(r.opponent_species)
-                              ? "profile-table__row--selected"
-                              : ""
-                          }
-                          style={{ cursor: "pointer" }}
-                          onClick={() =>
-                            toggleSelection(
-                              r.opponent_species,
-                              selectedMatchups,
-                              setSelectedMatchups,
-                            )
-                          }
-                        >
-                          <td
-                            className="profile-table__name"
-                            style={{
-                              color: selectedMatchups.includes(
+                          <tr
+                            key={r.opponent_species}
+                            className={
+                              selectedMatchups.includes(r.opponent_species)
+                                ? "profile-table__row--selected"
+                                : ""
+                            }
+                            style={{ cursor: "pointer" }}
+                            onClick={() =>
+                              toggleSelection(
                                 r.opponent_species,
+                                selectedMatchups,
+                                setSelectedMatchups,
                               )
-                                ? SERIES_COLORS[origIdx % SERIES_COLORS.length]
-                                : undefined,
-                            }}
+                            }
                           >
-                            <Link
-                              to={`/pokemon/${encodeURIComponent(r.opponent_species)}`}
-                              className="cell-link"
-                              onClick={(e) => e.stopPropagation()}
+                            <td
+                              className="profile-table__name"
+                              style={{
+                                color: selectedMatchups.includes(
+                                  r.opponent_species,
+                                )
+                                  ? SERIES_COLORS[
+                                      origIdx % SERIES_COLORS.length
+                                    ]
+                                  : undefined,
+                              }}
                             >
-                              <PokemonIcon species={r.opponent_species} size="small" style={{ width: 24, height: 24, marginRight: 6, verticalAlign: 'middle' }} />
-                              {r.opponent_species}
-                            </Link>
-                          </td>
-                          <td className="profile-table__num">{pct(r.opp_usage)}</td>
-                          <td className="profile-table__num">
-                            <WinRateBar value={r.win_rate} />
-                          </td>
-                        </tr>
+                              <Link
+                                to={`/pokemon/${encodeURIComponent(r.opponent_species)}`}
+                                className="cell-link"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <PokemonIcon
+                                  species={r.opponent_species}
+                                  size="small"
+                                  style={{
+                                    width: 24,
+                                    height: 24,
+                                    marginRight: 6,
+                                    verticalAlign: "middle",
+                                  }}
+                                />
+                                {r.opponent_species}
+                              </Link>
+                            </td>
+                            <td className="profile-table__num">
+                              {pct(r.opp_usage)}
+                            </td>
+                            <td className="profile-table__num">
+                              <WinRateBar value={r.win_rate} />
+                            </td>
+                          </tr>
                         );
                       })
                     )}
@@ -1363,176 +1523,310 @@ export function PokemonPage() {
             );
           })()}
 
-        {tab === "stats" && (() => {
-          const sorted = applySort(spreads, spreadSort?.col ?? null, spreadSort?.dir ?? "desc");
+        {tab === "stats" &&
+          (() => {
+            const sorted = applySort(
+              spreads,
+              spreadSort?.col ?? null,
+              spreadSort?.dir ?? "desc",
+            );
 
+            return (
+              <>
+                <h3
+                  className="profile-section-heading"
+                  style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}
+                >
+                  Nature distribution
+                </h3>
+                <MultiTrendChart
+                  series={Object.entries(natureTrends).map(
+                    ([name, points], i) => ({
+                      name,
+                      color: SERIES_COLORS[i % SERIES_COLORS.length],
+                      points,
+                    }),
+                  )}
+                  defaultMetric="usage"
+                  showToggle={false}
+                  height={220}
+                />
 
-          return (
-            <>
-              <h3 className="profile-section-heading" style={{ borderTop: "none", paddingTop: 0, marginTop: 0 }}>
-                Nature distribution
-              </h3>
-              <MultiTrendChart
-                series={Object.entries(natureTrends).map(([name, points], i) => ({
-                  name,
-                  color: SERIES_COLORS[i % SERIES_COLORS.length],
-                  points,
-                }))}
-                defaultMetric="usage"
-                showToggle={false}
-                height={220}
-              />
+                <h3 className="profile-section-heading">Stats</h3>
 
-              <h3 className="profile-section-heading">Stats</h3>
-
-              {/* Distribution chart */}
-              <div className="trend-chart" style={{ paddingTop: 0 }}>
-                <div className="trend-chart__header stat-chart-header">
-                  <div className="trend-chart__title">
-                    <span className="trend-chart__name">Stats</span>
-                    <span className="trend-chart__period">Jan – Apr 2026 · weekly</span>
+                {/* Distribution chart */}
+                <div className="trend-chart" style={{ paddingTop: 0 }}>
+                  <div className="trend-chart__header stat-chart-header">
+                    <div className="trend-chart__title">
+                      <span className="trend-chart__name">Stats</span>
+                      <span className="trend-chart__period">
+                        Jan – Apr 2026 · weekly
+                      </span>
+                    </div>
+                    <div
+                      className="trend-chart__right"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        flexWrap: "wrap",
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <div className="stat-btn-group">
+                        {STAT_KEYS.map((stat) => {
+                          const active = selectedStat === stat;
+                          return (
+                            <button
+                              key={stat}
+                              className="stat-btn"
+                              onClick={() => setSelectedStat(stat)}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                borderRadius: 99,
+                                border: `1px solid ${active ? STAT_COLORS[stat] : "var(--border)"}`,
+                                background: active
+                                  ? `${STAT_COLORS[stat]}22`
+                                  : "transparent",
+                                color: active
+                                  ? STAT_COLORS[stat]
+                                  : "var(--text-4)",
+                                fontFamily: "var(--font-ui)",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                transition: "all 0.15s",
+                              }}
+                            >
+                              {STAT_LABELS[stat]}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="trend-chart__toggle">
+                        <button
+                          className={`trend-toggle-btn${statViewMode === "investment" ? " active" : ""}`}
+                          onClick={() => setStatViewMode("investment")}
+                        >
+                          Investment
+                        </button>
+                        <button
+                          className={`trend-toggle-btn${statViewMode === "effective" ? " active" : ""}`}
+                          onClick={() => setStatViewMode("effective")}
+                        >
+                          Effective
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="trend-chart__right" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                    <div className="stat-btn-group">
-                      {STAT_KEYS.map((stat) => {
-                        const active = selectedStat === stat;
-                        return (
-                          <button
-                            key={stat}
-                            className="stat-btn"
-                            onClick={() => setSelectedStat(stat)}
+                  {(() => {
+                    const distData = buildStatDistribution(
+                      decoded,
+                      spreads,
+                      selectedStat,
+                      statViewMode,
+                    );
+                    const domain: [number, number] =
+                      statViewMode === "investment"
+                        ? [0, 32]
+                        : effectiveStatDomain(decoded, selectedStat);
+                    const ticks =
+                      statViewMode === "investment"
+                        ? [0, 4, 8, 12, 16, 20, 24, 28, 32]
+                        : undefined;
+                    const zones =
+                      statViewMode === "effective"
+                        ? effectiveStatNatureZones(decoded, selectedStat)
+                        : null;
+                    return (
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart
+                          data={distData}
+                          margin={{ top: 4, right: 8, left: -16, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient
+                              id="stat-minus-grad"
+                              x1="0"
+                              y1="0"
+                              x2="1"
+                              y2="0"
+                            >
+                              <stop
+                                offset="0%"
+                                stopColor="#ef4444"
+                                stopOpacity={0.35}
+                              />
+                              <stop
+                                offset="60%"
+                                stopColor="#ef4444"
+                                stopOpacity={0.35}
+                              />
+                              <stop
+                                offset="100%"
+                                stopColor="#ef4444"
+                                stopOpacity={0}
+                              />
+                            </linearGradient>
+                            <linearGradient
+                              id="stat-plus-grad"
+                              x1="0"
+                              y1="0"
+                              x2="1"
+                              y2="0"
+                            >
+                              <stop
+                                offset="0%"
+                                stopColor="#22c55e"
+                                stopOpacity={0}
+                              />
+                              <stop
+                                offset="40%"
+                                stopColor="#22c55e"
+                                stopOpacity={0.35}
+                              />
+                              <stop
+                                offset="100%"
+                                stopColor="#22c55e"
+                                stopOpacity={0.35}
+                              />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid
+                            strokeDasharray="1 4"
+                            stroke="rgba(255,255,255,0.04)"
+                            vertical={false}
+                          />
+                          {zones && (
+                            <ReferenceArea
+                              x1={zones.minusBound}
+                              x2={zones.neutralMin}
+                              fill="url(#stat-minus-grad)"
+                              strokeOpacity={0}
+                            />
+                          )}
+                          {zones && (
+                            <ReferenceArea
+                              x1={zones.neutralMax}
+                              x2={zones.plusBound}
+                              fill="url(#stat-plus-grad)"
+                              strokeOpacity={0}
+                            />
+                          )}
+                          <XAxis
+                            dataKey="value"
+                            type="number"
+                            domain={domain}
+                            ticks={ticks}
+                            padding={{ left: 10, right: 10 }}
+                            tick={{
+                              fontSize: 11,
+                              fill: "var(--text-4)",
+                              fontFamily: "JetBrains Mono, monospace",
+                            }}
+                            axisLine={{ stroke: "var(--border)" }}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            tick={{
+                              fontSize: 11,
+                              fill: "var(--text-4)",
+                              fontFamily: "JetBrains Mono, monospace",
+                            }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(v) => `${v.toFixed(0)}%`}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              background: "var(--surface-2)",
+                              border: "1px solid var(--border)",
+                              borderRadius: "var(--radius)",
+                              fontSize: 12,
+                              fontFamily: "var(--font-ui)",
+                            }}
+                            formatter={(v: number) => [
+                              `${v.toFixed(1)}%`,
+                              STAT_LABELS[selectedStat],
+                            ]}
+                            labelFormatter={(v) =>
+                              statViewMode === "investment"
+                                ? `${v} SP`
+                                : `Stat: ${v}`
+                            }
+                            cursor={false}
+                          />
+                          <Bar
+                            dataKey="usage"
+                            fill={STAT_COLORS[selectedStat]}
+                            maxBarSize={20}
+                            radius={[2, 2, 0, 0]}
+                            activeBar={{
+                              fill: STAT_COLORS[selectedStat],
+                              stroke: "white",
+                              strokeWidth: 2,
+                              strokeOpacity: 0.5,
+                            }}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    );
+                  })()}
+                </div>
+
+                <table className="profile-table" style={{ marginTop: 16 }}>
+                  <thead>
+                    <tr>
+                      <th>Stat Points</th>
+                      <th className="right">Nature</th>
+                      <SortTh
+                        label="Usage"
+                        active={spreadSort?.col === "usage_pct"}
+                        dir={spreadSort?.dir ?? "desc"}
+                        onClick={() =>
+                          toggleSort("usage_pct", spreadSort, setSpreadSort)
+                        }
+                        className="col-win-rate"
+                      />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sorted.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="profile-no-data">
+                          No data available.
+                        </td>
+                      </tr>
+                    ) : (
+                      sorted.map((r, i) => (
+                        <tr key={i}>
+                          <td
                             style={{
-                              display: "flex", alignItems: "center",
-                              borderRadius: 99,
-                              border: `1px solid ${active ? STAT_COLORS[stat] : "var(--border)"}`,
-                              background: active ? `${STAT_COLORS[stat]}22` : "transparent",
-                              color: active ? STAT_COLORS[stat] : "var(--text-4)",
-                              fontFamily: "var(--font-ui)", fontWeight: 600,
-                              cursor: "pointer", transition: "all 0.15s",
+                              fontFamily: "var(--font-mono, monospace)",
+                              fontSize: 12,
                             }}
                           >
-                            {STAT_LABELS[stat]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div className="trend-chart__toggle">
-                      <button
-                        className={`trend-toggle-btn${statViewMode === "investment" ? " active" : ""}`}
-                        onClick={() => setStatViewMode("investment")}
-                      >
-                        Investment
-                      </button>
-                      <button
-                        className={`trend-toggle-btn${statViewMode === "effective" ? " active" : ""}`}
-                        onClick={() => setStatViewMode("effective")}
-                      >
-                        Effective
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                {(() => {
-                const distData = buildStatDistribution(decoded, spreads, selectedStat, statViewMode);
-                const domain: [number, number] = statViewMode === "investment"
-                  ? [0, 32]
-                  : effectiveStatDomain(decoded, selectedStat);
-                const ticks = statViewMode === "investment"
-                  ? [0, 4, 8, 12, 16, 20, 24, 28, 32]
-                  : undefined;
-                const zones = statViewMode === "effective"
-                  ? effectiveStatNatureZones(decoded, selectedStat)
-                  : null;
-                return (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={distData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="stat-minus-grad" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor="#ef4444" stopOpacity={0.35} />
-                          <stop offset="60%" stopColor="#ef4444" stopOpacity={0.35} />
-                          <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="stat-plus-grad" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor="#22c55e" stopOpacity={0} />
-                          <stop offset="40%" stopColor="#22c55e" stopOpacity={0.35} />
-                          <stop offset="100%" stopColor="#22c55e" stopOpacity={0.35} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="1 4" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                      {zones && <ReferenceArea x1={zones.minusBound} x2={zones.neutralMin} fill="url(#stat-minus-grad)" strokeOpacity={0} />}
-                      {zones && <ReferenceArea x1={zones.neutralMax} x2={zones.plusBound} fill="url(#stat-plus-grad)" strokeOpacity={0} />}
-                      <XAxis
-                        dataKey="value"
-                        type="number"
-                        domain={domain}
-                        ticks={ticks}
-                        padding={{ left: 10, right: 10 }}
-                        tick={{ fontSize: 11, fill: "var(--text-4)", fontFamily: "JetBrains Mono, monospace" }}
-                        axisLine={{ stroke: "var(--border)" }}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 11, fill: "var(--text-4)", fontFamily: "JetBrains Mono, monospace" }}
-                        axisLine={false}
-                        tickLine={false}
-                        tickFormatter={(v) => `${v.toFixed(0)}%`}
-                      />
-                      <Tooltip
-                        contentStyle={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--radius)", fontSize: 12, fontFamily: "var(--font-ui)" }}
-                        formatter={(v: number) => [`${v.toFixed(1)}%`, STAT_LABELS[selectedStat]]}
-                        labelFormatter={(v) => statViewMode === "investment" ? `${v} SP` : `Stat: ${v}`}
-                        cursor={false}
-                      />
-                      <Bar
-                        dataKey="usage"
-                        fill={STAT_COLORS[selectedStat]}
-                        maxBarSize={20}
-                        radius={[2, 2, 0, 0]}
-                        activeBar={{ fill: STAT_COLORS[selectedStat], stroke: "white", strokeWidth: 2, strokeOpacity: 0.5 }}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                );
-              })()}
-              </div>
-
-              <table className="profile-table" style={{ marginTop: 16 }}>
-                <thead>
-                  <tr>
-                    <th>Stat Points</th>
-                    <th className="right">Nature</th>
-                    <SortTh
-                      label="Usage"
-                      active={spreadSort?.col === "usage_pct"}
-                      dir={spreadSort?.dir ?? "desc"}
-                      onClick={() => toggleSort("usage_pct", spreadSort, setSpreadSort)}
-                      className="col-win-rate"
-                    />
-                  </tr>
-                </thead>
-                <tbody>
-                  {sorted.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="profile-no-data">No data available.</td>
-                    </tr>
-                  ) : (
-                    sorted.map((r, i) => (
-                        <tr key={i}>
-                          <td style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 12 }}>
                             {r.hp}/{r.atk}/{r.def}/{r.spa}/{r.spd}/{r.spe}
                           </td>
-                          <td className="profile-table__num" style={{ color: "var(--text-2)" }}>{r.nature}</td>
+                          <td
+                            className="profile-table__num"
+                            style={{ color: "var(--text-2)" }}
+                          >
+                            {r.nature}
+                          </td>
                           <td className="col-win-rate" style={{ width: 180 }}>
-                            <span style={{ color: "var(--accent)" }}>{pct(r.usage_pct)}</span>
+                            <span style={{ color: "var(--accent)" }}>
+                              {pct(r.usage_pct)}
+                            </span>
                           </td>
                         </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </>
-          );
-        })()}
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </>
+            );
+          })()}
       </div>
     </div>
   );
